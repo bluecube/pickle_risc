@@ -1,5 +1,7 @@
 """ This file defines the instruction set architecture of trilo8bit.
 
+Little endian
+
 Registers
     r0 - 8bit Accumulator
     r1, r2, - 8bit general purpose / 16bit pointer
@@ -63,34 +65,34 @@ Modes:
 import math
 
 instructions = {
-    "mov":     ("0rrr aaaa", [("target", "r"), ("source", "a")], "target (register) <- source"),
-    "nand":    ("0101 aaaa", [("arg", "a")], "r0 <- r0 nand arg, sets status flags based on result"),
-    "add":     ("0110 aaaa", [("arg", "a")], "r0 <- r0 + arg + C, sets status flags based on result"),
-    "sub":     ("0111 aaaa", [("arg", "a")], "r0 <- r0 - arg - C, sets status flags based on result"),
-    "st":      ("1rrr 0sss", [("target", "s"), ("source", "r")], "target (memory) <- source"),
-    "inc":     ("1rrr 1000", [("arg", "r")], "arg <- arg + 1"),
-    "dec":     ("1rrr 1001", [("arg", "r")], "arg <- arg - 1"),
-    "chk":     ("1rrr 1010", [("arg", "r")], "sets status flags based on value of arg"),
-    "neg":     ("1rrr 1011", [("arg", "r")], "arg <- -arg, sets status flags based on result"),
-    "shl":     ("1rrr 1100", [("arg", "r")], "arg <- arg << 1 | C, sets status flags, based on result"),
-    "shr":     ("1rrr 1101", [("arg", "r")], "arg <- arg >> 1 | C << 7, sets status flags, based on result"),
+    "MOV":     ("0rrr aaaa", [("target", "r"), ("source", "a")], "target (register) <- source"),
+    "NAND":    ("0101 aaaa", [("arg", "a")], "R0 <- R0 nand arg, sets status flags based on result"),
+    "ADD":     ("0110 aaaa", [("arg", "a")], "R0 <- R0 + arg + C, sets status flags based on result"),
+    "SUB":     ("0111 aaaa", [("arg", "a")], "R0 <- R0 - arg - C, sets status flags based on result"),
+    "ST":      ("1rrr 0sss", [("target", "s"), ("source", "r")], "target (memory) <- source"),
+    "INC":     ("1rrr 1000", [("arg", "r")], "arg <- arg + 1"),
+    "DEC":     ("1rrr 1001", [("arg", "r")], "arg <- arg - 1"),
+    "CHK":     ("1rrr 1010", [("arg", "r")], "sets status flags based on value of arg"),
+    "NEG":     ("1rrr 1011", [("arg", "r")], "arg <- -arg, sets status flags based on result"),
+    "SHL":     ("1rrr 1100", [("arg", "r")], "arg <- arg << 1 | C, sets status flags, based on result"),
+    "SHR":     ("1rrr 1101", [("arg", "r")], "arg <- arg >> 1 | C << 7, sets status flags, based on result"),
     #"":       ("1rrr 110_", [], "")
-    "movw":    ("1101 ppqq", [("target", "p"), ("source", "q")], "target (16 bit) <- source (16 bit)"),
-    "skip1if": ("1110 0ccc", [("condition", "c")], "If condition: Pc <- Pc + 1"),
-    "skip2if": ("1110 1ccc", [("condition", "c")], "If condition: Pc <- Pc + 2"),
-    "seti":    ("1111 0000", [], "Int <- (r3,r4)"),
-    "geti":    ("1111 0001", [], "(r3,r4) <- Int"),
-    "setpid":  ("1111 0010", [], "Pidl <- r0"),
-    "reti":    ("1111 0011", [], "Pc <- Int, Pid <- Pidl, Int <- 0, Pidl <- 0"),
-    "call":    ("1111 01qq", [("address", "q")], "Pc <-> address"),
-    "clrcc":   ("1111 1000", [], "C <- 0"),
-    "setc":    ("1111 1001", [], "C <- 1"),
-    "pushst":  ("1111 1010", [], "[-Sp] <- (Z, C, N)"),
-    "popst":   ("1111 1011", [], "(Z, C, N) <- [Sp+]"),
-    "rjmp":    ("1111 1100", [], "Pc <- Pc + [Pc]"),
-    "dma":     ("1111 1101", [], "RESERVED: Switch into DMA mode."),
-    "sleep":   ("1111 1110", [], "RESERVED: Switch into sleep mode."),
-    "int":     ("1111 1111", [], "Raise interrupt 15."),
+    "MOVW":    ("1101 ppqq", [("target", "p"), ("source", "q")], "target (16 bit) <- source (16 bit)"),
+    "SKIP1IF": ("1110 0ccc", [("condition", "c")], "If condition: Pc <- Pc + 1"),
+    "SKIP2IF": ("1110 1ccc", [("condition", "c")], "If condition: Pc <- Pc + 2"),
+    "SETI":    ("1111 0000", [], "Int <- (R3,R4)"),
+    "GETI":    ("1111 0001", [], "(R3,R4) <- Int"),
+    "SETPID":  ("1111 0010", [], "Pidl <- r0"),
+    "RETI":    ("1111 0011", [], "Pc <- Int, Pid <- Pidl, Int <- 0, Pidl <- 0"),
+    "CALL":    ("1111 01qq", [("address", "q")], "Pc <-> address"),
+    "CLRCC":   ("1111 1000", [], "C <- 0"),
+    "SETC":    ("1111 1001", [], "C <- 1"),
+    "PUSHST":  ("1111 1010", [], "[-Sp] <- (Z, C, N)"),
+    "POPST":   ("1111 1011", [], "(Z, C, N) <- [Sp+]"),
+    "RJMP":    ("1111 1100", [], "Pc <- Pc + [Pc]"),
+    "DMA":     ("1111 1101", [], "RESERVED: Switch into DMA mode."),
+    "SLEEP":   ("1111 1110", [], "RESERVED: Switch into sleep mode."),
+    "INT":     ("1111 1111", [], "Raise interrupt 15."),
 }
 
 instruction_arg_types = {
