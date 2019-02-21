@@ -13,7 +13,7 @@ Registers
     Pidl - 8bit latch register for Pid to allow atomic context switches with reti
     Z - 1bit zero flag
     C - 1bit carry flag
-    N - 1bit negative flag (!?!?!?!?)
+    N - 1bit negative flag
 
 Interrupts (4bit):
     0 - None
@@ -62,8 +62,6 @@ Modes:
         - Can only be exited via interrupt
 """
 
-import math
-
 instructions = {
     "MOV":     ("0rrr aaaa", [("target", "r"), ("source", "a")], "target (register) <- source"),
     "NAND":    ("0101 aaaa", [("arg", "a")], "R0 <- R0 nand arg, sets status flags based on result"),
@@ -85,21 +83,51 @@ instructions = {
     "SETPID":  ("1111 0010", [], "Pidl <- r0"),
     "RETI":    ("1111 0011", [], "Pc <- Int, Pid <- Pidl, Int <- 0, Pidl <- 0"),
     "CALL":    ("1111 01qq", [("address", "q")], "Pc <-> address"),
-    "CLRCC":   ("1111 1000", [], "C <- 0"),
+    "CLRC":    ("1111 1000", [], "C <- 0"),
     "SETC":    ("1111 1001", [], "C <- 1"),
     "PUSHST":  ("1111 1010", [], "[-Sp] <- (Z, C, N)"),
     "POPST":   ("1111 1011", [], "(Z, C, N) <- [Sp+]"),
-    "RJMP":    ("1111 1100", [], "Pc <- Pc + [Pc]"),
-    "DMA":     ("1111 1101", [], "RESERVED: Switch into DMA mode."),
-    "SLEEP":   ("1111 1110", [], "RESERVED: Switch into sleep mode."),
+    "RJMP":    ("1111 1100", [("offset", "i")], "Pc <- Pc + offset ( = [Pc])"),
+    "DMA":     ("1111 1101", [], "Switch into DMA mode."),
+    "SLEEP":   ("1111 1110", [], "Switch into sleep mode."),
     "INT":     ("1111 1111", [], "Raise interrupt 15."),
 }
 
-instruction_arg_types = {
-    "r": math.log2(5),  # Register as a target: r0, .., r4 TODO: encoding (5/8)
-    "a": 4,  # ALU source: r0, .., r4, [Sp], [r1,r2], [r3,r4], [Sp+], [Pc+], [(r1,r2)+], [(r3,r4)+], [Sp+r0], [(r1,r2)+r0], [(r3,r4)+r0], 0
-    "s": 3,  # Store target: [-Sp], [r1,r2], [r3,r4], [(r1,r2)+], [(r3,r4)+], ?, ?, ?
-    "p": 2,  # Regpair target Sp, Pc, (r1,r2), (r3, r4)
-    "q": 2,  # Regpair source Sp, Pc, (r1,r2), (r3, r4)
-    "c": 3,  # Skip instruction condition: never(?), C, Z, N ; negate
+R0 = Register("R0")
+R1 = Register("R1")
+R2 = Register("R2")
+R3 = Register("R3")
+R4 = Register("R4")
+
+
+gp_registers = []
+regpair_names = "Pc R1 R3 Sp".split()
+
+arg_types = {
+    "r": (gp_register_names, "Register"),
+    "a": (gp_register_names +
+          [""] * 4 +
+          ["[{}]".format(regpair) for regpair in regpair_names[1:]] +
+          ["[{}.inc]".format(regpair) for regpair in regpair_names],
+          "ALU value"),
+    "s": ([""] +
+          ["[{}]".format(regpair) for regpair in regpair_names[1:]] +
+          [""] +
+          ["[{}.inc]".format(regpair) for regpair in regpair_names[1:-1]] +
+          ["[{}.dec]".format(regpair_names[-1])],
+          "Store target"),
+    "p": (regpair_names, "Regpair target"),
+    "q": (regpair_names, "Regpair source"),
+    "c": (["True", "False",
+           "C", "not C",
+           "Z", "not Z",
+           "N", "not N"], "Skip condition")
 }
+
+if __name__ == "__main__":
+    import pprint
+    print("Instructions:")
+    pprint.pprint(instructions)
+    print()
+    print("Argument types:")
+    pprint.pprint(arg_types)
