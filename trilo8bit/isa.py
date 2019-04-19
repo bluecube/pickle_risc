@@ -9,13 +9,11 @@ Registers
     B - 16bit pointer
     Sp - 16bit stack pointer - points at the third item on the stack, first in memory
     Pc - 16bit program counter - points at the next instruction to be executed
-    Int - 16bit interrupt return address / kernel mode flag (Int != 0 => kernel mode)
-
-    ???:
+    IPc - 16bit interrupt return address / kernel mode flag (Int != 0 => kernel mode)
     Pid - 8bit page / process ID
-    Pidl - 8bit latch register for Pid to allow atomic context switches with reti
     N - 1bit negative flag
     I - 8bit instruction register (not accessible to programmer)
+    Tmp - 8bit Temporary register (not accessible to programmer)
 
 Interrupts (4bit):
     0 - serial0 data available
@@ -124,17 +122,17 @@ Microcode:
 #   shl, shr
 
 def _predec_mem_read(reg):
-    return [f"Read{reg}Addr", "AddrOpMinusOne", "AddAddr", f"Load{reg}Addr", "MemRead"] # TODO how is the PRE part done?
+    return [f"Read{reg}Addr", "AddrOpMinusOne", f"Load{reg}Addr", "MemRead"] # TODO how is the PRE part done?
 def _postinc_mem_read(reg):
-    return [f"Read{reg}Addr", "AddrOpOne", "AddAddr", f"Load{reg}Addr", "MemRead"] # TODO: how is the POST  part done?
+    return [f"Read{reg}Addr", "AddrOpOne", f"Load{reg}Addr", "MemRead"] # TODO: how is the POST  part done?
 def _predec_mem_write(reg):
-    return [f"Read{reg}Addr", "AddrOpMinusOne", "AddAddr", f"Load{reg}Addr", "MemWrite"]
+    return [f"Read{reg}Addr", "AddrOpMinusOne", f"Load{reg}Addr", "MemWrite"]
 _pc_read = _postinc_mem_read("Pc") + ["MemP"]
 _stack_pop = _postinc_mem_read("Sp")
 _stack_push = _predec_mem_write("Sp")
 _end_instruction = Cond(interrupt == 0,
                         _pc_read + ["LoadI", "ResetUPc"],
-                        ["IntFromPc", "ReadInterrputAddr", "LoadPcAddr"])
+                        ["PcFromInt", "ReadPcAddr", "AddrOpOne", "LoadIPcAddr"]) # TODO: Just incremented IPc
 
 instructions = {
 
@@ -355,6 +353,13 @@ instructions = {
             _stack_push +
         ]
     ),
+    "sign_extend": (
+        "____ ____",
+        "Push a byte onto stack with top bit of Tos0 repeated",
+        [
+            _stack_push + ["Tos1FromTos0", "AluSex"],
+            _end_instruction
+        ]
     "push_a_high":          ("0110 0___", "[--Sp] = Tos0; Tos0 = A.hi8"),
     "push_b_low":           ("0110 0___", "[--Sp] = Tos0; Tos0 = B.lo8"),
     "push_b_high":          ("0110 0___", "[--Sp] = Tos0; Tos0 = B.hi8"),
@@ -364,7 +369,15 @@ instructions = {
 
 # bit 0 (Jump bit) = true
     # bit 1,2 (Jump source) = 00 (unconditional jump)
-    "jump":                 ("100j jjjj", "Pc += x (signed 5bit jump)"),
+    "jump": (
+        "____ ____ ssss ssss",
+        "Pc += s (signed jump)",
+        [
+            _pc_read + ["LoadTmp"],
+            ["ReadPcAddr", "AddrOpTmp", "LoadPcAddr"]
+            _end_instruction,
+        ]
+    ),
     # bit 1,2 (Jump source) = 01 (conditional jump -- based on Tos0)
     "branch":               ("1000 jjjj", "if (Tos0 != 0) Pc += x (signed 4bit jump)"),
     "branch_dec":           ("1001 jjjj", "if (Tos0-- != 0) Pc += x (signed 4bit jump)"),
