@@ -1,4 +1,5 @@
 """ This file defines the instruction set architecture of trilo8bit.
+It's the main source of information for the assembler, microcode program and simulator.
 
 Little endian
 
@@ -105,11 +106,11 @@ Memory model:
 Microcode:
     Input:
         8b instruction
-        2b uPC
+        3b uPC
         1b interrupt flag
-        1b Tos0 != 0
-        1b C
-        (13b ~> 8k)
+        1b zero flag
+        1b carry
+        (14b ~> 16k)
     Output:
         1b ResetUPc
 
@@ -136,7 +137,6 @@ _end_instruction = Cond(interrupt == 0,
 
 instructions = {
     "nop": (
-        "0000 0000",
         "No operation",
         [
             _end_instruction
@@ -147,51 +147,45 @@ instructions = {
 # Forth-like stack operations
 #################################################################################
     "swap": (
-        "000_ ____",
-        "Tos0, Tos1 = Tos1, Tos0 (Swap two topmost items on stack)",
+        "Swap two topmost items on stack",
         [
-            ["ReadTos1", "LoadTos0", "AluTos1", "Tos1FromTos0"],
+            ["ReadTos1", "LoadTos0", "AluDataBus", "Tos1FromTos0"],
             _end_instruction
         ]
     ),
     "dup": (
-        "0110 0___",
-        "[--Sp] = Tos1; Tos1 = Tos0 (Duplicate top of stack value)",
+        "Duplicate top of stack value",
         [
             _stack_push + ["ReadTos1", "Tos1FromTos0"],
             _end_instruction
         ]
     ),
     "drop": (
-        "0100 ____",
-        "Tos0 = Tos1; Tos1 = [Sp++] (Pop one item from stack)",
+        "Remove the topmost item from stack",
         [
-            ["ReadTos1", "LoadTos0"],
+            ["ReadTos1", "LoadTos0", "AluDataBus"],
             _stack_pop + ["LoadTos1"],
             _end_instruction
         ]
     ),
     "nip": (
-        "0100 ____",
-        "Tos1 = [Sp++] (Drop second to top of stack)",
+        "Drop second to top of stack",
         [
             _stack_pop + ["LoadTos1"],
             _end_instruction
         ]
     ),
     "tuck": (
-        "0110 0___",
-        "[--Sp] = Tos0 (Copy the top stack item below the second item)",
+        "Copy the top stack item below the second item",
         [
             _stack_push + ["ReadTos0"],
             _end_instruction
         ]
     ),
     "over": (
-        "0110 0___",
         "[--Sp] = Tos1; Tos0, Tos1 = Tos1, Tos0 (Copy the second item to top)",
         [
-            _stack_push + ["ReadTos1", "LoadTos0", "Tos1FromTos0"],
+            _stack_push + ["ReadTos1", "LoadTos0", "AluDataBus", "Tos1FromTos0"],
             _end_instruction
         ]
     ),
@@ -200,7 +194,6 @@ instructions = {
 # Arithmetic/logic operations
 #################################################################################
     "bit_not": (
-        "000_ ____",
         "Tos0 = ~Tos0",
         [
             ["LoadTos0", "AluNot"],
@@ -208,15 +201,13 @@ instructions = {
         ]
     ),
     "negate": (
-        "000_ ____",
-        "Tos0 = ~Tos0 + 1",
+        "Tos0 = -Tos0",
         [
             ["LoadTos0", "AluNeg"],
             _end_instruction
         ]
     ),
     "bit_shift_right": (
-        "000_ ____",
         "Tos0 = Tos0 >> 1",
         [
             ["LoadTos0", "AluShr"],
@@ -242,7 +233,6 @@ instructions = {
     #"compare_lt"            ("0100 ____", "Tos0 = Tos1 < Tos0; Tos1 = [Sp++]"),
     #"compare_le"            ("0100 ____", "Tos0 = Tos1 <= Tos0; Tos1 = [Sp++]"),
     "sign_extend": (
-        "____ ____",
         "Push a byte onto stack with top bit of Tos0 repeated",
         [
             _stack_push + ["Tos1FromTos0", "AluSex"],
@@ -253,31 +243,36 @@ instructions = {
 #################################################################################
 # Loads / stores
 #################################################################################
-    "load_immediate": (
-        "000_ ____ iiii iiii",
-        "Tos0 = [Pc++] (Load value from the following program byte)",
+    "push_immediate": (
+        "Push value from the following program byte",
         [
-            ["LoadTos0", "ReadPcAddr", "AddrOpOne", "AddAddr", "LoadPcAddr", "MemRead", "MemP"],
+            _stack_push + ["ReadTos0"],
+            _pc_read + ["LoadTos0", "AluDataBus"],
             _end_instruction
-        ]
+        ],
+        "u8"
     ),
     "load_immediate_a": (
-        "000_ ____ iiii iiii iiii iiii",
-        "A = [Pc++], [Pc++] (Load value from the following two program bytes to A)",
+        "Load value from the following two program bytes to A",
         [
-            _pc_read + ["LoadALo"],
-            _pc_read + ["LoadAHi"],
+            _pc_read + ["LoadTmp"],
+            ["ReadTmp", "DtoAL", "LoadAL"],
+            _pc_read + ["LoadTmp"],
+            ["ReadTmp", "DtoAH", "LoadAH"],
             _end_instruction
-        ]
+        ],
+        "u16"
     ),
     "load_immediate_b": (
-        "000_ ____ iiii iiii",
         "B = [Pc++], [Pc++] (Load value from the following two program bytes to B)",
         [
-            _pc_read + ["LoadBLo"],
-            _pc_read + ["LoadBHi"],
+            _pc_read + ["LoadTmp"],
+            ["ReadTmp", "DtoAL", "LoadBL"],
+            _pc_read + ["LoadTmp"],
+            ["ReadTmp", "DtoAH", "LoadBH"],
             _end_instruction
-        ]
+        ],
+        "u8"
     ),
     #"load_a":               ("0010 0000", "Tos0 = [A]"),
     #"load_a_inc":           ("0010 0001", "Tos0 = [A++]"),
@@ -291,38 +286,32 @@ instructions = {
     #"store_b":              ("0010 1100", "[B] = Tos0"),
     #"store_b_inc":          ("0010 1101", "[B++] = Tos0"),
     #"store_b_dec":          ("0010 1010", "[--B] = Tos0"),
-    #"load_b_relative":      ("0011 uuuu", "Tos0 = [B + i] (unsigned offset)"),
-    "load_stack_relative": (
-        "____ ____",
-        "Load item from stack, using a offset from the top of stack. Note that two top items are not accessible by this instruction (are stored in registers). Offset is signed, but negative values don't have much sense.",
-        [
-            ["LoadTos0", "ReadSpAddr", "AddrOpTos0", "AddAddr", "MemRead"],
-            _end_instruction
-        ]
-    ),
+
+    #TODO: Add relative addressing modes?
+    #"load_a_relative"
+    #"load_b_relative"
+    #"load_stack_relative"
 
 #################################################################################
 # Jumps
 #################################################################################
     "call": (
-        "____ ____",
         "Jump to an address stored in A and store the return address in A.",
         [
-            ### Swap A and Pc
             _end_instruction,
         ]
     ),
     "call_immediate": (
-        "____ ____ aaaa aaaa aaaa aaaa",
         "Jump to an immediate 16 bit value, store return address in A.",
         [
-            _stack_push + ["ReadTos1"],
             _pc_read + ["LoadTmp"],
-
+            ["ReadTmp", "DtoAL", "LoadAL"],
+            _pc_read + ["LoadTmp"],
+            ["ReadTmp", "DtoAH", "LoadAH"],
+            _end_instruction
         ]
     )
     "rjump": (
-        "____ ____ ssss ssss",
         "Jump by a immediate signed 8bit distance. 3 cycles.",
         [
             _pc_read + ["LoadTmp"],
@@ -331,7 +320,6 @@ instructions = {
         ]
     ),
     "rjump_if": (
-        "____ ____ ssss ssss",
         "Pop a value from the top of stack and jump by a signed 8bit distance if the value was nonzero. 4 cycles.",
         [
             _pc_read + ["LoadTmp"],
