@@ -143,20 +143,20 @@ instructions = {
         ]
     ),
 
-#################################################################################
-# Forth-like stack operations
-#################################################################################
+    ###########################################################################
+    # Forth-like stack operations
+    ###########################################################################
     "swap": (
         "Swap two topmost items on stack",
         [
-            ["ReadTos1", "LoadTos0", "AluDataBus", "Tos1FromTos0"],
+            ["ReadTos1", "AluDataBus", "Tos1FromTos0", "SetTos0", "SetTos1"],
             _end_instruction
         ]
     ),
     "dup": (
         "Duplicate top of stack value",
         [
-            _stack_push + ["ReadTos1", "Tos1FromTos0"],
+            _stack_push + ["ReadTos1", "Tos1FromTos0", "SetTos1"],
             _end_instruction
         ]
     ),
@@ -190,9 +190,9 @@ instructions = {
         ]
     ),
 
-#################################################################################
-# Arithmetic/logic operations
-#################################################################################
+    ###########################################################################
+    # Arithmetic/logic operations
+    ###########################################################################
     "bit_not": (
         "Tos0 = ~Tos0",
         [
@@ -214,24 +214,24 @@ instructions = {
             _end_instruction
         ]
     ),
-    #"bit_shift_right_sign":     ("000_ ____", "Tos0 = Tos0 >> 1 | Tos0 & 0x80"),
-    #"bit_shift_right_carry":    ("000_ ____", "Tos0 = Tos0 >> 1 | C << 7"),
-    #"bit_shift_left":           ("000_ ____", "Tos0 = Tos0 << 1"),
-    #"bit_shift_left_circular":  ("000_ ____", "Tos0 = Tos0 << | ((Tos0 & 0x80) >> 7)"),
-    #"bit_shift_left_carry":     ("000_ ____", "Tos0 = Tos0 << 1 | C"),
-    #"is_negative":          ("000_ ____", "Tos0 = Tos0 & 0x80"), # TODO: Does this actually work correctly?
-    #"inc":                  ("000_ ____", "Tos0 += 1"),
-    #"inc_carry":            ("000_ ____", "Tos0 += C"),
-    #"dec_carry":            ("000_ ____", "Tos0 += 0xff"), #TODO: DECC and INCC are the same?
-    #"add":                  ("0100 ___0", "Tos0 = Tos1 + Tos0; Tos1 = [Sp++]"),
-    #"add_carry":            ("0100 ___1", "Tos0 = Tos1 + Tos0 + C; Tos1 = [Sp++]"),
-    #"sub":                  ("0100 ___0", "Tos0 = Tos1 + ~Tos0 + 1; Tos1 = [Sp++]"),
-    #"sub_carry":            ("0100 ___1", "Tos0 = Tos1 + ~Tos0 + C; Tos1 = [Sp++]"), # TODO: Check carry
-    #"bit_and":              ("0100 ____", "Tos0 = Tos1 & Tos0; Tos1 = [Sp++]"),
-    #"bit_or":               ("0100 ____", "Tos0 = Tos1 | Tos0; Tos1 = [Sp++]"),
-    #"bit_xor":              ("0100 ____", "Tos0 = Tos1 ^ Tos0; Tos1 = [Sp++]"),
-    #"compare_lt"            ("0100 ____", "Tos0 = Tos1 < Tos0; Tos1 = [Sp++]"),
-    #"compare_le"            ("0100 ____", "Tos0 = Tos1 <= Tos0; Tos1 = [Sp++]"),
+    # "bit_shift_right_sign":     ("000_ ____", "Tos0 = Tos0 >> 1 | Tos0 & 0x80"),
+    # "bit_shift_right_carry":    ("000_ ____", "Tos0 = Tos0 >> 1 | C << 7"),
+    # "bit_shift_left":           ("000_ ____", "Tos0 = Tos0 << 1"),
+    # "bit_shift_left_circular":  ("000_ ____", "Tos0 = Tos0 << | ((Tos0 & 0x80) >> 7)"),
+    # "bit_shift_left_carry":     ("000_ ____", "Tos0 = Tos0 << 1 | C"),
+    # "is_negative":          ("000_ ____", "Tos0 = Tos0 & 0x80"), # TODO: Does this actually work correctly?
+    # "inc":                  ("000_ ____", "Tos0 += 1"),
+    # "inc_carry":            ("000_ ____", "Tos0 += C"),
+    # "dec_carry":            ("000_ ____", "Tos0 += 0xff"), #TODO: DECC and INCC are the same?
+    # "add":                  ("0100 ___0", "Tos0 = Tos1 + Tos0; Tos1 = [Sp++]"),
+    # "add_carry":            ("0100 ___1", "Tos0 = Tos1 + Tos0 + C; Tos1 = [Sp++]"),
+    # "sub":                  ("0100 ___0", "Tos0 = Tos1 + ~Tos0 + 1; Tos1 = [Sp++]"),
+    # "sub_carry":            ("0100 ___1", "Tos0 = Tos1 + ~Tos0 + C; Tos1 = [Sp++]"), # TODO: Check carry
+    # "bit_and":              ("0100 ____", "Tos0 = Tos1 & Tos0; Tos1 = [Sp++]"),
+    # "bit_or":               ("0100 ____", "Tos0 = Tos1 | Tos0; Tos1 = [Sp++]"),
+    # "bit_xor":              ("0100 ____", "Tos0 = Tos1 ^ Tos0; Tos1 = [Sp++]"),
+    # "compare_lt"            ("0100 ____", "Tos0 = Tos1 < Tos0; Tos1 = [Sp++]"),
+    # "compare_le"            ("0100 ____", "Tos0 = Tos1 <= Tos0; Tos1 = [Sp++]"),
     "sign_extend": (
         "Push a byte onto stack with top bit of Tos0 repeated",
         [
@@ -240,64 +240,46 @@ instructions = {
         ]
     ),
 
-#################################################################################
-# Loads / stores
-#################################################################################
+    ###########################################################################
+    # Loads / stores
+    ###########################################################################
     "push_immediate": (
         "Push value from the following program byte",
         [
-            _stack_push + ["ReadTos0"],
-            _pc_read + ["LoadTos0", "AluDataBus"],
+            _stack_push + ["ReadTos1"],
+            ["ReadTos0", "LoadTos1"],
+            _pc_read + ["LoadTos0"],
             _end_instruction
         ],
-        "u8"
     ),
-    "load_immediate_a": (
-        "Load value from the following two program bytes to A",
-        [
-            _pc_read + ["LoadTmp"],
-            ["ReadTmp", "DtoAL", "LoadAL"],
-            _pc_read + ["LoadTmp"],
-            ["ReadTmp", "DtoAH", "LoadAH"],
-            _end_instruction
-        ],
-        "u16"
-    ),
-    "load_immediate_b": (
-        "B = [Pc++], [Pc++] (Load value from the following two program bytes to B)",
-        [
-            _pc_read + ["LoadTmp"],
-            ["ReadTmp", "DtoAL", "LoadBL"],
-            _pc_read + ["LoadTmp"],
-            ["ReadTmp", "DtoAH", "LoadBH"],
-            _end_instruction
-        ],
-        "u8"
-    ),
-    #"load_a":               ("0010 0000", "Tos0 = [A]"),
-    #"load_a_inc":           ("0010 0001", "Tos0 = [A++]"),
-    #"load_a_dec":           ("0010 0010", "Tos0 = [--A]"),
-    #"load_b":               ("0010 0100", "Tos0 = [B]"),
-    #"load_b_inc":           ("0010 0110", "Tos0 = [B++]"),
-    #"load_b_dec":           ("0010 0110", "Tos0 = [--B]"),
-    #"store_a":              ("0010 1000", "[A] = Tos0"),
-    #"store_a_inc":          ("0010 1001", "[A++] = Tos0"),
-    #"store_a_dec":          ("0010 1010", "[--A] = Tos0"),
-    #"store_b":              ("0010 1100", "[B] = Tos0"),
-    #"store_b_inc":          ("0010 1101", "[B++] = Tos0"),
-    #"store_b_dec":          ("0010 1010", "[--B] = Tos0"),
+    # "load_a":               ("0010 0000", "Tos0 = [A]"),
+    # "load_a_inc":           ("0010 0001", "Tos0 = [A++]"),
+    # "load_a_dec":           ("0010 0010", "Tos0 = [--A]"),
+    # "load_b":               ("0010 0100", "Tos0 = [B]"),
+    # "load_b_inc":           ("0010 0110", "Tos0 = [B++]"),
+    # "load_b_dec":           ("0010 0110", "Tos0 = [--B]"),
+    # "store_a":              ("0010 1000", "[A] = Tos0"),
+    # "store_a_inc":          ("0010 1001", "[A++] = Tos0"),
+    # "store_a_dec":          ("0010 1010", "[--A] = Tos0"),
+    # "store_b":              ("0010 1100", "[B] = Tos0"),
+    # "store_b_inc":          ("0010 1101", "[B++] = Tos0"),
+    # "store_b_dec":          ("0010 1010", "[--B] = Tos0"),
 
-    #TODO: Add relative addressing modes?
-    #"load_a_relative"
-    #"load_b_relative"
-    #"load_stack_relative"
+    # TODO: Add relative addressing modes?
+    # "load_a_relative"
+    # "load_b_relative"
+    # "load_stack_relative"
 
-#################################################################################
-# Jumps
-#################################################################################
-    "call": (
+    ###########################################################################
+    # Jumps
+    ###########################################################################
+    "call_a": (
         "Jump to an address stored in A and store the return address in A.",
         [
+            _stack_push + ["ReadTos1"],
+            _stack_push + ["ReadTos0"],
+            ["ReadPcAddr", "LoadTosPair"],
+            ["ReadAAddr", "LoadPcAddr"],
             _end_instruction,
         ]
     ),
@@ -310,12 +292,12 @@ instructions = {
             ["ReadTmp", "DtoAH", "LoadAH"],
             _end_instruction
         ]
-    )
+    ),
     "rjump": (
         "Jump by a immediate signed 8bit distance. 3 cycles.",
         [
             _pc_read + ["LoadTmp"],
-            ["ReadPcAddr", "AddrOpTmp", "LoadPcAddr"]
+            ["ReadPcAddr", "AddrOpTmp", "LoadPcAddr"],
             _end_instruction,
         ]
     ),
@@ -324,19 +306,19 @@ instructions = {
         [
             _pc_read + ["LoadTmp"],
             Cond(Tos0 != 0, ["ReadPcAddr", "AddrOpTmp", "LoadPcAddr", "LoadTos0", "ReadTos1"], ["LoadTos0", "ReadTos1"]),
-            _stack_pop + ["LoadTos1"]
+            _stack_pop + ["LoadTos1"],
             _end_instruction,
         ]
     ),
 
-#################################################################################
-# Value instructions
-#################################################################################
+    ###########################################################################
+    # Value instructions
+    ###########################################################################
 
-    #"swap_b":               ("000_ ____", "B, A = A, B"),
-    #"swap_int":             ("000_ ____", "Int, A = A, Int"),
-    #"swap_sp":              ("000_ ____", "Sp, A = A, Sp"),
-    #"swap_pc":              ("000_ ____", "Pc, A = A, Pc"),
+    # "swap_a_b":               ("000_ ____", "B, A = A, B"),
+    # "swap_a_int":             ("000_ ____", "Int, A = A, Int"),
+    # "swap_a_sp":              ("000_ ____", "Sp, A = A, Sp"),
+    # "swap_a_pc":              ("000_ ____", "Pc, A = A, Pc"),
     "set_a_low":            ("0100 ____", "A.lo8 = Tos0; Tos0 = Tos1, Tos1 = [Sp++]"), # TODO: Maybe don't pop from the stack, just use TOS?
     "set_a_high":           ("0100 ____", "A.hi8 = Tos0; Tos0 = Tos1, Tos1 = [Sp++]"), # - " -
     "set_b_high":           ("0100 ____", "B.hi8 = Tos0; Tos0 = Tos1, Tos1 = [Sp++]"), # - " -
@@ -355,44 +337,62 @@ instructions = {
     "push_bit":             ("0110 1uuu", "[--Sp] = Tos0, Tos0 = 1 << u"), # TODO: Is it worth having extra 1-of-8 decoder for this?
     "push":                 ("0111 iiii", "[--Sp] = Tos0, Tos0 = value"),
 
-#################################################################################
-# Management instructions
-#################################################################################
-    #"reset":                ("000_ ____", "Reset the internal state of the CPU (set all registers to 0)."),
-    #"sleep":                ("000_ ____", "Switch into sleep mode."),
-    #"interrupt":            ("000_ ____", "Raise interrupt 15."),
+    ###########################################################################
+    # Management instructions
+    ###########################################################################
+    # "reset":                ("000_ ____", "Reset the internal state of the CPU (set all registers to 0)."),
+    # "sleep":                ("000_ ____", "Switch into sleep mode."),
+    # "interrupt":            ("000_ ____", "Raise interrupt 15."),
 
-#################################################################################
-# Complex instructions
-#################################################################################
+    ###########################################################################
+    # Complex instructions
+    ###########################################################################
     "memcpy": (
         "____ ____",
-        "Copy Tos0 bytes pointed to by A to a location pointed to by B. Clobbers Tos1. After the operation Tos0 is 0, A and B point one byte after the valid ranges, Tos1 is the last byte copied. 2 cycles / byte",
+        """Copy Tos0 bytes pointed to by A to a location pointed to by B.
+        Clobbers Tos1. After the operation Tos0 is 0, A and B point one byte
+        after the valid ranges, Tos1 is the last byte copied.
+        2 cycles / byte """,
         [
             Cond(Tos0 != 0, _postinc_mem_read("A") + ["LoadTos1", "AluDec"], _end_instruction),
             _postinc_mem_write("B") + ["ReadTos1", "ResetUPc"],
         ]
     ),
 
-   "strncpy": (
-        "____ ____",
-        "Copy Tos0 bytes pointed to by A to a location pointed to by B, terminating on zero byte. After the operation Tos0 is 0 or the number of bytes from the end where zero byte was encountered, A and B point one byte after the last copied byte, Tos1 is the last byte copied. 3 cycles / byte",
+    "strncpy": (
+        """Copy at most Tos0 bytes pointed to by A to a location pointed to by B,
+        terminating on zero byte. After the operation Tos0 is 0 or the number
+        of bytes from the end where zero byte was encountered, A and B point
+        one byte after the last copied byte, Tos1 is the last byte copied.
+        3 cycles / byte""",
         [
-            Cond(Tos0 != 0, _postinc_mem_read("A") + ["LoadTos1", "AluDec"], _end_instruction),
+            Cond(
+                Tos0 != 0,
+                _postinc_mem_read("A") + ["LoadTos1", "AluDec"],
+                _end_instruction
+            ),
             _postinc_mem_write("B") + ["ReadTos0", "Tos1FromTos0"],
-            Cond(Tos0 != 0, ["ReadTos1", "LoadTos0", "Tos1FromTos0", "ResetUPc"], ["ReadTos1", "LoadTos0", "Tos1FromTos0"])
+            Cond(
+                Tos0 != 0,
+                ["ReadTos1", "LoadTos0", "Tos1FromTos0", "ResetUPc"],
+                ["ReadTos1", "LoadTos0", "Tos1FromTos0"]
+            ),
             _end_instruction
-        ]
+        ],
+    ),
     "multiply_accumulate": (
-        "____ ____",
         "Calculate A += Tos0 * B (16bit + 8bit * 16bit). Afterwards Tos0 is zero, . 1 - 17 cycles",
         [
-            Cond(Tos0 != 0,
+            Cond(
+                Tos0 != 0,
                 ["AluShr", "ReadBAddr", "AddrOpB", "LoadBAddr"], # shift right Tos0, store bit in C, double B
-                _end_instruction),
-            Cond(C != 0,
+                _end_instruction
+            ),
+            Cond(
+                C != 0,
                 ["ReadAAddr", "AddrOpB", "LoadAAddr", "ResetUPc"], # Add B into A
-                ["ResetUPc"])
+                ["ResetUPc"]
+            )
         ]
     )
 }
