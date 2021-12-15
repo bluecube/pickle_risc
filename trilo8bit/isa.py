@@ -1,20 +1,81 @@
 """ This file defines the instruction set architecture of trilo8bit.
 It's the main source of information for the assembler, microcode program and simulator.
 
-Little endian
+Goals:
+    Multitasking OS
+    Serve web site about itself
+        using RaspberryPi as a network card
+    Serial console interface
+        either physical UART, or RaspberryPi
+    Games
+        using RaspberryPi as a GPU and sound card
+            VNC or HDMI/USB
 
-Registers
-    Tos0 - 8bit top of stack
-    Tos1 - 8bit second value on the stack
-    A - 16bit pointer
-    B - 16bit pointer
-    Sp - 16bit stack pointer - points at the third item on the stack, first in memory
-    Pc - 16bit program counter - points at the next instruction to be executed
-    IPc - 16bit interrupt return address / kernel mode flag (Int != 0 => kernel mode)
-    Pid - 8bit page / process ID
-    N - 1bit negative flag
-    I - 8bit instruction register (not accessible to programmer)
-    Tmp - 8bit Temporary register (not accessible to programmer)
+Requirements:
+    16bit data bus
+    16bit process memory space
+
+    >=24bit total memory space
+        MMU (getting fancy in here!)
+
+ISA nice to haves:
+    Fast string operations
+        strcpy
+            needs 2 address registers, 1 data register
+        memcpy
+        strncpy
+            needs 2 address registers, 2 data registers (value + count)
+        strlen
+            needs 1 address register, 2 data registers (value + count)
+        strchr
+            needs 1 address register, 2 data registers (value + pattern)
+        memchr
+            needs 1 address register, 2 data registers (value + pattern)
+        memset
+            needs 1 address register, 2 data registers (value + count)
+
+    SP-relative addressing -> local variables
+    Zero page addressing -> Virtual rgisters
+
+
+Registers:
+    General purpose:
+        A: Accumulator. Source and target of all arithmetic instructions
+        B: Clobbered when using immediate values in instructions
+        C:  -- BC pair can be used as memory address
+        D:  /
+        E:  -- DE pair can be used as memory address, stack pointer
+        F:  /
+
+    Special:
+        Pc: 16bit - Program counter
+        Status: 8bit - ??? 4-6bit process ID, CPU status. Only writable when process id = 0 (=kernel mode)
+
+
+
+
+
+
+
+
+
+
+
+Magic-1, the inspiration: http://www.homebrewcpu.com/
+Simple almost C-like language: https://incoherency.co.uk/blog/stories/slang.html
+
+4x4bit Register: https://www.ti.com/store/ti/en/p/product/?p=CD74HC670E
+Logisim evolution
+
+
+
+
+
+
+
+
+
+
 
 Interrupts (4bit):
     0 - serial0 data available
