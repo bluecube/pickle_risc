@@ -90,17 +90,45 @@ Interrupts (4bit):
 
     TODO: Interrupt masking
 
-    After interrupt the CPU saves current Pc to the IntPc register and jumps to address 0x1000 + Int << 3.
-    Interrupts are disabled and 0 is used as a Pid for code access (but not data access) while IntPc is nonzero.
-    No state other than Pc is saved during interrupt!
+    # After interrupt the CPU saves current Pc to the IntPc register and jumps to address 0x1000 + Int << 3.
+    # Interrupts are disabled and 0 is used as a Pid for code access (but not data access) while IntPc is nonzero.
+    # No state other than Pc is saved during interrupt!
+
+
+Memory model:
+    16 bit-addressable memory (Byte level access emulated in SW)
+    Separate data and program segments
+    Virtual address format: CC CCCC S AAAA A | AAA AAAA AAAA
+        C - 6bit context ID (from status register)
+        S - segment (0 = data segment, 1 = program segment)
+        A - 16bit address
+    MMU:
+        Built out of two 8k * 8b SRAM ICs -- only half used :-(
+        Record format: RWFF FFFF FFFF FFFF
+            R - Read allowed
+            W - Write allowed
+            F - Frame address (14b)
+        Hardcoded pages:
+            Context = 0, Segment = 0, Address = 0x0000 - 0x0FFF) -> MMU SRAM itself
+                - Use as stack space during early bootup
+????             Context = 0, Segment = 1, Address = 0x0000 - 0x0FFF) -> boot EEPROM, read only
+????                - Need to map further pages manually
+????                - This would solve boot, but would force us to do interrupts to other location
+        Software page fault handling
+            raises interrupt on access violation
+????             How to determine what caused the violation?
+                    Needed for demand paging
+                    Perhaps store the offending address somewhere?
+    11b page size -> 4kB pages
+    25b physical address -> 64MB physical address space
+        24bit device address space
+        23bit RAM address space
+            max 16MB RAM
+        23bit ROM address space
+            2kWords used?
+
 
 Peripherials:
-    Boot ROM - 2kB eeprom
-    MMU
-        - 2kB pages
-        - TLB with 2(?) hard coded (boot, MMU control, ...) and 8 dynamic records
-        - software page fault handling
-        - max 32MB of addressable physical memory. That leaves 16MB for RAM and another 16MB for memory mapped peripherial control.
     RAM
     GPU
         - 256x256, 2 bit, 4 item palette of 3:3:2 RGB colors
@@ -137,43 +165,6 @@ Calling convention:
     Calee cleans the stack
     if return value is a pointer, it is returned in B, otherwise on stack
 
-Memory model:
-    Separate data and program segments
-    Virtual address format: PPP PPPS AAAA | AAAA AAAA AAAA
-        S - segment (0 = data segment, 1 = program segment)
-        P - 6bit process ID (Zero when accessing program segment during interrupt)
-        A - 16bit address
-    MMU:
-        Built out of two 2k * 8b SRAM ICs
-        Record format: RWFF FFFF FFFF FFFF
-            R - Read allowed
-            W - Write allowed
-            F - Frame address (14b)
-        Hardcoded pages:
-            Page 000 0000 0000 (PID = 0, S = 0, A = 0x0000 - 0x0FFF) -> MMU SRAM itself
-                - Use as stack space during early bootup
-            Page 000 0001 0000 -> 1000 0000 0000 0000 (boot EEPROM page 0, read only)
-                -  Need to map further pages manually
-
-            -> Unused physical addresses in the MMU (Records covered by the hardcoded pages):
-                000 0000 0000 | 0000 0000 0000 (0x0000)
-                000 0000 0000 | 0000 0000 0001 (0x0001)
-                000 0000 0000 | 0000 0010 0000 (0x0020)
-                000 0000 0000 | 0000 0010 0001 (0x0021)
-                Use these to signal failed lookups? Would need an external registers, though.
-    12b page size -> 4kB pages
-    26b physical address -> 64MB physical address space
-
-Microcode:
-    Input:
-        8b instruction
-        3b uPC
-        1b interrupt flag
-        1b zero flag
-        1b carry
-        (14b ~> 16k)
-    Output:
-        1b ResetUPc
 
 """
 
