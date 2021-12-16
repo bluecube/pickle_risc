@@ -38,23 +38,6 @@ ISA nice to haves:
     Zero page addressing -> Virtual rgisters
 
 
-Registers:
-    General purpose:
-        A: Accumulator. Source and target of all arithmetic instructions
-        B: Clobbered when using immediate values in instructions
-        C:  -- BC pair can be used as memory address
-        D:  /
-        E:  -- DE pair can be used as memory address, stack pointer
-        F:  /
-
-    Special:
-        Pc: 16bit - Program counter
-        Status: 8bit - ??? 4-6bit process ID, CPU status. Only writable when process id = 0 (=kernel mode)
-
-
-
-
-
 
 
 
@@ -77,22 +60,22 @@ Logisim evolution
 
 
 
-Interrupts (4bit):
-    0 - serial0 data available
-    1 - serial0 write complete
-    2 - serial1 available
-    3 - serial1 write complete
-    4 - RTC_tick
-    5 - RTC_alarm
-    ...
-    14 - MMU access violation
-    15 - Software interrupt (syscall)
-
-    TODO: Interrupt masking
-
-    # After interrupt the CPU saves current Pc to the IntPc register and jumps to address 0x1000 + Int << 3.
-    # Interrupts are disabled and 0 is used as a Pid for code access (but not data access) while IntPc is nonzero.
-    # No state other than Pc is saved during interrupt!
+# Interrupts (4bit):
+#     0 - serial0 data available
+#     1 - serial0 write complete
+#     2 - serial1 available
+#     3 - serial1 write complete
+#     4 - RTC_tick
+#     5 - RTC_alarm
+#     ...
+#     14 - MMU access violation
+#     15 - Software interrupt (syscall)
+#
+#     TODO: Interrupt masking
+#
+#     After interrupt the CPU saves current Pc to the IntPc register and jumps to address 0x1000 + Int << 3.
+#     Interrupts are disabled and 0 is used as a Pid for code access (but not data access) while IntPc is nonzero.
+#     No state other than Pc is saved during interrupt!
 
 
 Memory model:
