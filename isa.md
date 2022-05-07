@@ -189,6 +189,8 @@ IntId = imm
 - 2x UART
     - one for console, one for networking
 - RTC
+- Storage
+    - SD card using SPI interface?
 - GPU
     - Not too interested in building one, but it would be nice to have one
     - Perhaps we could cheat and connect RaspberryPI to the memory bus and use it as a GPU?
