@@ -42,7 +42,7 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 
 ## Basic design
 - 16bit
-- 16bit only memory!
+- 16bit addressable memory!
     - 8bit access emulated in SW
         - We should add instructions that will make standard string operations fast
             - Basically SIMD?
@@ -159,33 +159,31 @@ IntId = imm
 - Helper functionality for mul/div?
 
 ## Memory model:
-    16 bit-addressable memory (Byte level access emulated in SW)
-    Separate data and program segments
-    Virtual address format: CC CCCC S AAAA A | AAA AAAA AAAA
-        C - 6bit context ID (from control register)
-        S - segment (0 = data segment, 1 = program segment)
-        A - 16bit address
-    MMU:
-        Built out of two 8k * 8b SRAM ICs -- only half used :-(
-        Record format: RWFF FFFF FFFF FFFF
-            R - Read allowed
-            W - Write allowed
-            F - Frame address (14b)
-        Hardcoded pages:
-            Context = 0, Segment = 0, Address = 0x0000 - 0x0FFF) -> MMU SRAM itself
-                - Use as stack space during early bootup
-             Context = 0, Segment = 1, Address = 0x0000 - 0x0FFF) -> boot EEPROM, read only
-                - Need to map further pages manually
-                - This would solve boot, but would force us to do interrupts in other location
-        Software page fault handling
-            raises interrupt on access violation
-    11b page size -> 2kWord = 4kB pages
-    25b physical address -> 64MB physical address space
-        24bit device address space
-        23bit RAM address space
-            max 8kWord = 16MB RAM
-        23bit ROM address space
-            2kWords used?
+- 16 bit-addressable memory (Byte level access emulated in SW)
+- Separate data and program segments
+- Virtual address format: CC CCCC S AAAA AA | AA AAAA AAAA
+    - C - 6bit context ID (from control register)
+    - S - segment (0 = data segment, 1 = program segment)
+    - A - 16bit address
+- MMU
+    - Built out of two 8k * 8b SRAM ICs
+    - Record format: RWFF FFFF FFFF FFFF
+        - R - Read allowed
+        - W - Write allowed
+        - F - Frame address (14b)
+    - Hardcoded page:
+        - Context = 0, Segment = 1, Address = 0x0000 - 0x0FFF) -> boot EEPROM, read only
+            - Need to map further pages manually from bootloader
+            - This would solve boot, but would force us to do interrupts in other location
+    - Software page fault handling
+        - raises interrupt on access violation
+    - 10b page size -> 1kWord = 2kB pages
+    - 24b physical address -> 16MWord physical address space
+        - 22bit ROM address space
+            - 2kWords used?
+        - 22bit device address space
+        - 23bit RAM address space
+            - max 8MWord = 16MB RAM
 
 ## Peripherials wishlist
 - 2x UART
