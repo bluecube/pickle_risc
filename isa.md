@@ -58,24 +58,29 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 
 ## Instruction set
 
-### ALU op:
-Rd = Rl <op> Rr
+| Opcode	| Instruction				|
+|-----------|---------------------------|
+| `00`		| ALU immediate				|
+| `010`		| ALU register				|
+| `011`		| Load immediate			|
+| `100`		| Load						|
+| `101`		| Store						|
+| `1100`	| Jump relative				|
+| `1101`	| Jump						|
+| `1110`	| Read control register		|
+| `11110`	| Write control register	|
+| `11111`	| Syscall					|
 
-000d ddll lrrr pppp
+### ALU immediate:
+Rd = Rl <ALU_op> imm
+imm is 4bit unsigned
 
-### load
-Rd = [Rl + imm]
-imm is 4 bit signed
+00ia aaal llii iddd
 
-001d ddll lxxx iiii
+### ALU register:
+Rd = Rl <ALU_op> Rr
 
-### store
-tmp = Rl + imm
-[tmp] = Rr
-Rd = tmp
-imm is 4 bit signed
-
-010d ddll lrrr iiii
+010a aaal llrr rddd
 
 ### load immediate
 if h:
@@ -84,38 +89,53 @@ else
     Rd = imm
 imm is 9bit unsigned
 
-011d ddhi iiii iiii
+011h iiii iiii iddd
 
-### jump
-if (Rr != 0) ^ n:
-    if link: R8 = PC
-    PC = Rl + imm
+### load
+Rd = [Rl + imm]
 imm is 4 bit signed
-100k nxll lrrr iiii
+
+100i iiil llxx xddd
+
+### store
+tmp = Rl + imm
+[tmp] = Rr
+Rd = tmp
+imm is 4 bit signed
+
+101i iiil llrr rddd
 
 ### jump relative
-if (Rr != 0) ^ n:
-    if link: R8 = PC
+if (Rl != 0 || (Carry && CarryFlag)) ^ NegateFlag:
     PC = PC + imm
-imm is 4 bit signed
-101k nxxx xrrr iiii
+imm is 7 bit signed
 
+1100 ncil llii iiii
+
+### jump
+if (Rl != 0 || (Carry && CarryFlag)) ^ NegateFlag:
+    if LinkFlag:
+        R8 = PC
+    PC = Rr
+
+1101 nckl llrr rxxx
 
 ### Read control register
 Rd = Cc
 
-110d ddcc cxxx xxxx
+1110 xxxx xxcc cddd
 
 ### Write control register
-Cc = Rr
+Cc = Rl
 
-111x xxcc crrr xxxx
+1111 0xxl llcc cxxx
 
 ### Syscall
 <Interrupt>
 IntId = imm
+imm is 7 bit unsigned
 
-111x xx00 0000 iiii
+1111 1xix xxii iiii
 
 
 ## ALU operations
@@ -126,16 +146,15 @@ IntId = imm
 
 - Rd = Rl & Rr
 - Rd = Rl | Rr
-- Rd = !(Rl ^ Rr)
+- Rd = !(Rl | Rr)
+- Rd = Rl ^ Rr
 
 - Rd = Ra >> 1, logical
 - Rd = Ra >> 1, arithmetic
 - Rd = Ra >> 1, carry
 
 - Rd = Rl > Rr, unsingned
-- Rd = Rl >= Rr, unsigned
 - Rd = Rl > Rr, signed
-- Rd = Rl >= Rr, signed
 
 - Shuffle bytes: Rd = Ra >> 8 | Rb << 8
 - Byte equality:
@@ -147,15 +166,13 @@ IntId = imm
 ### Not included:
 - shl: Can be done as Rx + Rx
 - ==: Can be done using xnor
-- <, <=: Flip operands
+- <: Flip operands
+- >=, <=: Use negative conditions
 - unary -: R0 - Rx
-- xor:
-    - Not very frequent (?)
-    - Can be emulated using Rd = ~(Ra ^ Rb); Rd = ~(Rd ^ 0);
-    - Or can some logic be converted to use the xnor anyway?
 
 ### ?
 - How to use second operand of >>?
+    - Maybe convert it to midpoint?
 - Helper functionality for mul/div?
 
 ## Memory model:
