@@ -11,10 +11,14 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 - Potentially Games
 
 ## Links
-### Other similar CPUs
+### Inspiration
 - Magic-1: http://www.homebrewcpu.com/
 - James Sharman's pipelined 8bit CPU: https://www.youtube.com/c/weirdboyjim/videos
+
+### CPU design / instruction set
 - MUPS/16, a nice 16bit CPU with similar goals/design: http://mups16.net/pages/overview.html#overview
+- MIPS Architecture
+- ARM Thumb Instruction set
 
 ### The rest
 - RISC-V: https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
