@@ -2,203 +2,203 @@
     // Immediate operations (Prefix 00)
     // ================================
     "Add immediate": {
-        "syntax": "addi Ra, immediate",
-        "encoding": ["00", "000", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra += immediate",
-        "cycles": 1
+        syntax: "addi Ra, immediate",
+        encoding: ["00", "000", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra += immediate",
+        cycles: 1
     },
     "Subtract immediate": {
-        "syntax": "subi Ra, immediate",
-        "encoding": ["00", "001", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra -= immediate",
-        "cycles": 1
+        syntax: "subi Ra, immediate",
+        encoding: ["00", "001", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra -= immediate",
+        cycles: 1
     },
     "And immediate": {
-        "syntax": "andi Ra, immediate",
-        "encoding": ["00", "010", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra &= immediate",
-        "cycles": 1
+        syntax: "andi Ra, immediate",
+        encoding: ["00", "010", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra &= immediate",
+        cycles: 1
     },
     "Or immediate": {
-        "syntax": "ori Ra, immediate",
-        "encoding": ["00", "011", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra |= immediate",
-        "cycles": 1
+        syntax: "ori Ra, immediate",
+        encoding: ["00", "011", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra |= immediate",
+        cycles: 1
     },
     "Load immediate": {
-        "syntax": "ldi Ra, immediate",
-        "encoding": ["00", "100", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra = immediate",
-        "cycles": 1
+        syntax: "ldi Ra, immediate",
+        encoding: ["00", "100", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra = immediate",
+        cycles: 1
     },
     "Load upper immediate": {
-        "syntax": "ldui Ra, immediate",
-        "encoding": ["00", "101", "Ra[3]", "immediate[8]"],
-        "pseudocode": "Ra = immediate << 8",
-        "cycles": 1
+        syntax: "ldui Ra, immediate",
+        encoding: ["00", "101", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra = immediate << 8",
+        cycles: 1
     },
     "Relative jump": {
-        "syntax": "rjmp immediate",
-        "encoding": ["00", "11", "000", "x", "immediate[8]"],
-        "pseudocode": "Pc += immediate",
-        "cycles": 1
+        syntax: "rjmp immediate",
+        encoding: ["00", "11", "000", "x", "immediate[8]"],
+        pseudocode: "Pc += immediate",
+        cycles: 1
     },
     "Relative jump if zero": {
-        "syntax": "rjmpz immediate",
-        "encoding": ["00", "11", "001", "x", "immediate[8]"],
-        "pseudocode": "if zero: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpz immediate",
+        encoding: ["00", "11", "001", "x", "immediate[8]"],
+        pseudocode: "if zero: Pc += immediate",
+        cycles: 1
     },
     "Relative jump if carry immediate": {
-        "syntax": "rjmpc immediate",
-        "encoding": ["00", "11", "010", "x", "immediate[8]"],
-        "pseudocode": "if carry: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpc immediate",
+        encoding: ["00", "11", "010", "x", "immediate[8]"],
+        pseudocode: "if carry: Pc += immediate",
+        cycles: 1
     },
     "Relative jump if negative": {
-        "syntax": "rjmpn immediate",
-        "encoding": ["00", "11", "011", "x", "immediate[8]"],
-        "pseudocode": "if negative: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpn immediate",
+        encoding: ["00", "11", "011", "x", "immediate[8]"],
+        pseudocode: "if negative: Pc += immediate",
+        cycles: 1
     },
     /* Free opcode ["00", "11", "100"] */
     "Relative jump if not zero": {
-        "syntax": "rjmpnz immediate",
-        "encoding": ["00", "11", "101", "x", "immediate[8]"],
-        "pseudocode": "if !zero: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpnz immediate",
+        encoding: ["00", "11", "101", "x", "immediate[8]"],
+        pseudocode: "if !zero: Pc += immediate",
+        cycles: 1
     },
     "Relative jump if not carry": {
-        "syntax": "rjmpnc immediate",
-        "encoding": ["00", "11", "110", "x", "immediate[8]"],
-        "pseudocode": "if !carry: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpnc immediate",
+        encoding: ["00", "11", "110", "x", "immediate[8]"],
+        pseudocode: "if !carry: Pc += immediate",
+        cycles: 1
     },
     "Relative jump if not negative": {
-        "syntax": "rjmpnn immediate",
-        "encoding": ["00", "11", "111", "x", "immediate[8]"],
-        "pseudocode": "if !negative: Pc += immediate",
-        "cycles": 1
+        syntax: "rjmpnn immediate",
+        encoding: ["00", "11", "111", "x", "immediate[8]"],
+        pseudocode: "if !negative: Pc += immediate",
+        cycles: 1
     },
 
     // 3 operand operations (Prefix 01)
     // ================================
     "Add": {
-        "syntax": "add Ra, Rb, Rc",
-        "encoding": ["01", "00000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb + Rc",
-        "cycles": 1
+        syntax: "add Ra, Rb, Rc",
+        encoding: ["01", "00000", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb + Rc",
+        cycles: 1
     },
     "Add with carry": {
-        "syntax": "addc Ra, Rb, Rc",
-        "encoding": ["01", "00001", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb + Rc + carry",
-        "cycles": 1
+        syntax: "addc Ra, Rb, Rc",
+        encoding: ["01", "00001", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb + Rc + carry",
+        cycles: 1
     },
     "Subtract": {
-        "syntax": "sub Ra, Rb, Rc",
-        "encoding": ["01", "00010", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb - Rc",
-        "cycles": 1
+        syntax: "sub Ra, Rb, Rc",
+        encoding: ["01", "00010", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb - Rc",
+        cycles: 1
     },
     "Subtract with carry": {
-        "syntax": "subc Ra, Rb, Rc",
-        "encoding": ["01", "00011", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb - Rc + carry",
-        "cycles": 1
+        syntax: "subc Ra, Rb, Rc",
+        encoding: ["01", "00011", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb - Rc + carry",
+        cycles: 1
     },
     "And": {
-        "syntax": "and Ra, Rb, Rc",
-        "encoding": ["01", "00100", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb & Rc",
-        "cycles": 1
+        syntax: "and Ra, Rb, Rc",
+        encoding: ["01", "00100", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb & Rc",
+        cycles: 1
     },
     "Or": {
-        "syntax": "or Ra, Rb, Rc",
-        "encoding": ["01", "00101", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb | Rc",
-        "cycles": 1
+        syntax: "or Ra, Rb, Rc",
+        encoding: ["01", "00101", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb | Rc",
+        cycles: 1
     },
     "Nor": {
-        "syntax": "nor Ra, Rb, Rc",
-        "encoding": ["01", "00110", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = ~(Rb | Rc)",
-        "cycles": 1
+        syntax: "nor Ra, Rb, Rc",
+        encoding: ["01", "00110", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = ~(Rb | Rc)",
+        cycles: 1
     },
     "Xor": {
-        "syntax": "xor Ra, Rb, Rc",
-        "encoding": ["01", "00111", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Rb ^ Rc",
-        "cycles": 1
+        syntax: "xor Ra, Rb, Rc",
+        encoding: ["01", "00111", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Rb ^ Rc",
+        cycles: 1
     },
     "And shift right": {
-        "syntax": "andshr Ra, Rb, Rc",
-        "encoding": ["01", "01000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = (Rb & Rc) >> 1 (logical)",
-        "cycles": 1
+        syntax: "andshr Ra, Rb, Rc",
+        encoding: ["01", "01000", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = (Rb & Rc) >> 1 (logical)",
+        cycles: 1
     },
     "And shift right arithmetic": {
-        "syntax": "andshra Ra, Rb, Rc",
-        "encoding": ["01", "01001", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = (Rb & Rc) >> 1 (arithmetic)",
-        "cycles": 1
+        syntax: "andshra Ra, Rb, Rc",
+        encoding: ["01", "01001", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = (Rb & Rc) >> 1 (arithmetic)",
+        cycles: 1
     },
     "And shift right with carry": {
-        "syntax": "andshrc Ra, Rb, Rc",
-        "encoding": ["01", "01010", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = carry << 7 | (Rb & Rc) >> 1 (logical)",
-        "cycles": 1
+        syntax: "andshrc Ra, Rb, Rc",
+        encoding: ["01", "01010", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = carry << 7 | (Rb & Rc) >> 1 (logical)",
+        cycles: 1
     },
     "Compare": {
-        "syntax": "cmp Rb, Rc",
-        "encoding": ["01", "01011", "Rb[3]", "Rc[3]", "xxx"],
-        "pseudocode": "_ = Rb - Rc",
-        "cycles": 1
+        syntax: "cmp Rb, Rc",
+        encoding: ["01", "01011", "Rb[3]", "Rc[3]", "xxx"],
+        pseudocode: "_ = Rb - Rc",
+        cycles: 1
     },
     "Byte swap": {
-        "syntax": "bswp",
-        "encoding": ["01", "01100", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = (Rb >> 8) | (Rc << 8)",
-        "cycles": 1
+        syntax: "bswp",
+        encoding: ["01", "01100", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = (Rb >> 8) | (Rc << 8)",
+        cycles: 1
     },
     "Byte equality": {
-        "syntax": "beq",
-        "encoding": ["01", "01101", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "description": [
+        syntax: "beq",
+        encoding: ["01", "01101", "Rb[3]", "Rc[3]", "Ra[3]"],
+        description: [
             "Sets output bit 0 if lower byte of Rb equals lower byte of Rc",
             "Sets output bit 1 if upper byte of Rb equals lower byte of Rc",
             "Sets output bit 2 if lower byte of Rb equals upper byte of Rc",
             "Sets output bit 3 if upper byte of Rb equals upper byte of Rc"
         ],
-        "cycles": 1
+        cycles: 1
     },
     /* Free opcodes ["01", "01110"], ["01", "01111"] */
     "Multiply-add": {
-        "syntax": "mad Ra, Rb, Rc",
-        "encoding": ["01", "10000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "Ra = Ra + (Rb * Rc)",
-        "cycles": "many (TODO)",
-        "description": "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
+        syntax: "mad Ra, Rb, Rc",
+        encoding: ["01", "10000", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "Ra = Ra + (Rb * Rc)",
+        cycles: "many (TODO)",
+        description: "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
     },
     /* Free opcode ["01", "10001"] */
     /* TODO
     "Divide and modulo": {
-        "syntax": "divmod Ra, Rb, Rc",
-        "encoding": ["01", "10001", "Rb[3]", "Rc[3]", "Ra[3]"],
-        "pseudocode": "",
-        "cycles": "many (TODO)",
-        "description": "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
+        syntax: "divmod Ra, Rb, Rc",
+        encoding: ["01", "10001", "Rb[3]", "Rc[3]", "Ra[3]"],
+        pseudocode: "",
+        cycles: "many (TODO)",
+        description: "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
     },*/
     "Compare and swap": {
-        "syntax": "cas Raddress, Rexpected, Rnew",
-        "encoding": ["01", "10010", "Rexpected[3]", "Raddress[3]", "Rnew[3]"],
-        "pseudocode": [
+        syntax: "cas Raddress, Rexpected, Rnew",
+        encoding: ["01", "10010", "Rexpected[3]", "Raddress[3]", "Rnew[3]"],
+        pseudocode: [
             "if [Raddress] == Rexpected:",
             "    [Raddress] = Rnew",
             "else:",
             "    Rnew = [Raddress]"
         ],
-        "cycles": 3,
+        cycles: 3,
         "_microcode": [
             "Tmp1 = [Raddress]",
             "cmp Rold, Tmp1; Instr = [Pc + 1]; Pc += 1",
@@ -207,17 +207,17 @@
     },
     /* Free opcodes ["01", "10011"] - ["01", "11111"] */
     /*"Memory two character search": {
-        "syntax": "mem2chr Raddress, Rend_address, Rneedle",
-        "encoding": ["01", "10011", "Rend_address[3]", "Rneedle[3]", "Raddress[3]"],
-        "pseudocode": [
+        syntax: "mem2chr Raddress, Rend_address, Rneedle",
+        encoding: ["01", "10011", "Rend_address[3]", "Rneedle[3]", "Raddress[3]"],
+        pseudocode: [
             "while Raddress != Rend_address:"
             "   beq Tmp1, [Raddress], Rneedle",
             "   if !zero:",
             "       break"
             "   Raddress += 1"
         ],
-        "cycles": "TODO"
-        "description": [
+        cycles: "TODO"
+        description: [
             "Search through memory, looking for the first occurence of either of two",
             "characters in Rneedle. Can be used to implement `strlen`, `memchr`, `strchr`"
         ]
@@ -227,187 +227,187 @@
     // Load/ store (Prefix 10)
     // =======================
     "Load": {
-        "syntax": "ld Rdest, Raddress, immediate",
-        "encoding": ["10", "0", "immediate[7]", "Raddress[3]", "Rdest[3]"],
-        "pseudocode": "Rdest = [Raddress + sign_extend(immediate)]",
-        "cycles": 2
+        syntax: "ld Rdest, Raddress, immediate",
+        encoding: ["10", "0", "immediate[7]", "Raddress[3]", "Rdest[3]"],
+        pseudocode: "Rdest = [Raddress + sign_extend(immediate)]",
+        cycles: 2
     },
     "Store": {
-        "syntax": "st Raddress, Rvalue, immediate",
-        "encoding": ["10", "1", "immediate[7]", "Raddress[3]", "Rvalue[3]"],
-        "pseudocode": "[Raddress + sign_extend(immediate)] = Rvalue",
-        "cycles": 2
+        syntax: "st Raddress, Rvalue, immediate",
+        encoding: ["10", "1", "immediate[7]", "Raddress[3]", "Rvalue[3]"],
+        pseudocode: "[Raddress + sign_extend(immediate)] = Rvalue",
+        cycles: 2
     },
 
     // Indirect jumps (Prefix 110)
     // ===========================
     "Jump": {
-        "syntax": "jmp Raddress",
-        "encoding": ["110", "0", "000", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmp Raddress",
+        encoding: ["110", "0", "000", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump if zero": {
-        "syntax": "jmpz Raddress",
-        "encoding": ["110", "0", "001", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if zero: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpz Raddress",
+        encoding: ["110", "0", "001", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if zero: Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump if carry": {
-        "syntax": "jmpc Raddress",
-        "encoding": ["110", "0", "010", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if carry: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpc Raddress",
+        encoding: ["110", "0", "010", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if carry: Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump if negative": {
-        "syntax": "jmpn Raddress",
-        "encoding": ["110", "0", "011", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if negative: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpn Raddress",
+        encoding: ["110", "0", "011", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if negative: Pc = Raddress",
+        cycles: "TODO"
     },
     /* Free opcode ["110", "0", "100"] */
     "Jump if not zero": {
-        "syntax": "jmpnz Raddress",
-        "encoding": ["110", "0", "101", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if !zero: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpnz Raddress",
+        encoding: ["110", "0", "101", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if !zero: Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump if not carry": {
-        "syntax": "jmpnc Raddress",
-        "encoding": ["110", "0", "110", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if !carry: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpnc Raddress",
+        encoding: ["110", "0", "110", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if !carry: Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump if not negative": {
-        "syntax": "jmpnn Raddress",
-        "encoding": ["110", "0", "111", "xxx", "Raddress[3]", "xxx"],
-        "pseudocode": "if not negative: Pc = Raddress",
-        "cycles": "TODO"
+        syntax: "jmpnn Raddress",
+        encoding: ["110", "0", "111", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if not negative: Pc = Raddress",
+        cycles: "TODO"
     },
     "Jump and link": {
-        "syntax": "jal Raddress, Rlink",
-        "encoding": ["110", "1", "000", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jal Raddress, Rlink",
+        encoding: ["110", "1", "000", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "tmp = Pc",
             "Pc = Raddress",
             "Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     "Jump and link if zero": {
-        "syntax": "jalz Raddress, Rlink",
-        "encoding": ["110", "1", "001", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jalz Raddress, Rlink",
+        encoding: ["110", "1", "001", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if zero:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     "Jump and link if carry": {
-        "syntax": "jalc Raddress, Rlink",
-        "encoding": ["110", "1", "010", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jalc Raddress, Rlink",
+        encoding: ["110", "1", "010", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if carry:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     "Jump and link if negative": {
-        "syntax": "jaln Raddress, Rlink",
-        "encoding": ["110", "1", "011", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jaln Raddress, Rlink",
+        encoding: ["110", "1", "011", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if negative:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     /* Free opcode ["110", "1", "100"], */
     "Jump and link if not zero": {
-        "syntax": "jalnz Raddress, Rlink",
-        "encoding": ["110", "1", "101", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jalnz Raddress, Rlink",
+        encoding: ["110", "1", "101", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if !zero:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     "Jump and link if not carry": {
-        "syntax": "jalnc Raddress, Rlink",
-        "encoding": ["110", "1", "110", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jalnc Raddress, Rlink",
+        encoding: ["110", "1", "110", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if !carry:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     "Jump and link if not negative": {
-        "syntax": "jalnn Raddress, Rlink",
-        "encoding": ["110", "1", "111", "xxx", "Raddress[3]", "Rlink[3]"],
-        "pseudocode": [
+        syntax: "jalnn Raddress, Rlink",
+        encoding: ["110", "1", "111", "xxx", "Raddress[3]", "Rlink[3]"],
+        pseudocode: [
             "if !negative:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
 
     // Control registers (Prefix 1110)
     // ===============================
     "Load control register": {
-        "syntax": "ldc Ra, C",
-        "encoding": ["1110", "0", "C[3]", "xxxxx", "Ra[3]"],
-        "pseudocode": "Ra = C",
-        "cycles": 1
+        syntax: "ldc Ra, C",
+        encoding: ["1110", "0", "C[3]", "xxxxx", "Ra[3]"],
+        pseudocode: "Ra = C",
+        cycles: 1
     },
     "Store control register": {
-        "syntax": "stc Ra, C",
-        "encoding": ["1110", "1", "C[3]", "xxxxx", "Ra[3]"],
-        "pseudocode": "C = Ra",
-        "cycles": 1
+        syntax: "stc Ra, C",
+        encoding: ["1110", "1", "C[3]", "xxxxx", "Ra[3]"],
+        pseudocode: "C = Ra",
+        cycles: 1
     },
 
     // System (Prefix 1111)
     // ============================
     "Syscall 1": {
-        "syntax": "syscall1",
-        "encoding": ["1111", "000", "xxxxxxxxx"],
-        "cycles": 1
+        syntax: "syscall1",
+        encoding: ["1111", "000", "xxxxxxxxx"],
+        cycles: 1
     },
     "Syscall 2": {
-        "syntax": "syscall2",
-        "encoding": ["1111", "001", "xxxxxxxxx"],
-        "cycles": 1
+        syntax: "syscall2",
+        encoding: ["1111", "001", "xxxxxxxxx"],
+        cycles: 1
     },
     "Syscall 3": {
-        "syntax": "syscall2",
-        "encoding": ["1111", "010", "xxxxxxxxx"],
-        "cycles": 1
+        syntax: "syscall2",
+        encoding: ["1111", "010", "xxxxxxxxx"],
+        cycles: 1
     },
     "Return from interrupt": {
-        "syntax": "reti",
-        "encoding": ["1111", "011", "xxxxxxxxx"],
-        "pseudocode": [
+        syntax: "reti",
+        encoding: ["1111", "011", "xxxxxxxxx"],
+        pseudocode: [
             "Pc = IntPc",
             "apply ContextID",
         ],
-        "cycles": "TODO"
+        cycles: "TODO"
     },
     /* Free opcodes ["1111", "010"], ["1111", "011"] */
     "Break": {
-        "syntax": "break",
-        "encoding": ["1111", "111", "xxxxxxxxx"],
-        "cycles": 1
+        syntax: "break",
+        encoding: ["1111", "111", "xxxxxxxxx"],
+        cycles: 1
     },
 }
 
