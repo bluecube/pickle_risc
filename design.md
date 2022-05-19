@@ -9,6 +9,8 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
     - SLIP over UART?
 - Serial console interface
 - Potentially Games
+- Run at ~2MHz clock
+- Most instruction single cycle
 
 ## Links
 ### Inspiration
@@ -46,162 +48,129 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 
 ## Basic design
 - 16bit
-- 16bit addressable memory!
+- microcoded
+- mostly RISC, but some complex instructions
+- 16bit addressable memory only!
     - 8bit access emulated in SW
-        - We should add instructions that will make standard string operations fast
-            - Basically SIMD?
-- 3-operand architecture
-- 8 general purpose registers:
-    - R0: zero register (always reads as zero, written value is ignored)
-    - R1-R6: general purpose (R6 used as stack pointer?)
+- 8 general purpose registers R0-R7
     - R7: General purpose / link register
+- Control registers
+    - ALU Status
+        - RW
+        - Can accessed from user mode
+        - Contains:
+            - carry flag
+            - zero flag
+            - negative flag
+    - Tmp1
+        - RW
+        - Used as temporary storage in interrupt handlers
+        - Accessible to user-mode code, but not saved during interrupts (=> unusable)
+        - Clobbered by some complex instructions
+            - Cannot be used by the kernel to store data between context switches
+    - Tmp2
+        - RW
+        - Used as temporary storage in interrupt handlers
+    - ContextID
+        - WO
+        - 6bit
+        - equivalent to process ID (with &lt; 64 processes)
+        - Context ID of 0 for kernel mode and disabled interrupts, otherwise user mode
+        - used as a part of virtual page address
+        - double buffered, only gets applied by RETI instruction
+    - IntCause
+        - RO
+        - Cause of currently processed interrupt
+    - IntPc
+        - Saved program counter after interrupt
+        - New program counter used by RETI
+    - MMUAddr: Virtual page address
+        - RW
+        - for storing MMU records
+        - set during page failure
+    - MMURecord
+        - WO
+        - triggers the MMU write at given MMUAddr
 - Separate instruction virtual address space
     - Still accessible through memory mapping
-- MMU (getting fancy in here!)
 - Interrupts
+- System instructions:
+    - Three syscall instructions
+    - Causes software interrupt with three different causes
+        - Intended use:
+            1. Syscall
+            2. Debugger breakpoint
+            3. IPC call
+    - Break instruction
+        - Stop emulator
+        - Switch physical CPU into single step mode
+            - must be enabled by a physical switch?
 
-## Instruction set
+## Instruction format
 
-| Opcode	| Instruction				|
-|-----------|---------------------------|
-| `00`		| ALU immediate				|
-| `010`		| ALU register				|
-| `011`		| Load immediate			|
-| `100`		| Load						|
-| `101`		| Store						|
-| `1100`	| Jump relative				|
-| `1101`	| Jump						|
-| `1110`	| Read control register		|
-| `11110`	| Write control register	|
-| `11111`	| Syscall					|
+<table>
+<tr>
+    <th>0</th><th>1</th>
+    <th>2</th><th>3</th>
+    <th>4</th><th>5</th>
+    <th>6</th><th>7</th>
+    <th>8</th><th>9</th>
+    <th>10</th><th>11</th>
+    <th>12</th><th>13</th>
+    <th>14</th><th>15</th>
+</tr>
+<tr><td colspan="7">opcode</td><td colspan="9"></td></tr>
+<tr><td colspan="7"></td><td colspan="3">register ID<br>assert left bus</td><td colspan="6"></td></tr>
+<tr><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
+<tr><td colspan="13"></td><td colspan="3">register ID<br>assert right bus, load from result bus</td></tr>
+<tr><td colspan="5"></td><td colspan="3">register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
+<tr><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
+<tr><td colspan="8"></td><td colspan="8">immediate value<br>assert right bus, add to address</td></tr>
+<tr><td colspan="3"></td><td colspan="7">immediate value<br>add to address</td><td colspan="6"></td></tr>
+</table>
 
-### ALU immediate:
-Rd = Rl <ALU_op> imm
-imm is 4bit unsigned
+## Microcode ROM
+### Incoming signals
+(goal is 13 (= 8k ROM), or 15 (= 32k ROM))
+- 7 bits from instruction
+- 3 bits from microprogram counter
+- 1 bit interrupt pending
+- 1 bit kernel mode
+- 3 bits condition flags
 
-00ia aaal llii iddd
+Total 14
 
-### ALU register:
-Rd = Rl <ALU_op> Rr
+### Outgoing signals
+(goal is as small as possible multiple of 8)
+- 4 bits: General purpose register assert / load flags
+- 1 bits: Control register read
+- 1 bit: Control register write
+- 1 bit: Control register id override (set to 111)
 
-010a aaal llrr rddd
+TODO
 
-### load immediate
-if h:
-    Rd = imm << 7
-else
-    Rd = imm
-imm is 9bit unsigned
-
-011h iiii iiii iddd
-
-### load
-Rd = [Rl + imm]
-imm is 4 bit signed
-
-100i iiil llxx xddd
-
-### store
-tmp = Rl + imm
-[tmp] = Rr
-Rd = tmp
-imm is 4 bit signed
-
-101i iiil llrr rddd
-
-### jump relative
-if (Rl != 0 || (Carry && CarryFlag)) ^ NegateFlag:
-    PC = PC + imm
-imm is 7 bit signed
-
-1100 ncil llii iiii
-
-### jump
-if (Rl != 0 || (Carry && CarryFlag)) ^ NegateFlag:
-    if LinkFlag:
-        R8 = PC
-    PC = Rr
-
-1101 nckl llrr rxxx
-
-### Read control register
-Rd = Cc
-
-1110 xxxx xxcc cddd
-
-### Write control register
-Cc = Rl
-
-1111 0xxl llcc cxxx
-
-### Syscall
-<Interrupt>
-IntId = imm
-imm is 7 bit unsigned
-
-1111 1xix xxii iiii
-
-
-## ALU operations
-- Rd = Rl + Rr
-- Rd = Rl + Rr + Carry
-- Rd = Rl - Rr
-- Rd = Rl - Rr - Carry
-
-- Rd = Rl & Rr
-- Rd = Rl | Rr
-- Rd = !(Rl | Rr)
-- Rd = Rl ^ Rr
-
-- Rd = Ra >> 1, logical
-- Rd = Ra >> 1, arithmetic
-- Rd = Ra >> 1, carry
-
-- Rd = Rl > Rr, unsingned
-- Rd = Rl > Rr, signed
-
-- Shuffle bytes: Rd = Ra >> 8 | Rb << 8
-- Byte equality:
-    - Sets output bit 0 if lower byte of Ra equals lower byte of Rb
-    - Sets output bit 1 if upper byte of Ra equals lower byte of Rb
-    - Sets output bit 2 if lower byte of Ra equals upper byte of Rb
-    - Sets output bit 3 if upper byte of Ra equals upper byte of Rb
-
-### Not included:
-- shl: Can be done as Rx + Rx
-- ==: Can be done using xnor
-- <: Flip operands
-- >=, <=: Use negative conditions
-- unary -: R0 - Rx
-
-### ?
-- How to use second operand of >>?
-    - Maybe convert it to midpoint?
-- Helper functionality for mul/div?
-
-## Memory model:
+## Memory
 - 16 bit-addressable memory (Byte level access emulated in SW)
 - Separate data and program segments
-- Virtual address format: CC CCCC S AAAA AA | AA AAAA AAAA
-    - C - 6bit context ID (from control register)
-    - S - segment (0 = data segment, 1 = program segment)
-    - A - 16bit address
+- Virtual address format: `CC CCCC S AAAA AA | AA AAAA AAAA`
+    - `C` - 6bit context ID (from control register)
+    - `S` - segment (0 = data segment, 1 = program segment)
+    - `A` - 16bit address
 - MMU
     - Built out of two 8k * 8b SRAM ICs
-    - Record format: RWFF FFFF FFFF FFFF
-        - R - Read allowed
-        - W - Write allowed
-        - F - Frame address (14b)
+    - Record format: `RWFF FFFF FFFF FFFF`
+        - `R` - Read allowed
+        - `W` - Write allowed
+        - `F` - Frame address (14b)
     - Hardcoded page:
         - Context = 0, Segment = 1, Address = 0x0000 - 0x0FFF) -> boot EEPROM, read only
             - Need to map further pages manually from bootloader
-            - This would solve boot, but would force us to do interrupts in other location
     - Software page fault handling
         - raises interrupt on access violation
     - 10b page size -> 1kWord = 2kB pages
     - 24b physical address -> 16MWord physical address space
         - 22bit ROM address space
-            - 2kWords used?
+            - 8kWords used (pair of 8k * 8b ROM chips)
         - 22bit device address space
         - 23bit RAM address space
             - max 8MWord = 16MB RAM
