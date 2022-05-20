@@ -66,6 +66,7 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 
 <table>
 <tr>
+    <th>Field number</th>
     <th>0</th><th>1</th>
     <th>2</th><th>3</th>
     <th>4</th><th>5</th>
@@ -75,14 +76,14 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
     <th>12</th><th>13</th>
     <th>14</th><th>15</th>
 </tr>
-<tr><td colspan="7">opcode</td><td colspan="9"></td></tr>
-<tr><td colspan="7"></td><td colspan="3">register ID<br>assert left bus</td><td colspan="6"></td></tr>
-<tr><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
-<tr><td colspan="13"></td><td colspan="3">register ID<br>assert right bus, load from result bus</td></tr>
-<tr><td colspan="5"></td><td colspan="3">register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><td colspan="8"></td><td colspan="8">immediate value<br>assert right bus, add to address</td></tr>
-<tr><td colspan="3"></td><td colspan="7">immediate value<br>add to address</td><td colspan="6"></td></tr>
+<tr><th>0</th><td colspan="7">opcode</td><td colspan="9"></td></tr>
+<tr><th>1</th><td colspan="7"></td><td colspan="3">register ID<br>assert left bus</td><td colspan="6"></td></tr>
+<tr><th>2</th><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
+<tr><th>3</th><td colspan="13"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td></tr>
+<tr><th>4</th><td colspan="5"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td><td colspan="8"></td></tr>
+<tr><th>5</th><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
+<tr><th>6</th><td colspan="8"></td><td colspan="8">immediate value<br>assert right bus, add to address</td></tr>
+<tr><th>7</th><td colspan="3"></td><td colspan="7">immediate value<br>add to address</td><td colspan="6"></td></tr>
 </table>
 
 ## Microcode ROM
@@ -94,16 +95,38 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 - 1 bit kernel mode
 - 3 bits condition flags
 
-Total 14
+Total 15
 
-### Outgoing signals
+### Outgoing control lines
 (goal is as small as possible multiple of 8)
-- 4 bits: General purpose register assert / load flags
-- 1 bits: Control register read
-- 1 bit: Control register write
-- 1 bit: Control register id override (set to 111)
+- 2b: What asserts left bus
+    - GPR: instruction field 1
+    - GPR: instruction filed 3
+    - GPR: instruction filed 4
+- 2b: What asserts right bus
+    - GPR: instruction field 2
+    - Control register: instruction field 5
+    - Immediate value: instruction field 6
+- 1b: What asserts result bus
+    - ALU
+    - Memory load
+- 1b: Override control register selection (instruction field 5)
+- 1b: Load GPR: instruction field 3
+- 1b: Load GPR: instruction field 4
+- 1b: Load control register: instruction field 5
+- 1b: Reset microinstruction counter
+- 1b: Address increment
+    - +1
+    - Immediate value: instruction field 7
+- 1b: Memory write
+- 4b: ALU control (TODO, 4b is the lower bound)
 
-TODO
+Total 16
+
+#### TODO
+- How is PC increment and "pipelining" handled?
+- ALU control
+- How to store interrupt cause from SW interrupt?
 
 ## Memory
 - 16 bit-addressable memory (Byte level access emulated in SW)
