@@ -16,7 +16,6 @@
 - Instruction set
     - Basics done, good enough to start writing assembler and simulator
     - Some complex instructions should definitely be added later
-    - I'm not 100% happy with jump instructions, these might change significantly
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together
