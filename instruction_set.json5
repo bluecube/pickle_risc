@@ -1,4 +1,5 @@
 {
+instructions: {
     // Immediate operations (Prefix 00)
     // ================================
     "Add immediate": {
@@ -38,46 +39,9 @@
         cycles: 1
     },
     "Relative jump": {
-        syntax: "rjmp immediate",
-        encoding: ["00", "11", "000", "x", "immediate[8]"],
-        pseudocode: "Pc += immediate",
-        cycles: 1
-    },
-    "Relative jump if zero": {
-        syntax: "rjmpz immediate",
-        encoding: ["00", "11", "001", "x", "immediate[8]"],
-        pseudocode: "if zero: Pc += immediate",
-        cycles: 1
-    },
-    "Relative jump if carry immediate": {
-        syntax: "rjmpc immediate",
-        encoding: ["00", "11", "010", "x", "immediate[8]"],
-        pseudocode: "if carry: Pc += immediate",
-        cycles: 1
-    },
-    "Relative jump if negative": {
-        syntax: "rjmpn immediate",
-        encoding: ["00", "11", "011", "x", "immediate[8]"],
-        pseudocode: "if negative: Pc += immediate",
-        cycles: 1
-    },
-    /* Free opcode ["00", "11", "100"] */
-    "Relative jump if not zero": {
-        syntax: "rjmpnz immediate",
-        encoding: ["00", "11", "101", "x", "immediate[8]"],
-        pseudocode: "if !zero: Pc += immediate",
-        cycles: 1
-    },
-    "Relative jump if not carry": {
-        syntax: "rjmpnc immediate",
-        encoding: ["00", "11", "110", "x", "immediate[8]"],
-        pseudocode: "if !carry: Pc += immediate",
-        cycles: 1
-    },
-    "Relative jump if not negative": {
-        syntax: "rjmpnn immediate",
-        encoding: ["00", "11", "111", "x", "immediate[8]"],
-        pseudocode: "if !negative: Pc += immediate",
+        syntax: "rjmp{condition} immediate",
+        encoding: ["00", "11", "condition", "x", "immediate[8]"],
+        pseudocode: "if condition: Pc += immediate",
         cycles: 1
     },
 
@@ -242,119 +206,16 @@
     // Indirect jumps (Prefix 110)
     // ===========================
     "Jump": {
-        syntax: "jmp Raddress",
-        encoding: ["110", "0", "000", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "Pc = Raddress",
-        cycles: "TODO"
-    },
-    "Jump if zero": {
-        syntax: "jmpz Raddress",
-        encoding: ["110", "0", "001", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if zero: Pc = Raddress",
-        cycles: "TODO"
-    },
-    "Jump if carry": {
-        syntax: "jmpc Raddress",
-        encoding: ["110", "0", "010", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if carry: Pc = Raddress",
-        cycles: "TODO"
-    },
-    "Jump if negative": {
-        syntax: "jmpn Raddress",
-        encoding: ["110", "0", "011", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if negative: Pc = Raddress",
-        cycles: "TODO"
-    },
-    /* Free opcode ["110", "0", "100"] */
-    "Jump if not zero": {
-        syntax: "jmpnz Raddress",
-        encoding: ["110", "0", "101", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if !zero: Pc = Raddress",
-        cycles: "TODO"
-    },
-    "Jump if not carry": {
-        syntax: "jmpnc Raddress",
-        encoding: ["110", "0", "110", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if !carry: Pc = Raddress",
-        cycles: "TODO"
-    },
-    "Jump if not negative": {
-        syntax: "jmpnn Raddress",
-        encoding: ["110", "0", "111", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if not negative: Pc = Raddress",
+        syntax: "jmp{condition} Raddress",
+        encoding: ["110", "0", "condition[3]", "xxx", "Raddress[3]", "xxx"],
+        pseudocode: "if condition: Pc = Raddress",
         cycles: "TODO"
     },
     "Jump and link": {
-        syntax: "jal Raddress, Rlink",
-        encoding: ["110", "1", "000", "xxx", "Raddress[3]", "Rlink[3]"],
+        syntax: "jal{condition} Raddress, Rlink",
+        encoding: ["110", "1", "condition[3]", "xxx", "Raddress[3]", "Rlink[3]"],
         pseudocode: [
-            "tmp = Pc",
-            "Pc = Raddress",
-            "Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    "Jump and link if zero": {
-        syntax: "jalz Raddress, Rlink",
-        encoding: ["110", "1", "001", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if zero:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    "Jump and link if carry": {
-        syntax: "jalc Raddress, Rlink",
-        encoding: ["110", "1", "010", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if carry:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    "Jump and link if negative": {
-        syntax: "jaln Raddress, Rlink",
-        encoding: ["110", "1", "011", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if negative:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    /* Free opcode ["110", "1", "100"], */
-    "Jump and link if not zero": {
-        syntax: "jalnz Raddress, Rlink",
-        encoding: ["110", "1", "101", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if !zero:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    "Jump and link if not carry": {
-        syntax: "jalnc Raddress, Rlink",
-        encoding: ["110", "1", "110", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if !carry:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
-    },
-    "Jump and link if not negative": {
-        syntax: "jalnn Raddress, Rlink",
-        encoding: ["110", "1", "111", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if !negative:",
+            "if condition:",
             "    tmp = Pc",
             "    Pc = Raddress",
             "    Rlink = tmp"
@@ -409,5 +270,37 @@
         encoding: ["1111", "111", "xxxxxxxxx"],
         cycles: 1
     },
+},
+condition: {
+    "Always": {
+        syntax: "",
+        encoding: "000",
+    },
+    "If zero": {
+        syntax: "?z",
+        encoding: "001",
+    },
+    "If carry": {
+        syntax: "?c",
+        encoding: "010",
+    },
+    "If negative": {
+        syntax: "?n",
+        encoding: "011",
+    },
+    /* Unused condition "100" */
+    "If not zero": {
+        syntax: "?nz",
+        encoding: "101",
+    },
+    "If carry": {
+        syntax: "?nc",
+        encoding: "110",
+    },
+    "If negative": {
+        syntax: "?nn",
+        encoding: "111",
+    },
+}
 }
 
