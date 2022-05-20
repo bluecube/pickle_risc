@@ -51,12 +51,11 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
     - Still accessible through memory mapping
 - Interrupts
 - System instructions:
-    - Three syscall instructions
-    - Causes software interrupt with three different causes
-        - Intended use:
-            1. Syscall
-            2. Debugger breakpoint
-            3. IPC call
+    - Syscall instruction
+        - Causes software interrupt
+        - pass 8bit immediate value into high 8 bits of `IntCause`
+            - Quickly distinguish what's necessary in interrupt handler
+                - syscall, vs IPC call, vs breakpoint, ...
     - Break instruction
         - Stop emulator
         - Switch physical CPU into single step mode

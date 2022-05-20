@@ -240,31 +240,25 @@ instructions: {
 
     // System (Prefix 1111)
     // ============================
-    "Syscall 1": {
-        syntax: "syscall1",
-        encoding: ["1111", "000", "xxxxxxxxx"],
-        cycles: 1
-    },
-    "Syscall 2": {
-        syntax: "syscall2",
-        encoding: ["1111", "001", "xxxxxxxxx"],
-        cycles: 1
-    },
-    "Syscall 3": {
-        syntax: "syscall2",
-        encoding: ["1111", "010", "xxxxxxxxx"],
-        cycles: 1
-    },
-    "Return from interrupt": {
-        syntax: "reti",
-        encoding: ["1111", "011", "xxxxxxxxx"],
+    "Syscall": {
+        syntax: "syscall",
+        encoding: ["1111", "000", "x", "immediate[8]"],
         pseudocode: [
             "Pc = IntPc",
             "apply ContextID",
         ],
         cycles: "TODO"
     },
-    /* Free opcodes ["1111", "010"], ["1111", "011"] */
+    "Return from interrupt": {
+        syntax: "reti",
+        encoding: ["1111", "001", "xxxxxxxxx"],
+        pseudocode: [
+            "Pc = IntPc",
+            "apply ContextID",
+        ],
+        cycles: "TODO"
+    },
+    /* Free opcodes ["1111", "010"] - ["1111", "110"] */
     "Break": {
         syntax: "break",
         encoding: ["1111", "111", "xxxxxxxxx"],
