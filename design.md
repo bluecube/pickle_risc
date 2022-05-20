@@ -1,7 +1,5 @@
 # Pickle RISC 16bit CPU
 
-Notes regarding the ISA of Pickle RISC DIY 16bit CPU
-
 ## Basic design
 - 16bit
 - microcoded
@@ -52,7 +50,7 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 - System instructions:
     - Syscall instruction
         - Causes software interrupt
-        - pass 8bit immediate value into high 8 bits of `IntCause`
+        - pass 6bit immediate value into high 8 bits of `IntCause`
             - Quickly distinguish what's necessary in interrupt handler
                 - syscall, vs IPC call, vs breakpoint, ...
     - Break instruction
@@ -82,10 +80,10 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 <tr><th>1</th><td colspan="7"></td><td colspan="3">register ID<br>assert left bus</td><td colspan="6"></td></tr>
 <tr><th>2</th><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
 <tr><th>3</th><td colspan="13"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td></tr>
-<tr><th>4</th><td colspan="5"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><th>5</th><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><th>6</th><td colspan="8"></td><td colspan="8">immediate value<br>assert right bus, add to address</td></tr>
-<tr><th>7</th><td colspan="3"></td><td colspan="7">immediate value<br>add to address</td><td colspan="6"></td></tr>
+<tr><th>4</th><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
+<tr><th>5</th><td colspan="5"></td><td colspan="8">immediate value<br>assert right bus</td><td colspan="3"></td></tr>
+<tr><th>6</th><td colspan="3"></td><td colspan="7">immediate value (load/store)<br>add to address</td><td colspan="6"></td></tr>
+<tr><th>7</th><td colspan="7"></td><td colspan="9">immediate value (rjmp)<br>add to address</td></tr>
 </table>
 
 ### Opcodes
@@ -137,29 +135,29 @@ Total 15
 
 ### Outgoing control lines
 (goal is as small as possible multiple of 8)
-- 2b: What asserts left bus
+- 1b: What asserts left bus
     - GPR: instruction field 1
-    - GPR: instruction filed 3
-    - GPR: instruction filed 4
+    - GPR: instruction field 3
 - 2b: What asserts right bus
     - GPR: instruction field 2
-    - Control register: instruction field 5
-    - Immediate value: instruction field 6
+    - Control register: instruction field 4
+    - Immediate value: instruction field 5
 - 1b: What asserts result bus
     - ALU
     - Memory load
-- 1b: Override control register selection (instruction field 5)
+- 1b: Override control register selection (instruction field 4)
 - 1b: Load GPR: instruction field 3
-- 1b: Load GPR: instruction field 4
-- 1b: Load control register: instruction field 5
+- 1b: Load control register: instruction field 4
 - 1b: Reset microinstruction counter
-- 1b: Address increment
+- 2b: Address increment
+    - no change
     - +1
-    - Immediate value: instruction field 7
+    - Immediate value: instruction field 6 (load/store)
+    - Immediate value: Instruction field 7 (rjmp)
 - 1b: Memory write
 - 4b: ALU control (TODO, 4b is the lower bound)
 
-Total 16
+Total 15
 
 #### TODO
 - How is PC increment and "pipelining" handled?

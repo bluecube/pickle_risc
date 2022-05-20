@@ -4,37 +4,37 @@ instructions: {
     // ================================
     "Add immediate": {
         syntax: "addi Ra, immediate",
-        encoding: ["00", "000", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "000", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra += immediate",
         cycles: 1
     },
     "Subtract immediate": {
         syntax: "subi Ra, immediate",
-        encoding: ["00", "001", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "001", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra -= immediate",
         cycles: 1
     },
     "And immediate": {
         syntax: "andi Ra, immediate",
-        encoding: ["00", "010", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "010", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra &= immediate",
         cycles: 1
     },
     "Or immediate": {
         syntax: "ori Ra, immediate",
-        encoding: ["00", "011", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "011", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra |= immediate",
         cycles: 1
     },
     "Load immediate": {
         syntax: "ldi Ra, immediate",
-        encoding: ["00", "100", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "100", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra = immediate",
         cycles: 1
     },
     "Load upper immediate": {
         syntax: "ldui Ra, immediate",
-        encoding: ["00", "101", "Ra[3]", "immediate[8]"],
+        encoding: ["00", "101", "immediate[8]", "Ra[3]"],
         pseudocode: "Ra = immediate << 8",
         cycles: 1
     },
@@ -215,7 +215,7 @@ instructions: {
     },
     "Relative jump": {
         syntax: "rjmp{condition} immediate",
-        encoding: ["110", "1", "condition", "x", "immediate[8]"],
+        encoding: ["110", "1", "condition", "immediate[9]"],
         pseudocode: "if condition: Pc += sign_extend(immediate)",
         cycles: 1
     },
@@ -239,12 +239,13 @@ instructions: {
     // ============================
     "Syscall": {
         syntax: "syscall",
-        encoding: ["1111", "000", "x", "immediate[8]"],
+        encoding: ["1111", "000", "immediate[6]", "xxx"],
         pseudocode: [
             "Pc = IntPc",
             "apply ContextID",
         ],
-        cycles: "TODO"
+        cycles: "TODO",
+        note: "Uses the 8bit immediate (field 5), overlapping with the two zero bits from opcode. This is not a problem."
     },
     "Return from interrupt": {
         syntax: "reti",
