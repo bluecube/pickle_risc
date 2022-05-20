@@ -26,10 +26,12 @@
     - Nothing done at all
 
 ## Next steps
+- Figure out how instruction fetch will work exactly, pipelining
+- Figure out ALU design
 - Emulator
-    - Rust?
 - Assembler
     - Probably in C, to make it easier to self-host once/if a C compiler is ready
+- Start building the hardware in some kind of HDL
 
 ## Links
 ### Inspiration

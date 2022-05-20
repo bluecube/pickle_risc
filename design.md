@@ -156,8 +156,10 @@ Total 15
     - Immediate value: Instruction field 7 (rjmp)
 - 1b: Memory write
 - 4b: ALU control (TODO, 4b is the lower bound)
+- 1b: Write interrupt ID into cause register, clear pending interrupt flag
+- 1b: Write 6bits from immediate to upper 8bits of cause register
 
-Total 15
+Total 17
 
 #### TODO
 - How is PC increment and "pipelining" handled?
