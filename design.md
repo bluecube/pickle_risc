@@ -85,6 +85,37 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 <tr><th>7</th><td colspan="3"></td><td colspan="7">immediate value<br>add to address</td><td colspan="6"></td></tr>
 </table>
 
+### Opcodes
+
+<table>
+<tr>
+    <th colspan=2>00</th>
+    <td>Immediate operations</td>
+</tr>
+<tr>
+    <th rowspan="2">01</th>
+    <th>0</th>
+    <td>Basic 3 operand operations</td>
+</tr>
+<tr>
+    <th>1</th>
+    <td>Complex 3 operand operations</td>
+</tr>
+<tr>
+    <th colspan="2">10</th>
+    <td>Load / store</td>
+</tr>
+<tr>
+    <th rowspan="2">11</th>
+    <th>0</th>
+    <td>Indirect jumps</td>
+</tr>
+<tr>
+    <th>1</th>
+    <td>System operations</td>
+</tr>
+</table>
+
 ## Microcode ROM
 ### Incoming signals
 (goal is 13 (= 8k ROM), or 15 (= 32k ROM))
