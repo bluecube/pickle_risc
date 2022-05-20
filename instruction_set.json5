@@ -41,7 +41,7 @@ instructions: {
     "Relative jump": {
         syntax: "rjmp{condition} immediate",
         encoding: ["00", "11", "condition", "x", "immediate[8]"],
-        pseudocode: "if condition: Pc += immediate",
+        pseudocode: "if condition: Pc += sign_extend(immediate)",
         cycles: 1
     },
 
