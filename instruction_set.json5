@@ -38,12 +38,14 @@ instructions: {
         pseudocode: "Ra = immediate << 8",
         cycles: 1
     },
-    "Relative jump": {
-        syntax: "rjmp{condition} immediate",
-        encoding: ["00", "11", "condition", "x", "immediate[8]"],
-        pseudocode: "if condition: Pc += sign_extend(immediate)",
+    "Add immediate to program counter": {
+        syntax: "addipc Ra, immediate",
+        encoding: ["00", "110", "Ra[3]", "immediate[8]"],
+        pseudocode: "Ra = Pc + immediate",
         cycles: 1
-    },
+    }
+    /* Free opcode ["00", "111"] */
+    /* TODO: Bit operations (set, unset, toggle, test) ?? */
 
     // 3 operand operations (Prefix 01)
     // ================================
@@ -203,24 +205,19 @@ instructions: {
         cycles: 2
     },
 
-    // Indirect jumps (Prefix 110)
+    // Jumps (Prefix 110)
     // ===========================
-    "Jump": {
+    "Absolute jump": {
         syntax: "jmp{condition} Raddress",
         encoding: ["110", "0", "condition[3]", "xxx", "Raddress[3]", "xxx"],
         pseudocode: "if condition: Pc = Raddress",
         cycles: "TODO"
     },
-    "Jump and link": {
-        syntax: "jal{condition} Raddress, Rlink",
-        encoding: ["110", "1", "condition[3]", "xxx", "Raddress[3]", "Rlink[3]"],
-        pseudocode: [
-            "if condition:",
-            "    tmp = Pc",
-            "    Pc = Raddress",
-            "    Rlink = tmp"
-        ],
-        cycles: "TODO"
+    "Relative jump": {
+        syntax: "rjmp{condition} immediate",
+        encoding: ["110", "1", "condition", "x", "immediate[8]"],
+        pseudocode: "if condition: Pc += sign_extend(immediate)",
+        cycles: 1
     },
 
     // Control registers (Prefix 1110)

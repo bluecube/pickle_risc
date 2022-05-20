@@ -9,7 +9,6 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 - 16bit addressable memory only!
     - 8bit access emulated in SW
 - 8 general purpose registers R0-R7
-    - R7: General purpose / link register
 - Control registers
     - ALU Status
         - RW
@@ -60,8 +59,12 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
         - Stop emulator
         - Switch physical CPU into single step mode
             - must be enabled by a physical switch?
+- Jump
+    - There's no jump and link instruction, instead use `addipc Rlink, 1` with normal jump instruction.
 
 ## Instruction format
+
+### Fields
 
 <table>
 <tr>
@@ -89,26 +92,31 @@ Notes regarding the ISA of Pickle RISC DIY 16bit CPU
 
 <table>
 <tr>
-    <th colspan=2>00</th>
-    <td>Immediate operations</td>
+    <th>00</th>
+    <td colspan="3">Immediate operations</td>
 </tr>
 <tr>
     <th rowspan="2">01</th>
     <th>0</th>
-    <td>Basic 3 operand operations</td>
+    <td colspan="2">Basic 3 operand operations</td>
 </tr>
 <tr>
     <th>1</th>
-    <td>Complex 3 operand operations</td>
+    <td colspan="2">Complex 3 operand operations</td>
 </tr>
 <tr>
-    <th colspan="2">10</th>
-    <td>Load / store</td>
+    <th>10</th>
+    <td colspan="3">Load / store</td>
 </tr>
 <tr>
-    <th rowspan="2">11</th>
+    <th rowspan="3">11</th>
     <th>0</th>
-    <td>Indirect jumps</td>
+    <td colspan="2">Jump</td>
+</tr>
+<tr>
+    <th rowspan="2">1</th>
+    <th>0</th>
+    <td>Control registers</td>
 </tr>
 <tr>
     <th>1</th>
