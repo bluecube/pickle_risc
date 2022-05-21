@@ -169,7 +169,7 @@ Total 15
 - 1b: Load PC
 - 1b: Memory write
 - 5b: ALU control (TODO, 5b is the lower bound)
-- 1b: Reset microinstruction counter, clock the decoded μcode latch
+- 1b: Reset microprogram counter, clock the decoded μcode latch
 - 1b: Write interrupt ID into cause register, clear pending interrupt flag
 - 1b: Write 6bits from immediate to upper 8bits of cause register
 
