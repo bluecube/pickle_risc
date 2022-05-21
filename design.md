@@ -59,6 +59,14 @@
             - must be enabled by a physical switch?
 - Jump
     - There's no jump and link instruction, instead use `addipc Rlink, 1` with normal jump instruction.
+- 2 stage pipeline
+    1. fetch + decode
+        - dominated by 150ns microcode ROM access time
+    2. execute
+        - dominated by 4 * 45ns 4bit adder propagation delay
+
+    - Theoretically about 5MHz max clock speed?
+
 
 ## Instruction format
 
@@ -135,31 +143,37 @@ Total 15
 
 ### Outgoing control lines
 (goal is as small as possible multiple of 8)
-- 1b: What asserts left bus
+
+- 2b: Left bus source
     - GPR: instruction field 1
     - GPR: instruction field 3
-- 2b: What asserts right bus
-    - GPR: instruction field 2
     - Control register: instruction field 4
+    - Pc
+- 1b: Right bus source
+    - GPR: instruction field 2
     - Immediate value: instruction field 5
-- 1b: What asserts result bus
+- 1b: Result bus source
     - ALU
-    - Memory load
-- 1b: Override control register selection (instruction field 4)
-- 1b: Load GPR: instruction field 3
-- 1b: Load control register: instruction field 4
-- 1b: Reset microinstruction counter
-- 2b: Address increment
-    - no change
+    - Memory read
+- 1b: Address base bus source
+    - Right bus
+    - Pc
+- 2b: Address offset bus source
+    - 0
     - +1
     - Immediate value: instruction field 6 (load/store)
     - Immediate value: Instruction field 7 (rjmp)
+- 1b: Override control register selection (instruction field 4)
+- 1b: Load control register: instruction field 4
+- 1b: Load GPR: instruction field 3
+- 1b: Load PC
 - 1b: Memory write
-- 4b: ALU control (TODO, 4b is the lower bound)
+- 5b: ALU control (TODO, 5b is the lower bound)
+- 1b: Reset microinstruction counter, clock the decoded μcode latch
 - 1b: Write interrupt ID into cause register, clear pending interrupt flag
 - 1b: Write 6bits from immediate to upper 8bits of cause register
 
-Total 17
+Total 20
 
 #### TODO
 - How is PC increment and "pipelining" handled?

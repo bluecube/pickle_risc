@@ -240,10 +240,6 @@ instructions: {
     "Syscall": {
         syntax: "syscall",
         encoding: ["1111", "000", "immediate[6]", "xxx"],
-        pseudocode: [
-            "Pc = IntPc",
-            "apply ContextID",
-        ],
         cycles: "TODO",
         note: "Uses the 8bit immediate (field 5), overlapping with the two zero bits from opcode. This is not a problem."
     },

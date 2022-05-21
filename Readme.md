@@ -19,14 +19,16 @@
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together
-    - The [block diagram](block_diagram.svg) is generally fine, but slightly out of sync.
-        - Especially the PC and memory address parts
+    - The [block diagram](block_diagram.svg) shows most of the general idea
 - SW
     - Nothing done at all
 
 ## Next steps
 - Figure out how instruction fetch will work exactly, pipelining
 - Figure out ALU design
+- Figure out MMU design
+- Figure out interrupt handling
+    - Rough idea and the instructions needed to support it is already done
 - Emulator
 - Assembler
     - Probably in C, to make it easier to self-host once/if a C compiler is ready
