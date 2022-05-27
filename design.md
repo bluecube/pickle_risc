@@ -221,3 +221,10 @@ Total 20
 ## Parts
 - 74LVC16374 - 16-bit edge-triggered D-type flip-flop; 5 V tolerant; 3-state
 
+
+## !!!
+- SN54AHCT574 requires 1.5ns hold time on data change
+    - Is it Ok to rely on propagation delays of other circuitry for single cycle read-modify-write?
+        - Verify with the fastest possible roundtrip path
+    - Maybe the output delay of the register itself is enough?
+        - Probably yes: min output delay is 1ns, there probably won't be any path faster than 0.5ns
