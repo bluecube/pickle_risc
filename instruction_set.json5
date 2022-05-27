@@ -41,7 +41,7 @@ instructions: {
     "Add immediate to program counter": {
         syntax: "addipc Ra, immediate",
         encoding: ["00", "110", "Ra[3]", "immediate[8]"],
-        pseudocode: "Ra = Pc + immediate",
+        pseudocode: "Ra = Pc + sign_extend(immediate)",
         cycles: 1
     }
     /* Free opcode ["00", "111"] */
@@ -172,23 +172,34 @@ instructions: {
         ]
     },
     /* Free opcodes ["01", "10011"] - ["01", "11111"] */
-    /*"Memory two character search": {
-        syntax: "mem2chr Raddress, Rend_address, Rneedle",
-        encoding: ["01", "10011", "Rend_address[3]", "Rneedle[3]", "Raddress[3]"],
+    /*"Fetch and add": {
+        syntax: "faa Rvalue, Raddress, Rinc",
+        encoding: ["01", "10011", "Rinc[3]", "Raddress[3]", "RValue[3]"],
         pseudocode: [
-            "while Raddress != Rend_address:"
+            "RValue = [Raddress]",
+            "RValue += Rinc",
+            "[Raddres] = Rvalue"
+        ],
+        cycles: "3"
+    },
+    "Memory two character search": {
+        syntax: "mem2chr Raddress, Rend_address, Rneedle",
+        encoding: ["01", "10100", "Rend_address[3]", "Rneedle[3]", "Raddress[3]"],
+        pseudocode: [
+            "while Raddress != Rend_address:",
             "   beq Tmp1, [Raddress], Rneedle",
             "   if !zero:",
             "       break"
             "   Raddress += 1"
         ],
-        cycles: "TODO"
+        cycles: "TODO",
         description: [
             "Search through memory, looking for the first occurence of either of two",
             "characters in Rneedle. Can be used to implement `strlen`, `memchr`, `strchr`"
         ]
     },*/
-    /* TODO: fetch and add, memcpy, memset, strlen? */
+    /* TODO: fetch and add, memcmp, memset, push, push2 ?
+    memcpy and pop needs modification of two registers, probably not possible */
 
     // Load/ store (Prefix 10)
     // =======================
