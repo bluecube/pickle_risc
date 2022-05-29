@@ -138,7 +138,8 @@ instructions: {
         ],
         cycles: 1
     },
-    /* Free opcodes ["01", "01110"], ["01", "01111"] */
+    /* Free opcodes ["01", "01110"], ["01", "01111"], ["01", "10000"], ["01", "10001"] */
+    /* TODO These would be nice to have, but require ability to write all three registers
     "Multiply-add": {
         syntax: "mad Ra, Rb, Rc",
         encoding: ["01", "10000", "Rb[3]", "Rc[3]", "Ra[3]"],
@@ -146,8 +147,6 @@ instructions: {
         cycles: "many (TODO)",
         description: "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
     },
-    /* Free opcode ["01", "10001"] */
-    /* TODO
     "Divide and modulo": {
         syntax: "divmod Ra, Rb, Rc",
         encoding: ["01", "10001", "Rb[3]", "Rc[3]", "Ra[3]"],
@@ -157,49 +156,35 @@ instructions: {
     },*/
     "Compare and swap": {
         syntax: "cas Raddress, Rexpected, Rnew",
-        encoding: ["01", "10010", "Rexpected[3]", "Raddress[3]", "Rnew[3]"],
+        encoding: ["01", "10010", "Rnew[3]", "Raddress[3]", "Rexpected[3]"],
         pseudocode: [
             "if [Raddress] == Rexpected:",
             "    [Raddress] = Rnew",
             "else:",
-            "    Rnew = [Raddress]"
+            "    Rexpected = [Raddress]"
         ],
         cycles: 3,
         "_microcode": [
             "Tmp1 = [Raddress]",
-            "cmp Rold, Tmp1; Instr = [Pc + 1]; Pc += 1",
-            "if eq: [Raddress] = Rnew ; end ; else Rnew = Tmp1 ; end"
-        ]
+            "cmp Rexpected, Tmp1; Instr = [Pc + 1]; Pc += 1",
+            "if eq:",
+            "    [Raddress] = Rnew; end",
+            "else:",
+            "    Rexpected = Tmp1; end",
+        ],
+        note: "RValue returns the value of [Raddress] _after_ the operation",
     },
-    /* Free opcodes ["01", "10011"] - ["01", "11111"] */
-    /*"Fetch and add": {
-        syntax: "faa Rvalue, Raddress, Rinc",
+    "Fetch and add": {
+        syntax: memadd Rvalue, Raddress, Rinc",
         encoding: ["01", "10011", "Rinc[3]", "Raddress[3]", "RValue[3]"],
         pseudocode: [
-            "RValue = [Raddress]",
-            "RValue += Rinc",
-            "[Raddres] = Rvalue"
+            "Rvalue = [Raddress] + Rinc",
+            "[Raddress] = RValue"
         ],
+        note: "RValue returns the value of [Raddress] _after_ the operation",
         cycles: "3"
     },
-    "Memory two character search": {
-        syntax: "mem2chr Raddress, Rend_address, Rneedle",
-        encoding: ["01", "10100", "Rend_address[3]", "Rneedle[3]", "Raddress[3]"],
-        pseudocode: [
-            "while Raddress != Rend_address:",
-            "   beq Tmp1, [Raddress], Rneedle",
-            "   if !zero:",
-            "       break"
-            "   Raddress += 1"
-        ],
-        cycles: "TODO",
-        description: [
-            "Search through memory, looking for the first occurence of either of two",
-            "characters in Rneedle. Can be used to implement `strlen`, `memchr`, `strchr`"
-        ]
-    },*/
-    /* TODO: fetch and add, memcmp, memset, push, push2 ?
-    memcpy and pop needs modification of two registers, probably not possible */
+    /* Free opcodes ["01", "10100"] - ["01", "11111"] */
 
     // Load/ store (Prefix 10)
     // =======================
