@@ -147,11 +147,11 @@ Total 15
 - 2b: Left bus source
     - GPR: instruction field 1
     - GPR: instruction field 3
-    - Control register: instruction field 4
     - Pc
-- 1b: Right bus source
+- 2b: Right bus source
     - GPR: instruction field 2
     - Immediate value: instruction field 5
+    - Control register: instruction field 4
 - 1b: Result bus source
     - ALU
     - Memory read
@@ -173,7 +173,7 @@ Total 15
 - 1b: Write interrupt ID into cause register, clear pending interrupt flag
 - 1b: Write 6bits from immediate to upper 8bits of cause register
 
-Total 20
+Total 21
 
 #### TODO
 - How is PC increment and "pipelining" handled?
