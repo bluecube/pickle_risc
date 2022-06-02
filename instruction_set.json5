@@ -43,7 +43,7 @@ instructions: {
         encoding: ["00", "110", "Ra[3]", "immediate[8]"],
         pseudocode: "Ra = Pc + sign_extend(immediate)",
         cycles: 1
-    }
+    },
     /* Free opcode ["00", "111"] */
     /* TODO: Bit operations (set, unset, toggle, test) ?? */
 
@@ -175,7 +175,7 @@ instructions: {
         note: "RValue returns the value of [Raddress] _after_ the operation",
     },
     "Fetch and add": {
-        syntax: memadd Rvalue, Raddress, Rinc",
+        syntax: "memadd Rvalue, Raddress, Rinc",
         encoding: ["01", "10011", "Rinc[3]", "Raddress[3]", "RValue[3]"],
         pseudocode: [
             "Rvalue = [Raddress] + Rinc",
