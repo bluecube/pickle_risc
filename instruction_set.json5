@@ -2,46 +2,53 @@
 instructions: {
     // Immediate operations (Prefix 00)
     // ================================
-    "Add immediate": {
-        syntax: "addi Ra, immediate",
-        encoding: ["00", "000", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra += immediate",
+    "addi": {
+        title: "Add immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "000", "immediate", "r"],
+        pseudocode: "r += immediate",
         cycles: 1
     },
-    "Subtract immediate": {
-        syntax: "subi Ra, immediate",
-        encoding: ["00", "001", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra -= immediate",
+    "subi": {
+        title: "Subtract immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "001", "immediate", "r"],
+        pseudocode: "r -= immediate",
         cycles: 1
     },
-    "And immediate": {
-        syntax: "andi Ra, immediate",
-        encoding: ["00", "010", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra &= immediate",
+    "andi": {
+        title: "And immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "010", "immediate", "r"],
+        pseudocode: "r &= immediate",
         cycles: 1
     },
-    "Or immediate": {
-        syntax: "ori Ra, immediate",
-        encoding: ["00", "011", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra |= immediate",
+    "ori": {
+        title: "Or immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "011", "immediate", "r"],
+        pseudocode: "r |= immediate",
         cycles: 1
     },
-    "Load immediate": {
-        syntax: "ldi Ra, immediate",
-        encoding: ["00", "100", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra = immediate",
+    "ldi": {
+        title: "Load immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "100", "immediate", "r"],
+        pseudocode: "r = immediate",
         cycles: 1
     },
-    "Load upper immediate": {
-        syntax: "ldui Ra, immediate",
-        encoding: ["00", "101", "immediate[8]", "Ra[3]"],
-        pseudocode: "Ra = immediate << 8",
+    "ldui": {
+        title: "Load upper immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "101", "immediate", "r"],
+        pseudocode: "r = immediate << 8",
         cycles: 1
     },
-    "Add immediate to program counter": {
-        syntax: "addipc Ra, immediate",
-        encoding: ["00", "110", "Ra[3]", "immediate[8]"],
-        pseudocode: "Ra = Pc + sign_extend(immediate)",
+    "addipc": {
+        title: "Add immediate to program counter",
+        args: {"r": "gpr", "immediate": "s8"},
+        encoding: ["00", "110", "r", "immediate"],
+        pseudocode: "r = Pc + immediate",
         cycles: 1
     },
     /* Free opcode ["00", "111"] */
@@ -49,198 +56,223 @@ instructions: {
 
     // 3 operand operations (Prefix 01)
     // ================================
-    "Add": {
-        syntax: "add Ra, Rb, Rc",
-        encoding: ["01", "00000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb + Rc",
+    "add": {
+        title: "Add",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00000", "b", "c", "a"],
+        pseudocode: "a = b + c",
         cycles: 1
     },
-    "Add with carry": {
-        syntax: "addc Ra, Rb, Rc",
-        encoding: ["01", "00001", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb + Rc + carry",
+    "addc": {
+        title: "Add with carry",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00001", "b", "c", "a"],
+        pseudocode: "a = b + c + carry",
         cycles: 1
     },
-    "Subtract": {
-        syntax: "sub Ra, Rb, Rc",
-        encoding: ["01", "00010", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb - Rc",
+    "sub": {
+        title: "Subtract",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00010", "b", "c", "a"],
+        pseudocode: "a = b - c",
         cycles: 1
     },
-    "Subtract with carry": {
-        syntax: "subc Ra, Rb, Rc",
-        encoding: ["01", "00011", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb - Rc + carry",
+    "subc": {
+        title: "Subtract with carry",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00011", "b", "c", "a"],
+        pseudocode: "a = b - c + carry",
         cycles: 1
     },
-    "And": {
-        syntax: "and Ra, Rb, Rc",
-        encoding: ["01", "00100", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb & Rc",
+    "and": {
+        title: "And",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00100", "b", "c", "a"],
+        pseudocode: "a = b & c",
         cycles: 1
     },
-    "Or": {
-        syntax: "or Ra, Rb, Rc",
-        encoding: ["01", "00101", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb | Rc",
+    "or": {
+        title: "Or",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00101", "b", "c", "a"],
+        pseudocode: "a = b | c",
         cycles: 1
     },
-    "Nor": {
-        syntax: "nor Ra, Rb, Rc",
-        encoding: ["01", "00110", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = ~(Rb | Rc)",
+    "nor": {
+        title: "Nor",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00110", "b", "c", "a"],
+        pseudocode: "a = ~(b | c)",
         cycles: 1
     },
-    "Xor": {
-        syntax: "xor Ra, Rb, Rc",
-        encoding: ["01", "00111", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Rb ^ Rc",
+    "xor": {
+        title: "Xor",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "00111", "b", "c", "a"],
+        pseudocode: "a = b ^ c",
         cycles: 1
     },
-    "And shift right": {
-        syntax: "andshr Ra, Rb, Rc",
-        encoding: ["01", "01000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = (Rb & Rc) >> 1 (logical)",
+    "andshr": {
+        title: "And shift right",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "01000", "b", "c", "a"],
+        pseudocode: "a = (b & c) >> 1 (logical)",
         cycles: 1
     },
-    "And shift right arithmetic": {
-        syntax: "andshra Ra, Rb, Rc",
-        encoding: ["01", "01001", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = (Rb & Rc) >> 1 (arithmetic)",
+    "andshra": {
+        title: "And shift right arithmetic",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "01001", "b", "c", "a"],
+        pseudocode: "a = (b & c) >> 1 (arithmetic)",
         cycles: 1
     },
-    "And shift right with carry": {
-        syntax: "andshrc Ra, Rb, Rc",
-        encoding: ["01", "01010", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = carry << 7 | (Rb & Rc) >> 1 (logical)",
+    "andshrc": {
+        title: "And shift right with carry",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "01010", "b", "c", "a"],
+        pseudocode: "a = carry << 7 | (b & c) >> 1 (logical)",
         cycles: 1
     },
-    "Compare": {
-        syntax: "cmp Rb, Rc",
-        encoding: ["01", "01011", "Rb[3]", "Rc[3]", "xxx"],
-        pseudocode: "_ = Rb - Rc",
+    "cmp": {
+        title: "Compare",
+        args: {"a": "gpr", "b": "gpr"},
+        encoding: ["01", "01011", "a", "b", "xxx"],
+        pseudocode: "_ = b - c",
         cycles: 1
     },
-    "Byte swap": {
-        syntax: "bswp Ra, Rb, Rc",
-        encoding: ["01", "01100", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = (Rb >> 8) | (Rc << 8)",
+    "bswp": {
+        title: "Byte swap",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "01100", "b", "c", "a"],
+        pseudocode: "a = (b >> 8) | (c << 8)",
         cycles: 1
     },
-    "Byte equality": {
-        syntax: "beq Ra, Rb, Rc",
-        encoding: ["01", "01101", "Rb[3]", "Rc[3]", "Ra[3]"],
+    "beq": {
+        title: "Byte equality",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "01101", "b", "c", "a"],
         description: [
-            "Sets output bit 0 if lower byte of Rb equals lower byte of Rc",
-            "Sets output bit 1 if upper byte of Rb equals lower byte of Rc",
-            "Sets output bit 2 if lower byte of Rb equals upper byte of Rc",
-            "Sets output bit 3 if upper byte of Rb equals upper byte of Rc"
+            "Sets output bit 0 if lower byte of b equals lower byte of c",
+            "Sets output bit 1 if upper byte of b equals lower byte of c",
+            "Sets output bit 2 if lower byte of b equals upper byte of c",
+            "Sets output bit 3 if upper byte of b equals upper byte of c"
         ],
         cycles: 1
     },
     /* Free opcodes ["01", "01110"], ["01", "01111"], ["01", "10000"], ["01", "10001"] */
     /* TODO These would be nice to have, but require ability to write all three registers
-    "Multiply-add": {
-        syntax: "mad Ra, Rb, Rc",
-        encoding: ["01", "10000", "Rb[3]", "Rc[3]", "Ra[3]"],
-        pseudocode: "Ra = Ra + (Rb * Rc)",
+    "mad": {
+        title: "Multiply-add",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "10000", "b", "c", "a"],
+        pseudocode: "a = a + (b * c)",
         cycles: "many (TODO)",
         description: "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
     },
-    "Divide and modulo": {
-        syntax: "divmod Ra, Rb, Rc",
-        encoding: ["01", "10001", "Rb[3]", "Rc[3]", "Ra[3]"],
+    "divmod": {
+        title: "Divide and modulo",
+        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
+        encoding: ["01", "10001", "b", "c", "a"],
         pseudocode: "",
         cycles: "many (TODO)",
         description: "Calculates low 16 bits of unsigned multiplication of two 16bit numbers."
     },*/
-    "Compare and swap": {
-        syntax: "cas Raddress, Rexpected, Rnew",
-        encoding: ["01", "10010", "Rnew[3]", "Raddress[3]", "Rexpected[3]"],
+    "cas": {
+        title: "Compare and swap",
+        args: {"address": "gpr", "expected": "gpr", "new": "gpr"},
+        encoding: ["01", "10010", "new", "address", "expected"],
         pseudocode: [
-            "if [Raddress] == Rexpected:",
-            "    [Raddress] = Rnew",
+            "if [address] == expected:",
+            "    [address] = new",
             "else:",
-            "    Rexpected = [Raddress]"
+            "    expected = [address]"
         ],
         cycles: 3,
         "_microcode": [
-            "Tmp1 = [Raddress]",
-            "cmp Rexpected, Tmp1; Instr = [Pc + 1]; Pc += 1",
+            "Tmp1 = [address]",
+            "cmp expected, Tmp1; Instr = [Pc + 1]; Pc += 1",
             "if eq:",
-            "    [Raddress] = Rnew; end",
+            "    [address] = Rnew; end",
             "else:",
-            "    Rexpected = Tmp1; end",
+            "    expected = Tmp1; end",
         ],
-        note: "RValue returns the value of [Raddress] _after_ the operation",
+        note: "`expected` returns the value of `[address]` _after_ the operation",
     },
-    "Fetch and add": {
-        syntax: "memadd Rvalue, Raddress, Rinc",
-        encoding: ["01", "10011", "Rinc[3]", "Raddress[3]", "RValue[3]"],
+    "memadd": {
+        title: "Fetch and add",
+        args: {"value": "gpr", "address": "gpr", "inc": "gpr"},
+        encoding: ["01", "10011", "inc", "address", "value"],
         pseudocode: [
-            "Rvalue = [Raddress] + Rinc",
-            "[Raddress] = RValue"
+            "value = [address] + inc",
+            "[address] = value"
         ],
-        note: "RValue returns the value of [Raddress] _after_ the operation",
+        note: "`value` returns the value of `[raddress]` _after_ the operation",
         cycles: "3"
     },
     /* Free opcodes ["01", "10100"] - ["01", "11111"] */
 
     // Load/ store (Prefix 10)
     // =======================
-    "Load": {
-        syntax: "ld Rdest, Raddress, immediate",
-        encoding: ["10", "0", "immediate[7]", "Raddress[3]", "Rdest[3]"],
-        pseudocode: "Rdest = [Raddress + sign_extend(immediate)]",
+    "ld": {
+        title: "Load",
+        args: {"dest": "gpr", "address": "gpr", "offset": "s7"},
+        encoding: ["10", "0", "offset", "address", "dest"],
+        pseudocode: "dest = [address + offset]",
         cycles: 2
     },
-    "Store": {
-        syntax: "st Raddress, Rvalue, immediate",
-        encoding: ["10", "1", "immediate[7]", "Raddress[3]", "Rvalue[3]"],
-        pseudocode: "[Raddress + sign_extend(immediate)] = Rvalue",
+    "st": {
+        title: "Store",
+        args: {"address": "gpr", "value": "gpr", "offset": "s7"},
+        encoding: ["10", "1", "offset", "address", "value"],
+        pseudocode: "[address + offset] = value",
         cycles: 2
     },
 
     // Jumps (Prefix 110)
     // ===========================
-    "Absolute jump": {
-        syntax: "jmp{condition} Raddress",
-        encoding: ["110", "0", "condition[3]", "xxx", "Raddress[3]", "xxx"],
-        pseudocode: "if condition: Pc = Raddress",
+    "jmp{condition}": {
+        title: "Absolute jump {condition}",
+        args: {"address": "gpr"},
+        encoding: ["110", "0", "{condition}", "xxx", "address", "xxx"],
+        pseudocode: "if {condition}: Pc = address",
         cycles: "TODO"
     },
-    "Relative jump": {
-        syntax: "rjmp{condition} immediate",
-        encoding: ["110", "1", "condition", "immediate[9]"],
-        pseudocode: "if condition: Pc += sign_extend(immediate)",
+    "rjmp{condition}": {
+        title: "Relative jump {condition})",
+        args: {"jump_offset": "s9"},
+        encoding: ["110", "1", "{condition}", "jump_offset"],
+        pseudocode: "if {condition}: Pc += jump_offset",
         cycles: 1
     },
 
     // Control registers (Prefix 1110)
     // ===============================
-    "Load control register": {
-        syntax: "ldc Ra, C",
-        encoding: ["1110", "0", "C[3]", "xxxxx", "Ra[3]"],
-        pseudocode: "Ra = C",
+    "ldc": {
+        title: "Load control register",
+        args: {"a": "gpr", "ctrl": "ctrl_ld"},
+        encoding: ["1110", "0", "ctrl", "xxxxx", "a"],
+        pseudocode: "a = ctrl",
         cycles: 1
     },
-    "Store control register": {
-        syntax: "stc Ra, C",
-        encoding: ["1110", "1", "C[3]", "xxxxx", "Ra[3]"],
-        pseudocode: "C = Ra",
+    "stc": {
+        title: "Store control register",
+        args: {"a": "gpr", "ctrl": "ctrl_st"},
+        encoding: ["1110", "1", "ctrl", "xxxxx", "a"],
+        pseudocode: "ctrl = a",
         cycles: 1
     },
 
     // System (Prefix 1111)
     // ============================
-    "Syscall": {
-        syntax: "syscall",
-        encoding: ["1111", "000", "immediate[6]", "xxx"],
+    "syscall": {
+        title: "Syscall",
+        args: {"code": "u6"},
+        encoding: ["1111", "000", "code", "xxx"],
         cycles: "TODO",
         note: "Uses the 8bit immediate (field 5), overlapping with the two zero bits from opcode. This is not a problem."
     },
-    "Return from interrupt": {
-        syntax: "reti",
+    "reti": {
+        title: "Return from interrupt",
         encoding: ["1111", "001", "xxxxxxxxx"],
         pseudocode: [
             "Pc = IntPc",
@@ -255,35 +287,44 @@ instructions: {
         cycles: 1
     },
 },
-condition: {
-    "Always": {
-        syntax: "",
-        encoding: "000",
-    },
-    "If zero": {
-        syntax: "?z",
-        encoding: "001",
-    },
-    "If carry": {
-        syntax: "?c",
-        encoding: "010",
-    },
-    "If negative": {
-        syntax: "?n",
-        encoding: "011",
-    },
-    /* Unused condition "100" */
-    "If not zero": {
-        syntax: "?nz",
-        encoding: "101",
-    },
-    "If carry": {
-        syntax: "?nc",
-        encoding: "110",
-    },
-    "If negative": {
-        syntax: "?nn",
-        encoding: "111",
+substitutions: {
+    condition: {
+        "": {
+            title: "",
+            encoding: "000",
+            pseudocode: "true"
+        },
+        "?z": {
+            title: "if zero",
+            encoding: "001",
+            pseudocode: "z"
+        },
+        "?c": {
+            title: "if carry",
+            encoding: "010",
+            pseudocode: "c"
+        },
+        "?n": {
+            title: "if negative",
+            encoding: "011",
+            pseudocode: "n"
+        },
+        /* Unused condition "100" */
+        "?nz": {
+            title: "if not zero",
+            encoding: "101",
+            pseudocode: "!z"
+        },
+        "?nc": {
+            title: "if not carry",
+            encoding: "110",
+            pseudocode: "!c"
+        },
+        "?nn": {
+            title: "if not negative",
+            encoding: "111",
+            pseudocode: "!n"
+        },
     },
 }
 }
