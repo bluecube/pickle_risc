@@ -122,13 +122,13 @@ instructions: {
         cycles: 1
     },
     "Byte swap": {
-        syntax: "bswp",
+        syntax: "bswp Ra, Rb, Rc",
         encoding: ["01", "01100", "Rb[3]", "Rc[3]", "Ra[3]"],
         pseudocode: "Ra = (Rb >> 8) | (Rc << 8)",
         cycles: 1
     },
     "Byte equality": {
-        syntax: "beq",
+        syntax: "beq Ra, Rb, Rc",
         encoding: ["01", "01101", "Rb[3]", "Rc[3]", "Ra[3]"],
         description: [
             "Sets output bit 0 if lower byte of Rb equals lower byte of Rc",
