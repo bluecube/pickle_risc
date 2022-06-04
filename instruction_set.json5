@@ -281,8 +281,8 @@ instructions: {
         cycles: "TODO"
     },
     /* Free opcodes ["1111", "010"] - ["1111", "110"] */
-    "Break": {
-        syntax: "break",
+    "break": {
+        title: "Break",
         encoding: ["1111", "111", "xxxxxxxxx"],
         cycles: 1
     },
