@@ -22,8 +22,12 @@ struct assembler_state {
 };
 
 void assembler_state_init(struct assembler_state* state) {
-    state->pc = 0;
     state->symtable = NULL;
+}
+
+void assembler_state_before_pass(int pass, struct assembler_state* state) {
+    (void)pass;
+    state->pc = 0;
 }
 
 void assembler_state_deinit(struct assembler_state* state) {
@@ -285,6 +289,7 @@ int main(int argc, char** argv) {
     assembler_state_init(&state);
 
     for (int pass = 1; pass <= 2; ++pass) {
+        assembler_state_before_pass(pass, &state);
         if (!assemble_multiple_files(pass, argc - 1, argv + 1, &state)) {
             assembler_state_deinit(&state);
             return EXIT_FAILURE;
