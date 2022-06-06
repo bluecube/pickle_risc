@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include "util.h"
+#include "printing.h"
 
 #include <ctype.h>
 #include <assert.h>
@@ -21,41 +22,49 @@ static bool inflate_buffer(struct tokenizer_state* state) {
     state->bufferSize *= 2;
     state->buffer = realloc(state->buffer, state->bufferSize);
     if (!state->buffer) {
-        fprintf(stderr, "Failed to allocate tokenizer buffer of size %zu\n", state->bufferSize);
+        error("Allocating %zuB for tokenizer buffer failed\n", state->bufferSize);
         return false;
     }
 
     return true;
 }
 
-static void load_token(struct tokenizer_state* state) {
+static int tok_getc(struct tokenizer_state* state) {
     int c = fgetc(state->fp);
+    if (c == '\n') {
+        state->location.line += 1;
+        state->location.column = 0;
+    } else
+        state->location.column += 1;
+
+    return c;
+}
+
+static void load_token(struct tokenizer_state* state) {
+    int c = tok_getc(state);
 
     state->tokenBuffer.content = NULL;
-
-    //printf("C = '%c' (0x%02x)\n", c, c);
 
     while (c == '#' || is_skippable_whitespace(c)) {
         if (c == '#') { // Skip over comments and whitespace
             do {
-                c = fgetc(state->fp);
-                //printf("skipping comment C = '%c' (0x%02x)\n", c, c);
+                c = tok_getc(state);
             } while (c != EOF && c != '\n');
             continue;
         }
 
         while (is_skippable_whitespace(c)) { // Skip over whitespace
-            c = fgetc(state->fp);
-            //printf("skipping whitespace C = '%c' (0x%02x)\n", c, c);
+            c = tok_getc(state);
         }
     }
 
+    state->tokenBuffer.location = state->location;
 
     if (c == EOF) {
         if (feof(state->fp))
             state->tokenBuffer.type = TOKEN_EOF;
         else {
-            fprintf(stderr, "Error reading file\n");
+            error("Error reading file");
             state->tokenBuffer.type = TOKEN_ERROR;
         }
     }
@@ -65,14 +74,17 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.type = c;
     else if (is_identifier_first_char(c)) {
         size_t length = 0;
+        struct location locationBackup;
         do {
             if (length >= state->bufferSize)
                 inflate_buffer(state);
             state->buffer[length++] = c;
-            c = fgetc(state->fp);
+            locationBackup = state->location;
+            c = tok_getc(state);
         } while (is_identifier_char(c));
-        if (c != EOF)
-            ungetc(c, state->fp);
+
+        state->location = locationBackup;
+        ungetc(c, state->fp);
 
         char* identifierCopy = malloc_with_msg(length + 1, "token");
         if (!identifierCopy) {
@@ -86,8 +98,13 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.content = identifierCopy;
         state->tokenBuffer.contentLength = length;
     }
-    else
+    else {
+        int printC = c;
+        if (!isgraph(c))
+            c = ' ';
+        localized_error(state->tokenBuffer.location, "Unexpected character '%c' (0x%02x)", printC, c);
         state->tokenBuffer.type = TOKEN_ERROR;
+    }
 }
 
 struct token get_token(struct tokenizer_state* state) {
@@ -107,6 +124,10 @@ void unget_token(struct token token, struct tokenizer_state* state) {
 }
 
 bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
+    state->location.filename = filename;
+    state->location.line = 1;
+    state->location.column = 0;
+
     // Clear the state, so that a tokenizer that failed to open can still be safely passed
     // to close and it is a no-op.
     state->buffer = NULL;
@@ -115,7 +136,7 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
 
     state->fp = fopen(filename, "rb");
     if (!state->fp) {
-        fprintf(stderr, "Failed to open file `%s`\n", filename);
+        error("%s: Failed to open file", filename);
         return false;
     }
 

@@ -12,10 +12,18 @@
 #define TOKEN_QUOTED_STRING -7*/
 // Single characters tokens are represented by the character itself.
 
+struct location {
+    const char* filename;
+    unsigned line;
+    unsigned column;
+};
+
 struct token {
     char* content;
     size_t contentLength;
     int type;
+
+    struct location location;
 };
 
 struct tokenizer_state {
@@ -23,8 +31,13 @@ struct tokenizer_state {
     char* buffer;
     size_t bufferSize;
     struct token tokenBuffer;
+
+    struct location location;
 };
 
+/// Open given file for tokenization.
+/// filename must remain valid until state is closed.
+/// @return true if successful, otherwise prints an error and exits.
 bool tokenizer_open(const char* filename, struct tokenizer_state* state);
 
 /// Close tokenizer, free all resources. Idempotent.

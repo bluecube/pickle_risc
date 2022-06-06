@@ -1,10 +1,12 @@
 #include "util.h"
+#include "printing.h"
+
 #include <stdio.h>
 
 void* malloc_with_msg(size_t size, const char* label) {
     void *ret = malloc(size);
     if (!ret)
-        fprintf(stderr, "Allocating %zuB for %s failed\n", size, label);
+        error("Allocating %zuB for %s failed", size, label);
 
     return ret;
 }

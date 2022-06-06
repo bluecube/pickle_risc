@@ -1,6 +1,7 @@
 #include "tokenizer.h"
 #include "util.h"
 #include "instructions.h"
+#include "printing.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -69,14 +70,16 @@ struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state
 }
 
 /// Process a label definition, takes ownership of name
-bool define_symbol(char* name, struct assembler_state* state) {
+bool define_symbol(struct token* nameToken, struct assembler_state* state) {
+    struct location loc = nameToken->location;
+    char* name = free_token_move_content(nameToken);
     struct symbol* sym = lookup_or_create_symbol(name, state);
 
     if (!sym)
         return false;
 
     if (sym->defined) {
-        fprintf(stderr, "Symbol `%s` is already defined\n", sym->name);
+        localized_error(loc, "Symbol `%s` is already defined", sym->name);
         return false;
     }
 
@@ -102,10 +105,10 @@ int16_t parse_gpr(struct tokenizer_state* tokenizer) {
             ret = digit;
     }
 
-    free_token(&tok);
-
     if (ret < 0)
-        fprintf(stderr, "Expected register name (r0-r7)");
+        localized_error(tok.location, "Expected register name (r0-r7)");
+
+    free_token(&tok);
 
     return ret;
 }
@@ -131,10 +134,10 @@ int16_t parse_cr(struct tokenizer_state* tokenizer) {
         }
     }
 
-    free_token(&tok);
-
     if (ret < 0)
-        fprintf(stderr, "Expected control register name");
+        localized_error(tok.location, "Expected control register name");
+
+    free_token(&tok);
 
     return ret;
 }
@@ -143,24 +146,24 @@ int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* to
     (void)inputSigned;
     (void)size;
     (void)tokenizer;
-    fprintf(stderr, "Number arguments are not supported yet\n");
+    localized_error(tokenizer->location, "Number arguments are not supported yet");
     return -1;
 }
 
-bool process_instruction(char* mnemonic, struct assembler_state* state, struct tokenizer_state* tokenizer) {
+bool process_instruction(struct token *mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     struct instruction* instruction = instructions;
     while (instruction->mnemonic) {
-        if (!strcmp(mnemonic, instruction->mnemonic))
+        if (!strcmp(mnemonicToken->content, instruction->mnemonic))
             break;
         ++instruction;
     }
     if (!instruction->mnemonic) {
-        fprintf(stderr, "Invalid instruction %s", mnemonic);
-        free(mnemonic);
+        localized_error(mnemonicToken->location, "Invalid instruction %s", mnemonicToken->content);
+        free_token(mnemonicToken);
         return false;
     }
 
-    free(mnemonic);
+    free_token(mnemonicToken);
 
     struct instruction_argument* arg = instruction->args;
 
@@ -204,20 +207,21 @@ bool process_instruction(char* mnemonic, struct assembler_state* state, struct t
         bool error = (separator.type == TOKEN_ERROR);
         bool lineEnd = (separator.type == TOKEN_EOF || separator.type == TOKEN_EOL);
         bool comma = (separator.type == ',');
+        struct location loc = separator.location;
         free_token(&separator);
 
         if (error)
             return false;
         else if (comma && lastArg) {
-            fprintf(stderr, "Extra instruction parameter");
+            localized_error(loc, "Extra instruction parameter");
             return false;
         }
         else if (lineEnd && !lastArg) {
-            fprintf(stderr, "Missing instruction parameters");
+            localized_error(loc, "Missing instruction parameters");
             return false;
         }
         else if (!comma && !lineEnd) {
-            fprintf(stderr, "Unexpected input");
+            localized_error(loc, "Unexpected input");
             return false;
         }
     }
@@ -239,18 +243,18 @@ bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembler_stat
         else if (token1.type == TOKEN_EOL)
             continue; // Empty line
         else if (token1.type != TOKEN_IDENTIFIER) {
-            fprintf(stderr, "Expected identifier\n");
+            localized_error(token1.location, "Expected identifier");
             return false;
         }
 
         struct token token2 = get_token(tokenizer);
         if (token2.type == ':') {
             free_token(&token2);
-            if (!define_symbol(free_token_move_content(&token1), state))
+            if (!define_symbol(&token1, state))
                 return false;
         } else {
             unget_token(token2, tokenizer);
-            if (!process_instruction(free_token_move_content(&token1), state, tokenizer))
+            if (!process_instruction(&token1, state, tokenizer))
                 return false;
         }
     }
@@ -273,7 +277,7 @@ bool assemble_multiple_files(int pass, int fileCount, char** filePaths, struct a
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        fprintf(stderr, "Need at least one file as argument\n");
+        error("Need at least one file as argument\n");
         return EXIT_FAILURE;
     }
 
