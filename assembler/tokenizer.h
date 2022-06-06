@@ -8,8 +8,8 @@
 #define TOKEN_EOF -3
 #define TOKEN_EOL -4
 #define TOKEN_IDENTIFIER -5
-/*#define TOKEN_NUMBER -6
-#define TOKEN_QUOTED_STRING -7*/
+#define TOKEN_NUMBER -6
+//#define TOKEN_QUOTED_STRING -7
 // Single characters tokens are represented by the character itself.
 
 struct location {
@@ -20,7 +20,7 @@ struct location {
 
 struct token {
     char* content;
-    size_t contentLength;
+    size_t contentNumeric;
     int type;
 
     struct location location;

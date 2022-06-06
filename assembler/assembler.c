@@ -101,7 +101,7 @@ int16_t parse_gpr(struct tokenizer_state* tokenizer) {
 
     if (
         tok.type == TOKEN_IDENTIFIER &&
-        tok.contentLength == 2 &&
+        tok.contentNumeric == 2 &&
         tok.content[0] == 'r'
     ) {
         int digit = parse_digit(tok.content[1]);
@@ -146,12 +146,43 @@ int16_t parse_cr(struct tokenizer_state* tokenizer) {
     return ret;
 }
 
+/// Parse a number from the input (TODO: Allowing mathematical operations)
+/// and return it as an unsigned number suitable for output into an instruction code.
+/// Returns -1 on error.
 int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* tokenizer) {
-    (void)inputSigned;
-    (void)size;
-    (void)tokenizer;
-    localized_error(tokenizer->location, "Number arguments are not supported yet");
-    return -1;
+    struct token tok = get_token(tokenizer);
+
+    if (tok.type == TOKEN_ERROR) {
+        free_token(&tok);
+        return -1;
+    } else if (tok.type != TOKEN_NUMBER) {
+        localized_error(tok.location, "Expected numeric literal");
+        free_token(&tok);
+        return -1;
+    }
+
+    long number = tok.contentNumeric;
+
+    long min = 0;
+    long max = 1 << size;
+
+    if (inputSigned) {
+        min = -(max / 2);
+        max = (max / 2) - 1;
+    }
+
+    if (number < min || number > max) {
+        localized_error(tok.location, "Value %ld out of range (%ld .. %ld)", number, min, max);
+        free_token(&tok);
+        return -1;
+    }
+
+    free_token(&tok);
+
+    if (number >= 0)
+        return number;
+    else
+        return (1 << size) + number;
 }
 
 bool process_instruction(struct token *mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {

@@ -40,6 +40,67 @@ static int tok_getc(struct tokenizer_state* state) {
     return c;
 }
 
+static void unexpected_character_error(struct location location, int c) {
+    int printC = c;
+    if (!isgraph(c))
+        c = ' ';
+    localized_error(location, "Unexpected character '%c'(0x%02x)", printC, c);
+}
+
+/// Parse a single positive number from tokenizer, starting with a character c.
+/// @return number or negative on error.
+static long parse_number(struct tokenizer_state* state, int c) {
+    int base;
+    long ret = 0;
+    bool haveDigits = false;
+
+    if (c == '0') {
+        // next character determines the base
+        c = tok_getc(state);
+        switch (c) {
+        case 'x':
+        case 'X':
+            base = 16;
+            break;
+        case 'o':
+        case 'O':
+            base = 8;
+            break;
+        case 'b':
+        case 'B':
+            base = 2;
+            break;
+        default:
+            unexpected_character_error(state->location, c);
+            return -1;
+        }
+    } else {
+        base = 10;
+        ret = parse_digit(c);
+        assert(ret > 0);
+        assert(ret < 10);
+        haveDigits = true;
+    }
+
+    while (true) {
+        struct location locationBackup = state->location;
+        c = tok_getc(state);
+        int d = parse_digit(c);
+        if (d < 0 || d >= base) {
+            if (haveDigits) {
+                ungetc(c, state->fp);
+                state->location = locationBackup;
+                return ret;
+            } else {
+                localized_error(state->tokenBuffer.location, "Base-%d numeric literal with no digits", base);
+                return -1;
+            }
+        }
+        ret = ret * base + d;
+        haveDigits = true;
+    }
+}
+
 static void load_token(struct tokenizer_state* state) {
     int c = tok_getc(state);
 
@@ -96,13 +157,19 @@ static void load_token(struct tokenizer_state* state) {
 
         state->tokenBuffer.type = TOKEN_IDENTIFIER;
         state->tokenBuffer.content = identifierCopy;
-        state->tokenBuffer.contentLength = length;
+        state->tokenBuffer.contentNumeric = length;
+    }
+    else if (c >= '0' && c <= '9') {
+        long value = parse_number(state, c);
+        if (value < 0) {
+            state->tokenBuffer.type = TOKEN_ERROR;
+        } else {
+            state->tokenBuffer.type = TOKEN_NUMBER;
+            state->tokenBuffer.contentNumeric = value;
+        }
     }
     else {
-        int printC = c;
-        if (!isgraph(c))
-            c = ' ';
-        localized_error(state->tokenBuffer.location, "Unexpected character '%c' (0x%02x)", printC, c);
+        unexpected_character_error(state->location, c);
         state->tokenBuffer.type = TOKEN_ERROR;
     }
 }
