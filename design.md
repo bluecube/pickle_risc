@@ -35,13 +35,14 @@
         - RO
         - Cause of currently processed interrupt
     - IntPc
+        - RW
         - Saved program counter after interrupt
         - New program counter used by RETI
     - MMUAddr: Virtual page address
         - RW
         - for storing MMU records
         - set during page failure
-    - MMURecord
+    - MMUData
         - WO
         - triggers the MMU write at given MMUAddr
 - Separate instruction virtual address space

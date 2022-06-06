@@ -238,7 +238,7 @@ instructions: {
         cycles: "TODO"
     },
     "rjmp{condition}": {
-        title: "Relative jump {condition})",
+        title: "Relative jump {condition}",
         args: {"jump_offset": "s9"},
         encoding: ["110", "1", "{condition}", "jump_offset"],
         pseudocode: "if {condition}: Pc += jump_offset",
@@ -247,18 +247,18 @@ instructions: {
 
     // Control registers (Prefix 1110)
     // ===============================
-    "ldc": {
-        title: "Load control register",
-        args: {"a": "gpr", "ctrl": "ctrl_ld"},
-        encoding: ["1110", "0", "ctrl", "xxxxx", "a"],
-        pseudocode: "a = ctrl",
+    "ldcr": {
+        title: "Load from control register",
+        args: {"a": "gpr", "cr": "cr"},
+        encoding: ["1110", "0", "cr", "xxxxx", "a"],
+        pseudocode: "a = cr",
         cycles: 1
     },
-    "stc": {
-        title: "Store control register",
-        args: {"a": "gpr", "ctrl": "ctrl_st"},
-        encoding: ["1110", "1", "ctrl", "xxxxx", "a"],
-        pseudocode: "ctrl = a",
+    "stcr": {
+        title: "Store to control register",
+        args: {"cr": "cr", "a": "gpr"},
+        encoding: ["1110", "1", "cr", "xxxxx", "a"],
+        pseudocode: "cr = a",
         cycles: 1
     },
 
