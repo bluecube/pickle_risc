@@ -86,6 +86,8 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.content = identifierCopy;
         state->tokenBuffer.contentLength = length;
     }
+    else
+        state->tokenBuffer.type = TOKEN_ERROR;
 }
 
 struct token get_token(struct tokenizer_state* state) {
