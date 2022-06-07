@@ -75,7 +75,8 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     bool haveDigits = false;
 
     if (c == '0') {
-        // next character determines the base
+        // next character determines the base, or zero
+        struct location locationBackup = state->location;
         c = tok_getc(state);
         switch (c) {
         case 'x':
@@ -91,8 +92,14 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
             base = 2;
             break;
         default:
-            unexpected_character_error(state->location, c);
-            return -1;
+            if (isdigit(c)) {
+                localized_error(locationBackup, "Leading zero in decimal integer literal");
+                return -1;
+            } else {
+                ungetc(c, state->fp);
+                state->location = locationBackup;
+                return 0;
+            }
         }
     } else {
         base = 10;
