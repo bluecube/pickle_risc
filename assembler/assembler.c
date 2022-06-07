@@ -146,22 +146,41 @@ int16_t parse_cr(struct tokenizer_state* tokenizer) {
     return ret;
 }
 
-/// Parse a number from the input (TODO: Allowing mathematical operations)
-/// and return it as an unsigned number suitable for output into an instruction code.
-/// Returns -1 on error.
-int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* tokenizer) {
+/// Parse a number from the input (TODO: Allowing mathematical operations).
+/// Parameter startLocation returns the beginning of the expression (even on error), can be NULL.
+/// @return true if ret was set, false on error
+bool parse_number(struct tokenizer_state* tokenizer, numeric_value_t* ret, struct location* startLocation) {
     struct token tok = get_token(tokenizer);
+
+    if (startLocation)
+        *startLocation = tok.location;
 
     if (tok.type == TOKEN_ERROR) {
         free_token(&tok);
-        return -1;
+        return false;
     } else if (tok.type != TOKEN_NUMBER) {
         localized_error(tok.location, "Expected numeric literal");
         free_token(&tok);
-        return -1;
+        return false;
     }
 
-    numeric_value_t number = tok.contentNumeric;
+    *ret = tok.contentNumeric;
+    free_token(&tok);
+    return true;
+}
+
+
+/// Parse a number from the input and return it as an unsigned number suitable
+/// for output into an instruction code
+/// @return -1 on error
+int16_t parse_number_for_instruction(bool inputSigned, unsigned size, struct tokenizer_state* tokenizer) {
+    numeric_value_t number;
+    struct location location;
+
+    if (!parse_number(tokenizer, &number, &location))
+        return -1;
+
+    assert(size < 15); // We must fit into the output 16 bits, with negative value reserved
 
     numeric_value_t min = 0;
     numeric_value_t max = 1 << size;
@@ -172,12 +191,9 @@ int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* to
     }
 
     if (number < min || number > max) {
-        localized_error(tok.location, "Value %" NUMERIC_VALUE_FORMAT " out of range (%" NUMERIC_VALUE_FORMAT " .. %" NUMERIC_VALUE_FORMAT ")", number, min, max);
-        free_token(&tok);
+        localized_error(location, "Value %" NUMERIC_VALUE_FORMAT " out of range (%" NUMERIC_VALUE_FORMAT " .. %" NUMERIC_VALUE_FORMAT ")", number, min, max);
         return -1;
     }
-
-    free_token(&tok);
 
     if (number >= 0)
         return number;
@@ -216,7 +232,7 @@ bool process_instruction(struct token *mnemonicToken, struct assembler_state* st
             break;
         case INSTRUCTION_ARG_SIGNED:
         case INSTRUCTION_ARG_UNSIGNED:
-            argValue = parse_number(
+            argValue = parse_number_for_instruction(
                 arg->type == INSTRUCTION_ARG_SIGNED,
                 arg->size,
                 tokenizer
