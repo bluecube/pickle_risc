@@ -49,9 +49,9 @@ static void unexpected_character_error(struct location location, int c) {
 
 /// Parse a single positive number from tokenizer, starting with a character c.
 /// @return number or negative on error.
-static long parse_number(struct tokenizer_state* state, int c) {
+static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     int base;
-    long ret = 0;
+    numeric_value_t ret = 0;
     bool haveDigits = false;
 
     if (c == '0') {
@@ -167,7 +167,7 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.contentNumeric = length;
     }
     else if (c >= '0' && c <= '9') {
-        long value = parse_number(state, c);
+        numeric_value_t value = parse_number(state, c);
         if (value < 0) {
             state->tokenBuffer.type = TOKEN_ERROR;
         } else {

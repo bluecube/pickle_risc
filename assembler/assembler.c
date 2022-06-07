@@ -4,7 +4,7 @@
 #include "printing.h"
 
 #include <stdbool.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -161,10 +161,10 @@ int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* to
         return -1;
     }
 
-    long number = tok.contentNumeric;
+    numeric_value_t number = tok.contentNumeric;
 
-    long min = 0;
-    long max = 1 << size;
+    numeric_value_t min = 0;
+    numeric_value_t max = 1 << size;
 
     if (inputSigned) {
         min = -(max / 2);
@@ -172,7 +172,7 @@ int16_t parse_number(bool inputSigned, unsigned size, struct tokenizer_state* to
     }
 
     if (number < min || number > max) {
-        localized_error(tok.location, "Value %ld out of range (%ld .. %ld)", number, min, max);
+        localized_error(tok.location, "Value %" NUMERIC_VALUE_FORMAT " out of range (%" NUMERIC_VALUE_FORMAT " .. %" NUMERIC_VALUE_FORMAT ")", number, min, max);
         free_token(&tok);
         return -1;
     }

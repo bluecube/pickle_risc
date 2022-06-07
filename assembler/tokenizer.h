@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #define TOKEN_NONE -1
 #define TOKEN_ERROR -2
@@ -12,6 +13,9 @@
 //#define TOKEN_QUOTED_STRING -7
 // Single characters tokens are represented by the character itself.
 
+typedef int32_t numeric_value_t;
+#define NUMERIC_VALUE_FORMAT PRId32
+
 struct location {
     const char* filename;
     unsigned line;
@@ -20,7 +24,7 @@ struct location {
 
 struct token {
     char* content;
-    size_t contentNumeric;
+    numeric_value_t contentNumeric;
     int type;
 
     struct location location;
