@@ -12,7 +12,10 @@
 #define TOKEN_EOL -4
 #define TOKEN_IDENTIFIER -5
 #define TOKEN_NUMBER -6
-//#define TOKEN_QUOTED_STRING -7
+#define TOKEN_OPERATOR_SHL -7
+#define TOKEN_OPERATOR_SHR -8
+#define TOKEN_OPERATOR_POWER -9
+//#define TOKEN_QUOTED_STRING -10
 // Single characters tokens are represented by the character itself.
 
 typedef int32_t numeric_value_t;

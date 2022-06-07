@@ -18,6 +18,10 @@ static bool is_skippable_whitespace(int c) {
     return c != '\n' && isspace(c);
 }
 
+static bool is_simple_token(int c) {
+    return !!strchr(":,(){}+-/", c);
+}
+
 static int tok_getc(struct tokenizer_state* state) {
     int c = fgetc(state->fp);
     if (c == '\n') {
@@ -34,6 +38,20 @@ static void unexpected_character_error(struct location location, int c) {
     if (!isgraph(c))
         c = ' ';
     localized_error(location, "Unexpected character '%c'(0x%02x)", printC, c);
+}
+
+/// Parse tokens that have different meaning when doubled (eg. <<)
+/// @return token type
+static int parse_double_char_token(struct tokenizer_state* state, int c, int doubleCharTokenType) {
+    struct location locationBackup = state->location;
+    int c2 = tok_getc(state);
+    if (c2 == c)
+        return doubleCharTokenType;
+    else {
+        state->location = locationBackup;
+        ungetc(c2, state->fp);
+        return c;
+    }
 }
 
 /// Parse an identifier from tokenizer, starting with character c.
@@ -167,8 +185,14 @@ static void load_token(struct tokenizer_state* state) {
     }
     else if (c == '\n' || c == ';')
         state->tokenBuffer.type = TOKEN_EOL;
-    else if (c == ':' || c == ',')
+    else if (is_simple_token(c))
         state->tokenBuffer.type = c;
+    else if (c == '<')
+        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_SHL);
+    else if (c == '>')
+        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_SHR);
+    else if (c == '*')
+        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_POWER);
     else if (is_identifier_first_char(c)) {
         numeric_value_t length;
         char* identifier = parse_identifier(state, c, &length);
@@ -180,7 +204,7 @@ static void load_token(struct tokenizer_state* state) {
             state->tokenBuffer.contentNumeric = length;
         }
     }
-    else if (c >= '0' && c <= '9') {
+    else if (isdigit(c)) {
         numeric_value_t value = parse_number(state, c);
         if (value < 0) {
             state->tokenBuffer.type = TOKEN_ERROR;
