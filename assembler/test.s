@@ -1,4 +1,4 @@
-ldui r5, 0xaa
+ldui r5, 0xa_a
 ori r5, 0x55
 ldi r2, 10
 add r0, r2, r5 # Comment

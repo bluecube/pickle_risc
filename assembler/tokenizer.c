@@ -85,6 +85,8 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     while (true) {
         struct location locationBackup = state->location;
         c = tok_getc(state);
+        if (c == '_')
+            continue;
         int d = parse_digit(c);
         if (d < 0 || d >= base) {
             if (haveDigits) {
