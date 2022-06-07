@@ -11,6 +11,14 @@ void* malloc_with_msg(size_t size, const char* label) {
     return ret;
 }
 
+void* realloc_with_msg(void* ptr, size_t size, const char* label) {
+    void *ret = realloc(ptr, size);
+    if (!ret)
+        error("Allocating %zuB for %s failed", size, label);
+
+    return ret;
+}
+
 int parse_digit(int c) {
     if (c >= '0' && c <= '9')
         return c - '0';

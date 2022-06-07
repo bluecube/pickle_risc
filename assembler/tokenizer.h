@@ -1,4 +1,6 @@
 #pragma once
+#include "stack.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -32,8 +34,7 @@ struct token {
 
 struct tokenizer_state {
     FILE* fp;
-    char* buffer;
-    size_t bufferSize;
+    STACK_DECLARATION(char) buffer;
     struct token tokenBuffer;
 
     struct location location;

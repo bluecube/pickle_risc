@@ -18,17 +18,6 @@ static bool is_skippable_whitespace(int c) {
     return c != '\n' && isspace(c);
 }
 
-static bool inflate_buffer(struct tokenizer_state* state) {
-    state->bufferSize *= 2;
-    state->buffer = realloc(state->buffer, state->bufferSize);
-    if (!state->buffer) {
-        error("Allocating %zuB for tokenizer buffer failed\n", state->bufferSize);
-        return false;
-    }
-
-    return true;
-}
-
 static int tok_getc(struct tokenizer_state* state) {
     int c = fgetc(state->fp);
     if (c == '\n') {
@@ -51,12 +40,10 @@ static void unexpected_character_error(struct location location, int c) {
 /// Parameter size gets set to the length of the identifier (excluding terminating '\0').
 /// @return Newly allocated copy of the identifier or NULL on error.
 static char* parse_identifier(struct tokenizer_state* state, int c, numeric_value_t* length) {
-    size_t l = 0;
     struct location locationBackup;
     do {
-        if (l >= state->bufferSize)
-            inflate_buffer(state);
-        state->buffer[l++] = c;
+        if (!STACK_PUSH(state->buffer, c))
+            return NULL;
         locationBackup = state->location;
         c = tok_getc(state);
     } while (is_identifier_char(c));
@@ -64,18 +51,19 @@ static char* parse_identifier(struct tokenizer_state* state, int c, numeric_valu
     state->location = locationBackup;
     ungetc(c, state->fp);
 
-    char* identifierCopy = malloc_with_msg(l + 1, "token");
+    char* identifierCopy = malloc_with_msg(state->buffer.used + 1, "token");
     if (!identifierCopy)
         return NULL;
 
-    memcpy(identifierCopy, state->buffer, l);
-    identifierCopy[l] = '\0';
+    memcpy(identifierCopy, state->buffer.ptr, state->buffer.used);
+    identifierCopy[state->buffer.used] = '\0';
 
-    *length = l;
-    if (*length < 0 || (size_t)(*length) != l) {
+    *length = state->buffer.used;
+    if (*length < 0 || (size_t)(*length) != state->buffer.used) {
         localized_error(state->location, "Too long identifier");
         return NULL;
     }
+    state->buffer.used = 0; // Clear the buffer for later tokens
     return identifierCopy;
 }
 
@@ -223,7 +211,7 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
 
     // Clear the state, so that a tokenizer that failed to open can still be safely passed
     // to close and it is a no-op.
-    state->buffer = NULL;
+    state->buffer.ptr = NULL;
     state->tokenBuffer.type = TOKEN_NONE;
     state->tokenBuffer.content = NULL;
 
@@ -233,8 +221,7 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
         return false;
     }
 
-    state->bufferSize = 128 / 2; // Size will be doubled by inflate_buffer.
-    if (!inflate_buffer(state)) {
+    if (!STACK_INIT(state->buffer, 32)) {
         fclose(state->fp);
         state->fp = NULL;
         return false;
@@ -248,9 +235,7 @@ void tokenizer_close(struct tokenizer_state* state) {
         fclose(state->fp);
     state->fp = NULL;
 
-    if (state->buffer)
-        free(state->buffer);
-    state->buffer = NULL;
+    STACK_DEINIT(state->buffer);
 
     free_token(&(state->tokenBuffer));
 }
