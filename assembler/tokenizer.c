@@ -96,7 +96,14 @@ static long parse_number(struct tokenizer_state* state, int c) {
                 return -1;
             }
         }
-        ret = ret * base + d;
+
+        bool overflow = __builtin_mul_overflow(ret, base, &ret);
+        overflow = overflow || __builtin_add_overflow(ret, d, &ret);
+
+        if (overflow) {
+            localized_error(state->tokenBuffer.location, "Numeric literal overflow");
+            return -1;
+        }
         haveDigits = true;
     }
 }
