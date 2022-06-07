@@ -7,11 +7,11 @@
 #include <string.h>
 
 static bool is_identifier_first_char(int c) {
-    return c == '.' || c == '_' || c == '?' || isalpha(c);
+    return c == '.' || c == '_' || isalpha(c);
 }
 
 static bool is_identifier_char(int c) {
-    return is_identifier_first_char(c) || isdigit(c);
+    return is_identifier_first_char(c) || isdigit(c) || c == '?';
 }
 
 static bool is_skippable_whitespace(int c) {
