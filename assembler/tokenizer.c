@@ -47,6 +47,38 @@ static void unexpected_character_error(struct location location, int c) {
     localized_error(location, "Unexpected character '%c'(0x%02x)", printC, c);
 }
 
+/// Parse an identifier from tokenizer, starting with character c.
+/// Parameter size gets set to the length of the identifier (excluding terminating '\0').
+/// @return Newly allocated copy of the identifier or NULL on error.
+static char* parse_identifier(struct tokenizer_state* state, int c, numeric_value_t* length) {
+    size_t l = 0;
+    struct location locationBackup;
+    do {
+        if (l >= state->bufferSize)
+            inflate_buffer(state);
+        state->buffer[l++] = c;
+        locationBackup = state->location;
+        c = tok_getc(state);
+    } while (is_identifier_char(c));
+
+    state->location = locationBackup;
+    ungetc(c, state->fp);
+
+    char* identifierCopy = malloc_with_msg(l + 1, "token");
+    if (!identifierCopy)
+        return NULL;
+
+    memcpy(identifierCopy, state->buffer, l);
+    identifierCopy[l] = '\0';
+
+    *length = l;
+    if (*length < 0 || (size_t)(*length) != l) {
+        localized_error(state->location, "Too long identifier");
+        return NULL;
+    }
+    return identifierCopy;
+}
+
 /// Parse a single positive number from tokenizer, starting with a character c.
 /// @return number or negative on error.
 static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
@@ -143,30 +175,15 @@ static void load_token(struct tokenizer_state* state) {
     else if (c == ':' || c == ',')
         state->tokenBuffer.type = c;
     else if (is_identifier_first_char(c)) {
-        size_t length = 0;
-        struct location locationBackup;
-        do {
-            if (length >= state->bufferSize)
-                inflate_buffer(state);
-            state->buffer[length++] = c;
-            locationBackup = state->location;
-            c = tok_getc(state);
-        } while (is_identifier_char(c));
-
-        state->location = locationBackup;
-        ungetc(c, state->fp);
-
-        char* identifierCopy = malloc_with_msg(length + 1, "token");
-        if (!identifierCopy) {
+        numeric_value_t length;
+        char* identifier = parse_identifier(state, c, &length);
+        if (!identifier) {
             state->tokenBuffer.type = TOKEN_ERROR;
-            return;
+        } else {
+            state->tokenBuffer.type = TOKEN_IDENTIFIER;
+            state->tokenBuffer.content = identifier;
+            state->tokenBuffer.contentNumeric = length;
         }
-        memcpy(identifierCopy, state->buffer, length);
-        identifierCopy[length] = '\0';
-
-        state->tokenBuffer.type = TOKEN_IDENTIFIER;
-        state->tokenBuffer.content = identifierCopy;
-        state->tokenBuffer.contentNumeric = length;
     }
     else if (c >= '0' && c <= '9') {
         numeric_value_t value = parse_number(state, c);
