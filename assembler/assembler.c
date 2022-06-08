@@ -1,10 +1,9 @@
+#include "assembler.h"
 #include "tokenizer.h"
 #include "util.h"
 #include "instructions.h"
 #include "printing.h"
 
-#include <stdbool.h>
-#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -14,11 +13,6 @@ struct symbol {
     uint16_t address;
     bool defined;
     struct symbol* next;
-};
-
-struct assembler_state {
-    uint16_t pc;
-    struct symbol* symtable; // TODO: Use self-organizing list, just for fun (but measure before and after!)
 };
 
 void assembler_state_init(struct assembler_state* state) {
@@ -39,7 +33,7 @@ void assembler_state_deinit(struct assembler_state* state) {
     }
 }
 
-struct symbol* lookup_symbol(const char* name, struct assembler_state* state) {
+static struct symbol* lookup_symbol(const char* name, struct assembler_state* state) {
     struct symbol *p = state->symtable;
     while (p) {
         if (!strcmp(name, p->name))
@@ -52,7 +46,7 @@ struct symbol* lookup_symbol(const char* name, struct assembler_state* state) {
 /// Lookup a symbol in assembler's symbol table and return it, either pre-existing one
 /// or a new undefined symbol. Takes ownership of name.
 /// Returns NULL on error.
-struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state) {
+static struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state) {
     struct symbol *sym = lookup_symbol(name, state);
     if (sym) {
         free(name);
@@ -74,7 +68,7 @@ struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state
 }
 
 /// Process a label definition, takes ownership of name
-bool define_symbol(struct token* nameToken, struct assembler_state* state) {
+static bool define_symbol(struct token* nameToken, struct assembler_state* state) {
     struct location loc = nameToken->location;
     char* name = free_token_move_content(nameToken);
     struct symbol* sym = lookup_or_create_symbol(name, state);
@@ -95,7 +89,7 @@ bool define_symbol(struct token* nameToken, struct assembler_state* state) {
 
 /// Parse general purpose register name from the next token into register number
 /// or return negative value and print error
-int16_t parse_gpr(struct tokenizer_state* tokenizer) {
+static int16_t parse_gpr(struct tokenizer_state* tokenizer) {
     struct token tok = get_token(tokenizer);
     int16_t ret = -1;
 
@@ -119,7 +113,7 @@ int16_t parse_gpr(struct tokenizer_state* tokenizer) {
 
 /// Parse control register name from the next token into register number
 /// or return negative value and print error
-int16_t parse_cr(struct tokenizer_state* tokenizer) {
+static int16_t parse_cr(struct tokenizer_state* tokenizer) {
     static const char* cr_names[] = {
         "Status", "Tmp1", "Tmp2", "ContextId",
         "IntCause", "IntPc", "MMUAddr", "MMUData"
@@ -201,7 +195,7 @@ int16_t parse_number_for_instruction(bool inputSigned, unsigned size, struct tok
         return (1 << size) + number;
 }
 
-bool process_instruction(struct token *mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
+static bool process_instruction(struct token *mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     struct instruction* instruction = instructions;
     while (instruction->mnemonic) {
         if (!strcmp(mnemonicToken->content, instruction->mnemonic))
@@ -283,7 +277,7 @@ bool process_instruction(struct token *mnemonicToken, struct assembler_state* st
     return true;
 }
 
-bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembler_state* state) {
+static bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembler_state* state) {
     (void)pass;
     while (true) {
         struct token token1 = get_token(tokenizer);
@@ -324,25 +318,4 @@ bool assemble_multiple_files(int pass, int fileCount, char** filePaths, struct a
     }
 
     return true;
-}
-
-int main(int argc, char** argv) {
-    if (argc < 2) {
-        error("Need at least one file as argument\n");
-        return EXIT_FAILURE;
-    }
-
-    struct assembler_state state;
-    assembler_state_init(&state);
-
-    for (int pass = 1; pass <= 2; ++pass) {
-        assembler_state_before_pass(pass, &state);
-        if (!assemble_multiple_files(pass, argc - 1, argv + 1, &state)) {
-            assembler_state_deinit(&state);
-            return EXIT_FAILURE;
-        }
-    }
-
-    assembler_state_deinit(&state);
-    return EXIT_SUCCESS;
 }
