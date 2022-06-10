@@ -3,17 +3,11 @@
 #include "util.h"
 #include "instructions.h"
 #include "printing.h"
+#include "expressions.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-struct symbol {
-    char* name;
-    uint16_t address;
-    bool defined;
-    struct symbol* next;
-};
 
 void assembler_state_init(struct assembler_state* state) {
     state->symtable = NULL;
@@ -46,7 +40,7 @@ static struct symbol* lookup_symbol(const char* name, struct assembler_state* st
 /// Lookup a symbol in assembler's symbol table and return it, either pre-existing one
 /// or a new undefined symbol. Takes ownership of name.
 /// Returns NULL on error.
-static struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state) {
+struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state) {
     struct symbol *sym = lookup_symbol(name, state);
     if (sym) {
         free(name);
@@ -140,38 +134,14 @@ static int16_t parse_cr(struct tokenizer_state* tokenizer) {
     return ret;
 }
 
-/// Parse a number from the input (TODO: Allowing mathematical operations).
-/// Parameter startLocation returns the beginning of the expression (even on error), can be NULL.
-/// @return true if ret was set, false on error
-bool parse_number(struct tokenizer_state* tokenizer, numeric_value_t* ret, struct location* startLocation) {
-    struct token tok = get_token(tokenizer);
-
-    if (startLocation)
-        *startLocation = tok.location;
-
-    if (tok.type == TOKEN_ERROR) {
-        free_token(&tok);
-        return false;
-    } else if (tok.type != TOKEN_NUMBER) {
-        localized_error(tok.location, "Expected numeric literal");
-        free_token(&tok);
-        return false;
-    }
-
-    *ret = tok.contentNumeric;
-    free_token(&tok);
-    return true;
-}
-
-
 /// Parse a number from the input and return it as an unsigned number suitable
 /// for output into an instruction code
 /// @return -1 on error
-int16_t parse_number_for_instruction(bool inputSigned, unsigned size, struct tokenizer_state* tokenizer) {
+static int16_t parse_number_for_instruction(bool inputSigned, unsigned size, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     numeric_value_t number;
     struct location location;
 
-    if (!parse_number(tokenizer, &number, &location))
+    if (!evaluate_expression(state, tokenizer, &number, &location))
         return -1;
 
     assert(size < 15); // We must fit into the output 16 bits, with negative value reserved
@@ -229,6 +199,7 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
             argValue = parse_number_for_instruction(
                 arg->type == INSTRUCTION_ARG_SIGNED,
                 arg->size,
+                state,
                 tokenizer
             );
             break;
@@ -298,7 +269,7 @@ static bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembl
             if (!define_symbol(&token1, state))
                 return false;
         } else {
-            unget_token(token2, tokenizer);
+            unget_token(&token2, tokenizer);
             if (!process_instruction(&token1, state, tokenizer))
                 return false;
         }

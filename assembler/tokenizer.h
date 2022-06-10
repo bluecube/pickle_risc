@@ -12,10 +12,16 @@
 #define TOKEN_EOL -4
 #define TOKEN_IDENTIFIER -5
 #define TOKEN_NUMBER -6
-#define TOKEN_OPERATOR_SHL -7
-#define TOKEN_OPERATOR_SHR -8
-#define TOKEN_OPERATOR_POWER -9
-//#define TOKEN_QUOTED_STRING -10
+#define TOKEN_OPERATOR_EQ -7
+#define TOKEN_OPERATOR_NEQ -8
+#define TOKEN_OPERATOR_LE -9
+#define TOKEN_OPERATOR_GE -10
+#define TOKEN_OPERATOR_SHL -11
+#define TOKEN_OPERATOR_SHR -12
+#define TOKEN_OPERATOR_POWER -13
+#define TOKEN_OPERATOR_LOGICAL_AND -14
+#define TOKEN_OPERATOR_LOGICAL_OR -15
+//#define TOKEN_QUOTED_STRING -16
 // Single characters tokens are represented by the character itself.
 
 typedef int32_t numeric_value_t;
@@ -51,6 +57,12 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state);
 /// Close tokenizer, free all resources. Idempotent.
 void tokenizer_close(struct tokenizer_state* state);
 struct token get_token(struct tokenizer_state* state);
-void unget_token(struct token token, struct tokenizer_state* state);
+
+/// Return the token to the unget buffer, does not have to be freed afterwards.
+/// There is only one unget buffer position, calling this twice will loose tokens
+/// and may cause memory leaks
+void unget_token(struct token *token, struct tokenizer_state* state);
 void free_token(struct token *token);
 char* free_token_move_content(struct token* token);
+
+const char* readable_token_type(int tokenType);

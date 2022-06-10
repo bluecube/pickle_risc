@@ -11,6 +11,7 @@
     }
 
 /// Initialize the stack with given initial size.
+/// It is safe to deinit after failed initialization
 /// @return true on success, false on error
 #define STACK_INIT(stack, initial_size) \
     ( \
@@ -21,6 +22,7 @@
     )
 
 /// Free memory allocated by the stack
+/// Idempotent
 #define STACK_DEINIT(stack) \
     do { \
         free((stack).ptr); \
@@ -44,3 +46,11 @@
         (((stack).used < (stack).size) || STACK_INFLATE(stack)) && \
         ((stack).ptr[(stack).used++] = value, true) \
     )
+
+/// Return element of the stack at index i
+#define STACK_AT(stack, i) \
+    ((stack).ptr[i])
+
+/// Return element of the stack at index i, counting from the back (0 is the last element)
+#define STACK_AT_R(stack, i) \
+    ((stack).ptr[(stack).used - 1 - (i)])

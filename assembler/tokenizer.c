@@ -19,7 +19,7 @@ static bool is_skippable_whitespace(int c) {
 }
 
 static bool is_simple_token(int c) {
-    return !!strchr(":,(){}+-/", c);
+    return !!strchr(":,(){}+-/%~", c);
 }
 
 static int tok_getc(struct tokenizer_state* state) {
@@ -42,11 +42,13 @@ static void unexpected_character_error(struct location location, int c) {
 
 /// Parse tokens that have different meaning when doubled (eg. <<)
 /// @return token type
-static int parse_double_char_token(struct tokenizer_state* state, int c, int doubleCharTokenType) {
+static int parse_magic_token(struct tokenizer_state* state, int c, int doubleCharTokenType, int eqCharTokenType) {
     struct location locationBackup = state->location;
     int c2 = tok_getc(state);
-    if (c2 == c)
+    if (c2 == c && doubleCharTokenType != TOKEN_NONE)
         return doubleCharTokenType;
+    else if (c2 == '=' && eqCharTokenType != TOKEN_NONE)
+        return eqCharTokenType;
     else {
         state->location = locationBackup;
         ungetc(c2, state->fp);
@@ -187,12 +189,20 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.type = TOKEN_EOL;
     else if (is_simple_token(c))
         state->tokenBuffer.type = c;
-    else if (c == '<')
-        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_SHL);
-    else if (c == '>')
-        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_SHR);
-    else if (c == '*')
-        state->tokenBuffer.type = parse_double_char_token(state, c, TOKEN_OPERATOR_POWER);
+    else if (c == '!') // "!="
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_NONE, TOKEN_OPERATOR_NEQ);
+    else if (c == '<') // "<<" "<="
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHL, TOKEN_OPERATOR_LE);
+    else if (c == '>') // ">>" ">="
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHR, TOKEN_OPERATOR_GE);
+    else if (c == '*') // "**"
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_POWER, TOKEN_NONE);
+    else if (c == '&') // "&&"
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_AND, TOKEN_NONE);
+    else if (c == '|') // "||"
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_OR, TOKEN_NONE);
+    else if (c == '=') // "=="
+        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_EQ, TOKEN_NONE);
     else if (is_identifier_first_char(c)) {
         numeric_value_t length;
         char* identifier = parse_identifier(state, c, &length);
@@ -230,9 +240,11 @@ struct token get_token(struct tokenizer_state* state) {
     return ret;
 }
 
-void unget_token(struct token token, struct tokenizer_state* state) {
+void unget_token(struct token *token, struct tokenizer_state* state) {
     assert(state->tokenBuffer.type == TOKEN_NONE);
-    state->tokenBuffer = token;
+    state->tokenBuffer = *token;
+    token->content = NULL;
+    token->type = TOKEN_NONE;
 }
 
 bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
@@ -283,4 +295,46 @@ char* free_token_move_content(struct token *token) {
     token->content = NULL;
     token->type = TOKEN_NONE;
     return ret;
+}
+
+const char* readable_token_type(int tokenType) {
+    static char retBuffer[2] = {'\0', '\0'};
+    switch (tokenType) {
+    case TOKEN_NONE:
+        return "none";
+    case TOKEN_ERROR:
+        return "error";
+    case TOKEN_EOF:
+        return "eof";
+    case TOKEN_EOL:
+        return "eol";
+    case TOKEN_IDENTIFIER:
+        return "identifier";
+    case TOKEN_NUMBER:
+        return "number";
+    case TOKEN_OPERATOR_EQ:
+        return "==";
+    case TOKEN_OPERATOR_NEQ:
+        return "!=";
+    case TOKEN_OPERATOR_LE:
+        return "<=";
+    case TOKEN_OPERATOR_GE:
+        return ">=";
+    case TOKEN_OPERATOR_SHL:
+        return "<<";
+    case TOKEN_OPERATOR_SHR:
+        return ">>";
+    case TOKEN_OPERATOR_POWER:
+        return "**";
+    case TOKEN_OPERATOR_LOGICAL_AND:
+        return "&&";
+    case TOKEN_OPERATOR_LOGICAL_OR:
+        return "||";
+    default:
+        if (tokenType > 0) {
+            retBuffer[0] = tokenType;
+            return retBuffer;
+        } else
+            return "!!!!!!!!";
+    }
 }
