@@ -171,7 +171,7 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
             numeric_value_t value;
             get_identifier_value(&token, state, &value);
             assert(token.content == NULL);
-            assert(token.type = TOKEN_NONE);
+            assert(token.type == TOKEN_NONE);
             if (!STACK_PUSH(valueStack, value))
                 goto cleanup;
             precededByValue = true;
