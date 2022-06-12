@@ -21,6 +21,7 @@ struct assembler_state {
 void assembler_state_init(struct assembler_state* state);
 void assembler_state_deinit(struct assembler_state* state);
 void assembler_state_start_pass(int pass, struct assembler_state* state);
+bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state);
 bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_state* state);
 bool assembler_output_word(uint16_t word, struct assembler_state* state);
 bool get_symbol_value(struct token* idToken, struct assembler_state* state, uint16_t* ret);

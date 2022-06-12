@@ -1,5 +1,6 @@
-ldui r5, 0xAA
+ldui r5, included_data
 ori r5, 0x55
+.include "test_include.s"
 ldi r2, label
 add r0, r2, r5 # Comment
 label:

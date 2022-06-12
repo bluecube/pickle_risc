@@ -138,6 +138,36 @@ static bool process_dd(struct assembler_state *state, struct tokenizer_state *to
         }
     }
 }
+
+static bool process_include(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+    struct token pathToken = get_token(tokenizer);
+    if (pathToken.type == TOKEN_ERROR) {
+        free_token(&pathToken);
+        return false;
+    } else if (pathToken.type != TOKEN_STRING) {
+        localized_error(pathToken.location, "Expected string literal");
+        free_token(&pathToken);
+        return false;
+    }
+
+    if (parse_sep(tokenizer, false) == SEP_ERROR) {
+        free_token(&pathToken);
+        return false;
+    }
+
+    struct tokenizer_state includedTokenizer;
+    if (!tokenizer_open(pathToken.content, &includedTokenizer)) {
+        free_token(&pathToken);
+        return false;
+    }
+
+    bool result = assemble(&includedTokenizer, state);
+
+    tokenizer_close(&includedTokenizer);
+    free_token(&pathToken);
+    return result;
+}
+
 bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     bool ret;
     if (!strcmp(mnemonicToken->content, ".db"))
@@ -146,6 +176,8 @@ bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_st
         ret = process_dw(state, tokenizer);
     else if (!strcmp(mnemonicToken->content, ".dd"))
         ret = process_dd(state, tokenizer);
+    else if (!strcmp(mnemonicToken->content, ".include"))
+        ret = process_include(state, tokenizer);
     else {
         localized_error(mnemonicToken->location, "Invalid pseudo-instruction `%s`", mnemonicToken->content);
         ret = false;
