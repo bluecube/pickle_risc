@@ -149,7 +149,8 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
             if (precededByValue)
                 localized_error(token.location, "Invalid syntax: Identifier precedd by value");
             uint16_t value;
-            get_symbol_value(&token, state, &value);
+            if (!get_symbol_value(&token, state, &value))
+                goto cleanup;
             assert(token.content == NULL);
             assert(token.type == TOKEN_NONE);
             if (!STACK_PUSH(valueStack, value))
