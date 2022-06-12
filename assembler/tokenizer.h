@@ -26,6 +26,7 @@
 
 typedef int32_t numeric_value_t;
 #define NUMERIC_VALUE_FORMAT PRId32
+typedef uint32_t unsigned_numeric_value_t;
 
 struct location {
     const char* filename;

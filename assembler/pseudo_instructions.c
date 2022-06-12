@@ -6,6 +6,32 @@
 
 #include <string.h>
 
+#define SEP_ERROR 0
+#define SEP_CONTINUE 1
+#define SEP_FINISHED 2
+
+static int parse_sep(struct tokenizer_state* tokenizer, bool canContinue) {
+    struct token sep = get_token(tokenizer);
+
+    switch (sep.type) {
+    case TOKEN_ERROR:
+        free_token(&sep);
+        return SEP_ERROR;
+    case TOKEN_EOL:
+    case TOKEN_EOF:
+        free_token(&sep);
+        return SEP_FINISHED;
+    default:
+        if (sep.type == ',' && canContinue) {
+            free_token(&sep);
+            return SEP_CONTINUE;
+        }
+        localized_error(sep.location, "Unexpected input");
+        free_token(&sep);
+        return SEP_ERROR;
+    }
+}
+
 static bool process_db(struct assembler_state *state, struct tokenizer_state *tokenizer) {
     struct token value = get_token(tokenizer);
 
@@ -29,19 +55,10 @@ static bool process_db(struct assembler_state *state, struct tokenizer_state *to
             }
         free_token(&value);
 
-        struct token sep = get_token(tokenizer);
-        switch (sep.type) {
-        case TOKEN_ERROR:
-            free_token(&sep);
-            return false;
-        case TOKEN_EOL:
-        case TOKEN_EOF:
+        if (parse_sep(tokenizer, false) == SEP_FINISHED)
             return true;
-        default:
-            localized_error(sep.location, "Unexpected input");
-            free_token(&sep);
+        else
             return false;
-        }
     } else {
         unget_token(&value, tokenizer);
 
@@ -63,37 +80,72 @@ static bool process_db(struct assembler_state *state, struct tokenizer_state *to
                 bufferHasValue = true;
             }
 
-            struct token sep = get_token(tokenizer);
-
-            switch (sep.type) {
-            case TOKEN_ERROR:
-                free_token(&sep);
+            switch (parse_sep(tokenizer, true)) {
+            case SEP_ERROR:
                 return false;
-            case TOKEN_EOL:
-            case TOKEN_EOF:
-                free_token(&sep);
+            case SEP_FINISHED:
                 if (bufferHasValue)
                     if (!assembler_output_word(buffer, state))
                         return false;
                 return true;
-            case ',':
-                free_token(&sep);
+            case SEP_CONTINUE:
                 break;
-            default:
-                localized_error(sep.location, "Unexpected input");
-                free_token(&sep);
-                return false;
             }
         }
     }
 }
 
+static bool process_dw(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+    while (true) {
+        numeric_value_t v;
+        if (!evaluate_expression(state, tokenizer, &v, NULL))
+            return false;
+
+        if (!assembler_output_word(v & 0xffff, state))
+            return false;
+
+        switch (parse_sep(tokenizer, true)) {
+        case SEP_ERROR:
+            return false;
+        case SEP_FINISHED:
+            return true;
+        case SEP_CONTINUE:
+            break;
+        }
+    }
+}
+
+static bool process_dd(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+    while (true) {
+        numeric_value_t v;
+        if (!evaluate_expression(state, tokenizer, &v, NULL))
+            return false;
+
+        unsigned_numeric_value_t vu = (unsigned_numeric_value_t)v;
+
+        if (!assembler_output_word((vu >> 16) & 0xffff, state))
+            return false;
+        if (!assembler_output_word(vu & 0xffff, state))
+            return false;
+
+        switch (parse_sep(tokenizer, true)) {
+        case SEP_ERROR:
+            return false;
+        case SEP_FINISHED:
+            return true;
+        case SEP_CONTINUE:
+            break;
+        }
+    }
+}
 bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     bool ret;
     if (!strcmp(mnemonicToken->content, ".db"))
         ret = process_db(state, tokenizer);
-    /*else if (!strcmp(mnemonicToken->content, ".dw"))
-        ret = process_dw(state, tokenizer);*/
+    else if (!strcmp(mnemonicToken->content, ".dw"))
+        ret = process_dw(state, tokenizer);
+    else if (!strcmp(mnemonicToken->content, ".dd"))
+        ret = process_dd(state, tokenizer);
     else {
         localized_error(mnemonicToken->location, "Invalid pseudo-instruction `%s`", mnemonicToken->content);
         ret = false;

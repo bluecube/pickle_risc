@@ -10,7 +10,7 @@ forward_ref:
 break
 
 table:
-.db 0x12, 0x34, 5
-.db 6
-.db "Hello world!!"
-.db "\x0A\0\r\n"
+.db 1, 2, 3
+.db "Hello world!\n\0"
+.dw 0xfedc, 0x1234, 1 + 1
+.dd -2, 0x1eadbeef
