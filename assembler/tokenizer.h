@@ -21,7 +21,7 @@
 #define TOKEN_OPERATOR_POWER -13
 #define TOKEN_OPERATOR_LOGICAL_AND -14
 #define TOKEN_OPERATOR_LOGICAL_OR -15
-//#define TOKEN_QUOTED_STRING -16
+#define TOKEN_STRING -16
 // Single characters tokens are represented by the character itself.
 
 typedef int32_t numeric_value_t;

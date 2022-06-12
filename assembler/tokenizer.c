@@ -56,6 +56,90 @@ static int parse_magic_token(struct tokenizer_state* state, int c, int doubleCha
     }
 }
 
+static int parse_string_literal_escape(struct tokenizer_state* state) {
+    int c = tok_getc(state);
+    switch (c) {
+    case EOF:
+        return EOF;
+    case 'a':
+        return '\a';
+    case 'b':
+        return '\b';
+    case 'f':
+        return '\f';
+    case 'n':
+        return '\n';
+    case 'r':
+        return '\r';
+    case 't':
+        return '\t';
+    case 'v':
+        return '\v';
+    case '0':
+        return '\0';
+    case '\'':
+    case '"':
+    case '?':
+    case '\\':
+        return c;
+    case 'x': {
+            int d1 = parse_digit(tok_getc(state));
+            if (d1 < 0) {
+                localized_error(state->location, "Invalid escape sequence: Expected hex digit");
+                return -1;
+            }
+            int d2 = parse_digit(tok_getc(state));
+            if (d2 < 0) {
+                localized_error(state->location, "Invalid escape sequence: Expected hex digit");
+                return -1;
+            }
+            return d1 << 4 | d2;
+        }
+    default:
+        localized_error(state->location, "Invalid escape sequence");
+        return -1;
+    }
+}
+
+static char* parse_string(struct tokenizer_state* state, numeric_value_t* length) {
+    while (true) {
+        int c = tok_getc(state);
+
+        if (c == EOF || c == '\n') {
+            localized_error(state->location, "Unexpected end of string");
+            return NULL;
+        } if (c == '"')
+            break;
+        if (c == '\\') {
+            int c2 = parse_string_literal_escape(state);
+            if (c2 < 0)
+                return NULL;
+
+            if (!STACK_PUSH(state->buffer, c2))
+                return NULL;
+
+        } else {
+            if (!STACK_PUSH(state->buffer, c))
+                return NULL;
+        }
+    }
+
+    char* stringCopy = malloc_with_msg(state->buffer.used + 1, "string literal token");
+    if (!stringCopy)
+        return NULL;
+
+    memcpy(stringCopy, state->buffer.ptr, state->buffer.used);
+    stringCopy[state->buffer.used] = '\0';
+
+    *length = state->buffer.used;
+    if (*length < 0 || (size_t)(*length) != state->buffer.used) {
+        localized_error(state->location, "Too long string literal");
+        return NULL;
+    }
+    state->buffer.used = 0; // Clear the buffer for later tokens
+    return stringCopy;
+}
+
 /// Parse an identifier from tokenizer, starting with character c.
 /// Parameter size gets set to the length of the identifier (excluding terminating '\0').
 /// @return Newly allocated copy of the identifier or NULL on error.
@@ -71,7 +155,7 @@ static char* parse_identifier(struct tokenizer_state* state, int c, numeric_valu
     state->location = locationBackup;
     ungetc(c, state->fp);
 
-    char* identifierCopy = malloc_with_msg(state->buffer.used + 1, "token");
+    char* identifierCopy = malloc_with_msg(state->buffer.used + 1, "identifier token");
     if (!identifierCopy)
         return NULL;
 
@@ -203,7 +287,17 @@ static void load_token(struct tokenizer_state* state) {
         state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_OR, TOKEN_NONE);
     else if (c == '=') // "=="
         state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_EQ, TOKEN_NONE);
-    else if (is_identifier_first_char(c)) {
+    else if (c == '"') {
+        numeric_value_t length;
+        char* string = parse_string(state, &length);
+        if (!string) {
+            state->tokenBuffer.type = TOKEN_ERROR;
+        } else {
+            state->tokenBuffer.type = TOKEN_STRING;
+            state->tokenBuffer.content = string;
+            state->tokenBuffer.contentNumeric = length;
+        }
+    } else if (is_identifier_first_char(c)) {
         numeric_value_t length;
         char* identifier = parse_identifier(state, c, &length);
         if (!identifier) {
@@ -330,6 +424,8 @@ const char* readable_token_type(int tokenType) {
         return "&&";
     case TOKEN_OPERATOR_LOGICAL_OR:
         return "||";
+    case TOKEN_STRING:
+        return "string";
     default:
         if (tokenType > 0) {
             retBuffer[0] = tokenType;
