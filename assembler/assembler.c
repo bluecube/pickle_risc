@@ -290,9 +290,8 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
         }
     }
 
-    if (state->pass == 2)
-        printf("0x%04x: 0x%04x\n", state->pc, encoding);
-    state->pc += 1;
+    if (!assembler_output_word(encoding, state))
+        return false;
 
     return true;
 }
@@ -336,5 +335,13 @@ bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_s
             return false;
     }
 
+    return true;
+}
+
+bool assembler_output_word(uint16_t word, struct assembler_state* state) {
+    if (state->pass == 2)
+        if(printf("0x%04x: 0x%04x\n", state->pc, word) < 0)
+            return false;
+    state->pc += 1;
     return true;
 }
