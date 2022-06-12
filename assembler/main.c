@@ -11,7 +11,10 @@ int main(int argc, char** argv) {
     assembler_state_init(&state);
 
     for (int pass = 1; pass <= 2; ++pass) {
-        assembler_state_start_pass(pass, &state);
+        if (!assembler_state_start_pass(pass, &state)) {
+            assembler_state_deinit(&state);
+            return EXIT_FAILURE;
+        }
         if (!assemble_multiple_files(argc - 1, argv + 1, &state)) {
             assembler_state_deinit(&state);
             return EXIT_FAILURE;

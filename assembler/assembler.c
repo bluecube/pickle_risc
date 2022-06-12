@@ -4,6 +4,7 @@
 #include "instructions.h"
 #include "printing.h"
 #include "expressions.h"
+#include "pseudo_instructions.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -214,6 +215,9 @@ static int16_t parse_number_for_instruction(bool inputSigned, unsigned size, str
 }
 
 static bool process_instruction(struct token *mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
+    if (mnemonicToken->content[0] == '.')
+        return process_pseudo_instruction(mnemonicToken, state, tokenizer);
+
     struct instruction* instruction = instructions;
     while (instruction->mnemonic) {
         if (!strcmp(mnemonicToken->content, instruction->mnemonic))

@@ -8,3 +8,7 @@ jmp?z r1
 ldcr r7, IntPc
 forward_ref:
 break
+
+table:
+.db 0x12, 0x34, 5
+.db 6
