@@ -79,26 +79,6 @@ static struct operator operators[] = {
     { .tokenType = TOKEN_NONE }
 };
 
-/// Load value of a symbol defined by identifier to ret.
-/// Takes ownership of token.
-/// @return True iff successful.
-static bool get_identifier_value(struct token* idToken, struct assembler_state* state, numeric_value_t* ret) {
-    struct location location = idToken->location;
-    char* idString = free_token_move_content(idToken);
-
-    struct symbol* sym = lookup_or_create_symbol(idString, state);
-    if (!sym)
-        return false;
-
-    if (!sym->defined) {
-        localized_error(location, "Forward references are not supported yet");
-        return false;
-    }
-
-    *ret = sym->address;
-    return true;
-}
-
 static struct operator* find_operator(struct token* token, bool findBinaryOp) {
     struct operator* op = operators;
 
@@ -168,8 +148,8 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
         } else if (token.type == TOKEN_IDENTIFIER) {
             if (precededByValue)
                 localized_error(token.location, "Invalid syntax: Identifier precedd by value");
-            numeric_value_t value;
-            get_identifier_value(&token, state, &value);
+            uint16_t value;
+            get_symbol_value(&token, state, &value);
             assert(token.content == NULL);
             assert(token.type == TOKEN_NONE);
             if (!STACK_PUSH(valueStack, value))

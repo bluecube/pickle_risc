@@ -13,8 +13,8 @@ void assembler_state_init(struct assembler_state* state) {
     state->symtable = NULL;
 }
 
-void assembler_state_before_pass(int pass, struct assembler_state* state) {
-    (void)pass;
+void assembler_state_start_pass(int pass, struct assembler_state* state) {
+    state->pass = pass;
     state->pc = 0;
 }
 
@@ -37,17 +37,12 @@ static struct symbol* lookup_symbol(const char* name, struct assembler_state* st
     return NULL;
 }
 
-/// Lookup a symbol in assembler's symbol table and return it, either pre-existing one
-/// or a new undefined symbol. Takes ownership of name.
-/// Returns NULL on error.
-struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state) {
-    struct symbol *sym = lookup_symbol(name, state);
-    if (sym) {
-        free(name);
-        return sym;
-    }
-
-    sym = malloc_with_msg(sizeof(struct symbol), "symbol table entry");
+/// Create a symbol in the symbol table of assembler state.
+/// Takes ownership of name.
+/// Doesn't check that the symbol doesn't alreday exist.
+/// @return new symbol or NULL on error.
+static struct symbol* create_symbol(char* name, struct assembler_state* state) {
+    struct symbol* sym = malloc_with_msg(sizeof(struct symbol), "symbol table entry");
     if (!sym) {
         free(name);
         return NULL;
@@ -61,23 +56,76 @@ struct symbol* lookup_or_create_symbol(char* name, struct assembler_state* state
     return sym;
 }
 
-/// Process a label definition, takes ownership of name
+/// Process a label definition, takes ownership of nameToken
 static bool define_symbol(struct token* nameToken, struct assembler_state* state) {
     struct location loc = nameToken->location;
     char* name = free_token_move_content(nameToken);
-    struct symbol* sym = lookup_or_create_symbol(name, state);
 
-    if (!sym)
-        return false;
+    struct symbol* sym = lookup_symbol(name, state);
 
-    if (sym->defined) {
-        localized_error(loc, "Symbol `%s` is already defined", sym->name);
-        return false;
+    uint16_t address = state->pc;
+
+    if (state->pass == 1) {
+        if (!sym) {
+            sym = create_symbol(name, state);
+            if (!sym)
+                return false;
+            sym->defined = true;
+            sym->address = address;
+        } else  if (!sym->defined) {
+            free(name);
+            sym->defined = true;
+            sym->address = address;
+        } else if (sym->defined) {
+            free(name);
+            localized_error(loc, "Redefinition of symbol `%s`", sym->name);
+            return false;
+        }
+    } else if (state->pass == 2) {
+        free(name);
+        if (!sym || !sym->defined) {
+            localized_error(loc, "Symbol `%s` was not defined in first pass", sym->name);
+            return false;
+        } else if (sym->address != address) {
+            localized_error(
+                loc,
+                "Symbol `%s` changed value (pass 1: %" PRIx16 ", pass2: %" PRIx16 ")",
+                sym->name, sym->address, address
+            );
+            return false;
+        }
     }
 
-    sym->address = state->pc;
-    sym->defined = true;
+    return true;
+}
 
+/// Load value of a symbol defined by identifier to ret.
+/// Takes ownership of token.
+/// @return True iff successful.
+bool get_symbol_value(struct token* nameToken, struct assembler_state* state, uint16_t* ret) {
+    struct location location = nameToken->location;
+    char* name = free_token_move_content(nameToken);
+
+    struct symbol* sym = lookup_symbol(name, state);
+
+    if (state->pass == 1) {
+        if (sym) {
+            free(name);
+        } else {
+            sym = create_symbol(name, state);
+            if (!sym)
+                return false;
+        }
+    } else if (state->pass == 2) {
+        free(name);
+        if (!sym || !sym->defined) {
+            localized_error(location, "Symbol `%s` was not defined", sym->name);
+            return false;
+        }
+    } else
+        assert(false);
+
+    *ret = sym->address;
     return true;
 }
 
@@ -242,14 +290,14 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
         }
     }
 
-    printf("0x%04x: 0x%04x\n", state->pc, encoding);
+    if (state->pass == 2)
+        printf("0x%04x: 0x%04x\n", state->pc, encoding);
     state->pc += 1;
 
     return true;
 }
 
-static bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembler_state* state) {
-    (void)pass;
+static bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state) {
     while (true) {
         struct token token1 = get_token(tokenizer);
         if (token1.type == TOKEN_ERROR)
@@ -276,12 +324,12 @@ static bool assemble(int pass, struct tokenizer_state* tokenizer, struct assembl
     }
 }
 
-bool assemble_multiple_files(int pass, int fileCount, char** filePaths, struct assembler_state* state) {
+bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_state* state) {
     struct tokenizer_state tokenizer;
     for (int i = 0; i < fileCount; ++i) {
         if (!tokenizer_open(filePaths[i], &tokenizer))
             return false;
-        bool result = assemble(pass, &tokenizer, state);
+        bool result = assemble(&tokenizer, state);
         tokenizer_close(&tokenizer);
 
         if (!result)
