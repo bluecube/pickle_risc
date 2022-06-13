@@ -8,7 +8,8 @@ int main(int argc, char** argv) {
     }
 
     struct assembler_state state;
-    assembler_state_init(&state);
+    if (!assembler_state_init(&state))
+        return EXIT_FAILURE;
 
     for (int pass = 1; pass <= 2; ++pass) {
         if (!assembler_state_start_pass(pass, &state)) {

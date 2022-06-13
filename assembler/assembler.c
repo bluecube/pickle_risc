@@ -10,33 +10,7 @@
 #include <string.h>
 #include <assert.h>
 
-void assembler_state_init(struct assembler_state* state) {
-    state->symtable = NULL;
-}
-
-void assembler_state_start_pass(int pass, struct assembler_state* state) {
-    state->pass = pass;
-    state->pc = 0;
-}
-
-void assembler_state_deinit(struct assembler_state* state) {
-    while (state->symtable) {
-        struct symbol *tmp = state->symtable->next;
-        free(state->symtable->name);
-        free(state->symtable);
-        state->symtable = tmp;
-    }
-}
-
-static struct symbol* lookup_symbol(const char* name, struct assembler_state* state) {
-    struct symbol *p = state->symtable;
-    while (p) {
-        if (!strcmp(name, p->name))
-            return p;
-        p = p->next;
-    }
-    return NULL;
-}
+#define DEFAULT_SECTION_NAME ".text"
 
 /// Create a symbol in the symbol table of assembler state.
 /// Takes ownership of name.
@@ -50,11 +24,141 @@ static struct symbol* create_symbol(char* name, struct assembler_state* state) {
     }
     sym->name = name;
     sym->address = 0;
+    sym->section = NULL;
     sym->defined = false;
     sym->next = state->symtable;
     state->symtable = sym;
 
     return sym;
+}
+
+static struct symbol* lookup_symbol(const char* name, struct assembler_state* state) {
+    struct symbol *p = state->symtable;
+    while (p) {
+        if (!strcmp(name, p->name))
+            return p;
+        p = p->next;
+    }
+    return NULL;
+}
+
+/// Create a section in the section table of assembler state.
+/// Takes ownership of name.
+/// Doesn't check that the section doesn't alreday exist.
+/// @return new symbol or NULL on error.
+struct section *create_section(char *name, struct assembler_state *state) {
+    struct section *section = malloc_with_msg(sizeof(struct section), "section table entry");
+    if (!section) {
+        free(name);
+        return NULL;
+    }
+
+    section->name = name;
+    section->spc = 0;
+    section->startAddress = 0;
+    section->size = 0;
+    section->next = NULL;
+    if (!state->sectionTable) {
+        assert(!state->lastSection);
+        state->sectionTable = section;
+    } else {
+        assert(state->lastSection);
+        state->lastSection->next = section;
+    }
+    state->lastSection = section;
+
+    return section;
+}
+
+static struct section* lookup_section(const char* name, struct assembler_state* state) {
+    struct section *p = state->sectionTable;
+    while (p) {
+        if (!strcmp(name, p->name)) {
+            return p;
+        }
+        p = p->next;
+    }
+    return NULL;
+}
+
+bool assembler_state_enter_section(struct token* nameToken, struct assembler_state *state) {
+    struct location loc = nameToken->location;
+    char* name = free_token_move_content(nameToken);
+
+    struct section *section = lookup_section(name, state);
+
+    if (!section) {
+        if (state->pass == 1) {
+            section = create_section(name, state);
+            if (!section)
+                return false;
+        } else {
+            localized_error(loc, "Section `%s` was not defined in first pass", name);
+            free(name);
+            return false;
+        }
+    } else
+        free(name);
+
+    state->currentSection = section;
+    return true;
+}
+
+bool assembler_state_init(struct assembler_state* state) {
+    state->symtable = NULL;
+    state->sectionTable = NULL;
+
+    char* ownedSectionName = strdup_with_msg(DEFAULT_SECTION_NAME, "default section name");
+    if (!ownedSectionName)
+        return false;
+    state->lastSection = NULL;
+    state->currentSection = create_section(ownedSectionName, state);
+    if (!state->currentSection)
+        return false;
+
+    return true;
+}
+
+bool assembler_state_start_pass(int pass, struct assembler_state* state) {
+    state->pass = pass;
+
+    uint16_t sectionStart = 0;
+    struct section *section = state->sectionTable;
+    while (section) {
+        section->size = section->spc;
+        section->startAddress = sectionStart;
+        sectionStart += section->size;
+
+        if (pass == 2)
+            printf(
+                "Section `%s`: 0x%04x - 0x%04x\n",
+                section->name,
+                section->startAddress,
+                section->startAddress + section->size
+            );
+
+        section->spc = 0;
+        section = section->next;
+    }
+
+    return true;
+}
+
+void assembler_state_deinit(struct assembler_state* state) {
+    while (state->symtable) {
+        struct symbol *tmp = state->symtable->next;
+        free(state->symtable->name);
+        free(state->symtable);
+        state->symtable = tmp;
+    }
+    while (state->sectionTable) {
+        struct section *tmp = state->sectionTable->next;
+        free(state->sectionTable->name);
+        free(state->sectionTable);
+        state->sectionTable = tmp;
+    }
+    state->lastSection = NULL;
+    state->currentSection = NULL;
 }
 
 /// Process a label definition, takes ownership of nameToken
@@ -64,7 +168,8 @@ static bool define_symbol(struct token* nameToken, struct assembler_state* state
 
     struct symbol* sym = lookup_symbol(name, state);
 
-    uint16_t address = state->pc;
+    uint16_t address = state->currentSection->spc;
+    struct section *section = state->currentSection;
 
     if (state->pass == 1) {
         if (!sym) {
@@ -73,10 +178,12 @@ static bool define_symbol(struct token* nameToken, struct assembler_state* state
                 return false;
             sym->defined = true;
             sym->address = address;
+            sym->section = section;
         } else  if (!sym->defined) {
             free(name);
             sym->defined = true;
             sym->address = address;
+            sym->section = section;
         } else if (sym->defined) {
             free(name);
             localized_error(loc, "Redefinition of symbol `%s`", sym->name);
@@ -87,15 +194,18 @@ static bool define_symbol(struct token* nameToken, struct assembler_state* state
         if (!sym || !sym->defined) {
             localized_error(loc, "Symbol `%s` was not defined in first pass", sym->name);
             return false;
-        } else if (sym->address != address) {
+        } else if (sym->address != address || sym->section != section) {
             localized_error(
                 loc,
-                "Symbol `%s` changed value (pass 1: %" PRIx16 ", pass2: %" PRIx16 ")",
-                sym->name, sym->address, address
+                "Symbol `%s` changed address (pass 1: 0x%" PRIx16 " in section `%s`, pass2: 0x%" PRIx16 " in section `%s`)",
+                sym->name,
+                sym->address, sym->section->name,
+                address, section->name
             );
             return false;
         }
-    }
+    } else
+        assert(false);
 
     return true;
 }
@@ -126,7 +236,11 @@ bool get_symbol_value(struct token* nameToken, struct assembler_state* state, ui
     } else
         assert(false);
 
-    *ret = sym->address;
+    uint16_t sectionAddress = 0;
+    if (sym->section)
+        sectionAddress = sym->section->startAddress;
+
+    *ret = sectionAddress + sym->address;
     return true;
 }
 
@@ -300,7 +414,9 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
     return true;
 }
 
-static bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state) {
+bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state) {
+    state->currentSection = lookup_section(DEFAULT_SECTION_NAME, state);
+    assert(state->currentSection);
     while (true) {
         struct token token1 = get_token(tokenizer);
         if (token1.type == TOKEN_ERROR)
@@ -344,8 +460,12 @@ bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_s
 
 bool assembler_output_word(uint16_t word, struct assembler_state* state) {
     if (state->pass == 2)
-        if(printf("0x%04x: 0x%04x\n", state->pc, word) < 0)
+        if (printf(
+            "0x%04x: 0x%04x\n",
+            state->currentSection->startAddress + state->currentSection->spc,
+            word
+        ) < 0)
             return false;
-    state->pc += 1;
+    state->currentSection->spc += 1;
     return true;
 }

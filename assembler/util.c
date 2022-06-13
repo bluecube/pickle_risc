@@ -2,6 +2,7 @@
 #include "printing.h"
 
 #include <stdio.h>
+#include <string.h>
 
 void* malloc_with_msg(size_t size, const char* label) {
     void *ret = malloc(size);
@@ -16,6 +17,14 @@ void* realloc_with_msg(void* ptr, size_t size, const char* label) {
     if (!ret)
         error("Allocating %zuB for %s failed", size, label);
 
+    return ret;
+}
+
+char* strdup_with_msg(const char* s, const char* label) {
+    size_t length = strlen(s) + 1;
+    char *ret = malloc_with_msg(length, label);
+    if (ret)
+        memcpy(ret, s, length);
     return ret;
 }
 

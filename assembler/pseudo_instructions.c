@@ -161,11 +161,32 @@ static bool process_include(struct assembler_state *state, struct tokenizer_stat
         return false;
     }
 
+    struct section *sectionBackup = state->currentSection;
     bool result = assemble(&includedTokenizer, state);
+    state->currentSection = sectionBackup;
 
     tokenizer_close(&includedTokenizer);
     free_token(&pathToken);
     return result;
+}
+
+static bool process_section(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+    struct token nameToken = get_token(tokenizer);
+    if (nameToken.type == TOKEN_ERROR) {
+        free_token(&nameToken);
+        return false;
+    } else if (nameToken.type != TOKEN_STRING) {
+        localized_error(nameToken.location, "Expected string literal");
+        free_token(&nameToken);
+        return false;
+    }
+
+    if (parse_sep(tokenizer, false) == SEP_ERROR) {
+        free_token(&nameToken);
+        return false;
+    }
+
+    return assembler_state_enter_section(&nameToken, state);
 }
 
 bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
@@ -178,6 +199,8 @@ bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_st
         ret = process_dd(state, tokenizer);
     else if (!strcmp(mnemonicToken->content, ".include"))
         ret = process_include(state, tokenizer);
+    else if (!strcmp(mnemonicToken->content, ".section"))
+        ret = process_section(state, tokenizer);
     else {
         localized_error(mnemonicToken->location, "Invalid pseudo-instruction `%s`", mnemonicToken->content);
         ret = false;

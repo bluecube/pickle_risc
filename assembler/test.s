@@ -10,6 +10,7 @@ ldcr r7, IntPc
 forward_ref:
 break
 
+.section ".data"
 table:
 .db 1, 2, 3
 .db "Hello world!\n\0"
