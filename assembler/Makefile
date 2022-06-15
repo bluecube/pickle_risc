@@ -3,7 +3,7 @@ OFILES = $(addprefix build/,$(CFILES:.c=.o))
 DEPFILES = $(OFILES:.o=.d)
 PROG = build/pickle_as
 
-CFLAGS += -Wall -Wextra -std=c99 -D_ISOC99_SOURCE -march=native
+CFLAGS += -Werror -Wall -Wextra -std=c99 -D_ISOC99_SOURCE -march=native
 CFLAGS += -fsanitize=undefined -fsanitize=address
 LDFLAGS += -Wall -Wextra
 
