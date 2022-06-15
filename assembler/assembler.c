@@ -104,7 +104,7 @@ bool assembler_state_enter_section(struct token* nameToken, struct assembler_sta
     return true;
 }
 
-bool assembler_state_init(struct assembler_state* state) {
+bool assembler_state_init(const char *outputFile, struct assembler_state* state) {
     state->symtable = NULL;
     state->sectionTable = NULL;
 
@@ -115,6 +115,13 @@ bool assembler_state_init(struct assembler_state* state) {
     state->currentSection = create_section(ownedSectionName, state);
     if (!state->currentSection)
         return false;
+
+    state->verbose = false;
+
+    if (!ihex_writer_open(outputFile, &state->output)) {
+        assembler_state_deinit(state);
+        return false;
+    }
 
     return true;
 }
@@ -144,7 +151,7 @@ bool assembler_state_start_pass(int pass, struct assembler_state* state) {
     return true;
 }
 
-void assembler_state_deinit(struct assembler_state* state) {
+bool assembler_state_deinit(struct assembler_state* state) {
     while (state->symtable) {
         struct symbol *tmp = state->symtable->next;
         free(state->symtable->name);
@@ -159,6 +166,8 @@ void assembler_state_deinit(struct assembler_state* state) {
     }
     state->lastSection = NULL;
     state->currentSection = NULL;
+
+    return ihex_writer_close(&state->output);
 }
 
 /// Process a label definition, takes ownership of nameToken
@@ -459,13 +468,16 @@ bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_s
 }
 
 bool assembler_output_word(uint16_t word, struct assembler_state* state) {
-    if (state->pass == 2)
-        if (printf(
-            "0x%04x: 0x%04x\n",
-            state->currentSection->startAddress + state->currentSection->spc,
-            word
-        ) < 0)
+    if (state->pass == 2) {
+        uint16_t wordAddress = state->currentSection->startAddress + state->currentSection->spc;
+
+        uint16_t address = wordAddress << 1;
+
+        if (!ihex_writer_write(address, (word >> 8) & 0xff, &state->output))
             return false;
+        if (!ihex_writer_write(address + 1, word & 0xff, &state->output))
+            return false;
+    }
     state->currentSection->spc += 1;
     return true;
 }

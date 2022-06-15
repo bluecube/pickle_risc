@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tokenizer.h"
+#include "ihex.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -27,10 +28,13 @@ struct assembler_state {
     struct section* sectionTable; // Non-owning
     struct section* lastSection; // Needed for appending the sections, non-owning
     int pass;
+    struct ihex_writer output;
+
+    bool verbose; // Print extra stuf to stderr
 };
 
-bool assembler_state_init(struct assembler_state* state);
-void assembler_state_deinit(struct assembler_state* state);
+bool assembler_state_init(const char *outputFile, struct assembler_state* state);
+bool assembler_state_deinit(struct assembler_state* state);
 bool assembler_state_start_pass(int pass, struct assembler_state* state);
 bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state);
 bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_state* state);
