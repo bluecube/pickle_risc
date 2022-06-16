@@ -104,19 +104,27 @@ bool assembler_state_enter_section(struct token* nameToken, struct assembler_sta
     return true;
 }
 
-bool assembler_state_init(const char *outputFile, struct assembler_state* state) {
+bool assembler_state_init(const char *outputFile, bool verbose, struct assembler_state* state) {
+    if (verbose) {
+        if (!STACK_INIT(state->verbosePrintBuffer, 16))
+            return false;
+    } else
+        state->verbosePrintBuffer.ptr = NULL; // Doubles as a verbosity flag
+
     state->symtable = NULL;
     state->sectionTable = NULL;
 
     char* ownedSectionName = strdup_with_msg(DEFAULT_SECTION_NAME, "default section name");
-    if (!ownedSectionName)
+    if (!ownedSectionName) {
+        STACK_DEINIT(state->verbosePrintBuffer);
         return false;
+    }
     state->lastSection = NULL;
     state->currentSection = create_section(ownedSectionName, state);
-    if (!state->currentSection)
+    if (!state->currentSection) {
+        STACK_DEINIT(state->verbosePrintBuffer);
         return false;
-
-    state->verbose = false;
+    }
 
     if (!ihex_writer_open(outputFile, &state->output)) {
         assembler_state_deinit(state);
@@ -136,7 +144,7 @@ bool assembler_state_start_pass(int pass, struct assembler_state* state) {
         section->startAddress = sectionStart;
         sectionStart += section->size;
 
-        if (pass == 2)
+        if (pass == 2 && state->verbosePrintBuffer.ptr)
             printf(
                 "Section `%s`: 0x%04x - 0x%04x\n",
                 section->name,
@@ -166,6 +174,8 @@ bool assembler_state_deinit(struct assembler_state* state) {
     }
     state->lastSection = NULL;
     state->currentSection = NULL;
+
+    STACK_DEINIT(state->verbosePrintBuffer);
 
     return ihex_writer_close(&state->output);
 }
@@ -255,7 +265,7 @@ bool get_symbol_value(struct token* nameToken, struct assembler_state* state, ui
 
 /// Parse general purpose register name from the next token into register number
 /// or return negative value and print error
-static int16_t parse_gpr(struct tokenizer_state* tokenizer) {
+static int16_t parse_gpr(struct tokenizer_state *tokenizer, struct assembler_state *state) {
     struct token tok = get_token(tokenizer);
     int16_t ret = -1;
 
@@ -272,6 +282,11 @@ static int16_t parse_gpr(struct tokenizer_state* tokenizer) {
     if (ret < 0)
         localized_error(tok.location, "Expected register name (r0-r7)");
 
+    if (!push_identifier_to_buffer(&tok, &(state->verbosePrintBuffer))) {
+        free_token(&tok);
+        return false;
+    }
+
     free_token(&tok);
 
     return ret;
@@ -279,7 +294,7 @@ static int16_t parse_gpr(struct tokenizer_state* tokenizer) {
 
 /// Parse control register name from the next token into register number
 /// or return negative value and print error
-static int16_t parse_cr(struct tokenizer_state* tokenizer) {
+static int16_t parse_cr(struct tokenizer_state *tokenizer, struct assembler_state *state) {
     static const char* cr_names[] = {
         "Status", "Tmp1", "Tmp2", "ContextId",
         "IntCause", "IntPc", "MMUAddr", "MMUData"
@@ -300,6 +315,11 @@ static int16_t parse_cr(struct tokenizer_state* tokenizer) {
 
     if (ret < 0)
         localized_error(tok.location, "Expected control register name");
+
+    if (!push_identifier_to_buffer(&tok, &(state->verbosePrintBuffer))) {
+        free_token(&tok);
+        return false;
+    }
 
     free_token(&tok);
 
@@ -331,6 +351,9 @@ static int16_t parse_number_for_instruction(bool inputSigned, unsigned size, str
         return -1;
     }
 
+    if (!printf_to_buffer(&(state->verbosePrintBuffer), "%" NUMERIC_VALUE_FORMAT, number))
+        return -1;
+
     if (number >= 0)
         return number;
     else
@@ -353,6 +376,9 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
         return false;
     }
 
+    state->verbosePrintBuffer.used = 0; // Clean the buffer for this instruction
+    push_identifier_to_buffer(mnemonicToken, &(state->verbosePrintBuffer));
+
     free_token(mnemonicToken);
 
     struct instruction_argument* arg = instruction->args;
@@ -362,12 +388,15 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
     while (arg->type != INSTRUCTION_ARG_NONE) {
         int16_t argValue;
 
+        if (state->verbosePrintBuffer.ptr)
+            STACK_PUSH(state->verbosePrintBuffer, ' ');
+
         switch (arg->type) {
         case INSTRUCTION_ARG_GPR:
-            argValue = parse_gpr(tokenizer);
+            argValue = parse_gpr(tokenizer, state);
             break;
         case INSTRUCTION_ARG_CR:
-            argValue = parse_cr(tokenizer);
+            argValue = parse_cr(tokenizer, state);
             break;
         case INSTRUCTION_ARG_SIGNED:
         case INSTRUCTION_ARG_UNSIGNED:
@@ -417,8 +446,14 @@ static bool process_instruction(struct token *mnemonicToken, struct assembler_st
         }
     }
 
-    if (!assembler_output_word(encoding, state))
+    int32_t outputAddress = assembler_output_word(encoding, state);
+    if (outputAddress < 0)
         return false;
+
+    if (state->verbosePrintBuffer.ptr && state->pass == 2) {
+        STACK_PUSH(state->verbosePrintBuffer, '\0');
+        printf("%04" PRIx32 ": %s\n", outputAddress, state->verbosePrintBuffer.ptr);
+    }
 
     return true;
 }
@@ -467,17 +502,16 @@ bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_s
     return true;
 }
 
-bool assembler_output_word(uint16_t word, struct assembler_state* state) {
+int32_t assembler_output_word(uint16_t word, struct assembler_state* state) {
+    uint16_t wordAddress = state->currentSection->startAddress + state->currentSection->spc;
     if (state->pass == 2) {
-        uint16_t wordAddress = state->currentSection->startAddress + state->currentSection->spc;
-
         uint16_t address = wordAddress << 1;
 
         if (!ihex_writer_write(address, (word >> 8) & 0xff, &state->output))
-            return false;
+            return -1;
         if (!ihex_writer_write(address + 1, word & 0xff, &state->output))
-            return false;
+            return -1;
     }
     state->currentSection->spc += 1;
-    return true;
+    return wordAddress;
 }

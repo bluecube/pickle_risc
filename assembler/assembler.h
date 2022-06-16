@@ -2,6 +2,8 @@
 
 #include "tokenizer.h"
 #include "ihex.h"
+#include "stack.h"
+#include "printing.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,14 +32,14 @@ struct assembler_state {
     int pass;
     struct ihex_writer output;
 
-    bool verbose; // Print extra stuf to stderr
+    print_buffer_t verbosePrintBuffer;
 };
 
-bool assembler_state_init(const char *outputFile, struct assembler_state* state);
+bool assembler_state_init(const char *outputFile, bool verbose, struct assembler_state* state);
 bool assembler_state_deinit(struct assembler_state* state);
 bool assembler_state_start_pass(int pass, struct assembler_state* state);
 bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state);
 bool assemble_multiple_files(int fileCount, char** filePaths, struct assembler_state* state);
-bool assembler_output_word(uint16_t word, struct assembler_state* state);
+int32_t assembler_output_word(uint16_t word, struct assembler_state* state);
 bool get_symbol_value(struct token* idToken, struct assembler_state* state, uint16_t* ret);
 bool assembler_state_enter_section(struct token* nameToken, struct assembler_state *state);

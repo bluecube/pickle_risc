@@ -58,10 +58,8 @@ int main(int argc, char** argv) {
     }
 
     struct assembler_state state;
-    if (!assembler_state_init(outputFile, &state))
+    if (!assembler_state_init(outputFile, verboseFlag, &state))
         return EXIT_FAILURE;
-
-    state.verbose = verboseFlag;
 
     for (int pass = 1; pass <= 2; ++pass) {
         if (!assembler_state_start_pass(pass, &state)) {

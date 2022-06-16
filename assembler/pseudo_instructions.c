@@ -72,7 +72,7 @@ static bool process_db(struct assembler_state *state, struct tokenizer_state *to
 
             if (bufferHasValue) {
                 buffer |= v & 0xff;
-                if (!assembler_output_word(buffer, state))
+                if (assembler_output_word(buffer, state) < 0)
                     return false;
                 bufferHasValue = false;
             } else {
@@ -85,7 +85,7 @@ static bool process_db(struct assembler_state *state, struct tokenizer_state *to
                 return false;
             case SEP_FINISHED:
                 if (bufferHasValue)
-                    if (!assembler_output_word(buffer, state))
+                    if (assembler_output_word(buffer, state) < 0)
                         return false;
                 return true;
             case SEP_CONTINUE:
@@ -101,7 +101,7 @@ static bool process_dw(struct assembler_state *state, struct tokenizer_state *to
         if (!evaluate_expression(state, tokenizer, &v, NULL))
             return false;
 
-        if (!assembler_output_word(v & 0xffff, state))
+        if (assembler_output_word(v & 0xffff, state) < 0)
             return false;
 
         switch (parse_sep(tokenizer, true)) {
@@ -123,9 +123,9 @@ static bool process_dd(struct assembler_state *state, struct tokenizer_state *to
 
         unsigned_numeric_value_t vu = (unsigned_numeric_value_t)v;
 
-        if (!assembler_output_word((vu >> 16) & 0xffff, state))
+        if (assembler_output_word((vu >> 16) & 0xffff, state) < 0)
             return false;
-        if (!assembler_output_word(vu & 0xffff, state))
+        if (assembler_output_word(vu & 0xffff, state) < 0)
             return false;
 
         switch (parse_sep(tokenizer, true)) {

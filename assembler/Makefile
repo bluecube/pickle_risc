@@ -33,7 +33,7 @@ build/instructions.c: ../instruction_set.json5
 
 build/%.hex: %.s $(PROG)
 	@mkdir -p $(@D)
-	$(PROG) -o $@ $<
+	$(PROG) -v -o $@ $<
 
 build/instructions.c: generate_instructions.py
 

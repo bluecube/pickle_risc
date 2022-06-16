@@ -47,6 +47,14 @@
         ((stack).ptr[(stack).used++] = value, true) \
     )
 
+/// Make sure that the stack contains at least `newSize` allocated space.
+#define STACK_RESERVE(stack, newSize) \
+    ( \
+        (stack).size = ((stack).size < (newSize)) ? (newSize) : ((stack).size), \
+        (stack).ptr = realloc_with_msg((stack).ptr, (stack).size * sizeof((stack).ptr[0]), "Stack " #stack), \
+        !!((stack).ptr) \
+    )
+
 /// Return element of the stack at index i
 #define STACK_AT(stack, i) \
     ((stack).ptr[i])
