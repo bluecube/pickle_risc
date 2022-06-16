@@ -7,7 +7,7 @@
 #define RECORD_TYPE_DATA 0x00
 #define RECORD_TYPE_EOF 0x01
 
-__attribute__ ((format (printf, 2, 3))) 
+__attribute__ ((format (printf, 2, 3)))
 static bool output(struct ihex_writer *state, const char *format, ...) {
     va_list ap;
     va_start(ap, format);
