@@ -116,21 +116,21 @@ instructions: {
         title: "And shift right",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01000", "b", "c", "a"],
-        pseudocode: "a = (b & c) >> 1 (logical)",
+        pseudocode: "a = (b & c) >> 1 #logical",
         cycles: 1
     },
     "andshra": {
         title: "And shift right arithmetic",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01001", "b", "c", "a"],
-        pseudocode: "a = (b & c) >> 1 (arithmetic)",
+        pseudocode: "a = (b & c) >> 1 #arithmetic",
         cycles: 1
     },
     "andshrc": {
         title: "And shift right with carry",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01010", "b", "c", "a"],
-        pseudocode: "a = carry << 7 | (b & c) >> 1 (logical)",
+        pseudocode: "a = carry << 7 | (b & c) >> 1 #logical",
         cycles: 1
     },
     "cmp": {
@@ -152,10 +152,10 @@ instructions: {
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01101", "b", "c", "a"],
         description: [
-            "Sets output bit 0 if lower byte of b equals lower byte of c",
-            "Sets output bit 1 if upper byte of b equals lower byte of c",
-            "Sets output bit 2 if lower byte of b equals upper byte of c",
-            "Sets output bit 3 if upper byte of b equals upper byte of c"
+            "- Sets output bit 0 if lower byte of `b` equals lower byte of `c`",
+            "- Sets output bit 1 if upper byte of `b` equals lower byte of `c`",
+            "- Sets output bit 2 if lower byte of `b` equals upper byte of `c`",
+            "- Sets output bit 3 if upper byte of `b` equals upper byte of `c`"
         ],
         cycles: 1
     },
@@ -196,7 +196,7 @@ instructions: {
             "else:",
             "    expected = Tmp1; end",
         ],
-        note: "`expected` returns the value of `[address]` _after_ the operation",
+        note: "`expected` returns the value of `[address]` **after** the operation",
     },
     "memadd": {
         title: "Fetch and add",
@@ -206,7 +206,7 @@ instructions: {
             "value = [address] + inc",
             "[address] = value"
         ],
-        note: "`value` returns the value of `[raddress]` _after_ the operation",
+        note: "`value` returns the value of `[raddress]` **after** the operation",
         cycles: "3"
     },
     /* Free opcodes ["01", "10100"] - ["01", "11111"] */
@@ -290,7 +290,7 @@ instructions: {
 substitutions: {
     condition: {
         "": {
-            title: "",
+            title: "unconditional",
             encoding: "000",
             pseudocode: "true"
         },
