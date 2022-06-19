@@ -24,7 +24,12 @@ static bool is_simple_token(int c) {
 
 static int tok_getc(struct tokenizer_state* state) {
     int c = fgetc(state->fp);
-    if (c == '\n') {
+    if (c == EOF) {
+        if (feof(state->fp))
+            return TOKEN_EOF;
+        else
+            return TOKEN_ERROR;
+    } else if (c == '\n') {
         state->location.line += 1;
         state->location.column = 0;
     } else
@@ -45,7 +50,9 @@ static void unexpected_character_error(struct location location, int c) {
 static int parse_magic_token(struct tokenizer_state* state, int c, int doubleCharTokenType, int eqCharTokenType) {
     struct location locationBackup = state->location;
     int c2 = tok_getc(state);
-    if (c2 == c && doubleCharTokenType != TOKEN_NONE)
+    if (c2 == TOKEN_ERROR)
+        return TOKEN_ERROR;
+    else if (c2 == c && doubleCharTokenType != TOKEN_NONE)
         return doubleCharTokenType;
     else if (c2 == '=' && eqCharTokenType != TOKEN_NONE)
         return eqCharTokenType;
@@ -59,8 +66,8 @@ static int parse_magic_token(struct tokenizer_state* state, int c, int doubleCha
 static int parse_string_literal_escape(struct tokenizer_state* state) {
     int c = tok_getc(state);
     switch (c) {
-    case EOF:
-        return EOF;
+    case TOKEN_ERROR:
+        return -1;
     case 'a':
         return '\a';
     case 'b':
@@ -83,12 +90,18 @@ static int parse_string_literal_escape(struct tokenizer_state* state) {
     case '\\':
         return c;
     case 'x': {
-            int d1 = parse_digit(tok_getc(state));
+            int c1 = tok_getc(state);
+            if (c1 == TOKEN_ERROR)
+                return -1;
+            int d1 = parse_digit(c1);
             if (d1 < 0) {
                 localized_error(state->location, "Invalid escape sequence: Expected hex digit");
                 return -1;
             }
-            int d2 = parse_digit(tok_getc(state));
+            int c2 = tok_getc(state);
+            if (c2 == TOKEN_ERROR)
+                return -1;
+            int d2 = parse_digit(c2);
             if (d2 < 0) {
                 localized_error(state->location, "Invalid escape sequence: Expected hex digit");
                 return -1;
@@ -105,10 +118,12 @@ static char* parse_string(struct tokenizer_state* state, numeric_value_t* length
     while (true) {
         int c = tok_getc(state);
 
-        if (c == EOF || c == '\n') {
+        if (c == TOKEN_ERROR) {
+            return NULL;
+        } else if (c == TOKEN_EOF || c == '\n') {
             localized_error(state->location, "Unexpected end of string");
             return NULL;
-        } if (c == '"')
+        } else if (c == '"')
             break;
         if (c == '\\') {
             int c2 = parse_string_literal_escape(state);
@@ -150,6 +165,8 @@ static char* parse_identifier(struct tokenizer_state* state, int c, numeric_valu
             return NULL;
         locationBackup = state->location;
         c = tok_getc(state);
+        if (c == TOKEN_ERROR)
+            return NULL;
     } while (is_identifier_char(c));
 
     state->location = locationBackup;
@@ -183,6 +200,8 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
         struct location locationBackup = state->location;
         c = tok_getc(state);
         switch (c) {
+        case TOKEN_ERROR:
+            return -1;
         case 'x':
         case 'X':
             base = 16;
@@ -216,7 +235,9 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     while (true) {
         struct location locationBackup = state->location;
         c = tok_getc(state);
-        if (c == '_')
+        if (c == TOKEN_ERROR)
+            return -1;
+        else if (c == '_')
             continue;
         int d = parse_digit(c);
         if (d < 0 || d >= base) {
@@ -250,7 +271,7 @@ static void load_token(struct tokenizer_state* state) {
         if (c == '#') { // Skip over comments and whitespace
             do {
                 c = tok_getc(state);
-            } while (c != EOF && c != '\n');
+            } while (c != TOKEN_EOF && c != TOKEN_ERROR && c != '\n');
             continue;
         }
 
@@ -261,14 +282,10 @@ static void load_token(struct tokenizer_state* state) {
 
     state->tokenBuffer.location = state->location;
 
-    if (c == EOF) {
-        if (feof(state->fp))
-            state->tokenBuffer.type = TOKEN_EOF;
-        else {
-            error("Error reading file");
-            state->tokenBuffer.type = TOKEN_ERROR;
-        }
-    }
+    if (c == TOKEN_ERROR)
+        state->tokenBuffer.type = TOKEN_ERROR;
+    if (c == TOKEN_EOF)
+        state->tokenBuffer.type = TOKEN_EOF;
     else if (c == '\n' || c == ';')
         state->tokenBuffer.type = TOKEN_EOL;
     else if (is_simple_token(c))
