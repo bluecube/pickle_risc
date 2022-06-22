@@ -471,19 +471,17 @@ bool assemble(struct tokenizer_state* tokenizer, struct assembler_state* state) 
             continue; // Empty line
         else if (token1.type != TOKEN_IDENTIFIER) {
             localized_error(token1.location, "Expected identifier");
+            free_token(&token1);
             return false;
         }
 
-        struct token token2 = get_token(tokenizer);
-        if (token2.type == ':') {
-            free_token(&token2);
+        if (peek_token(tokenizer)->type == ':') {
+            skip_token(tokenizer);
             if (!define_symbol(&token1, state))
                 return false;
-        } else {
-            unget_token(&token2, tokenizer);
+        } else
             if (!process_instruction(&token1, state, tokenizer))
                 return false;
-        }
     }
 }
 

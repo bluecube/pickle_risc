@@ -5,6 +5,7 @@
 #include "expressions.h"
 
 #include <string.h>
+#include <assert.h>
 
 #define SEP_ERROR 0
 #define SEP_CONTINUE 1
@@ -32,65 +33,64 @@ static int parse_sep(struct tokenizer_state* tokenizer, bool canContinue) {
     }
 }
 
-static bool process_db(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+static bool process_db_string(struct assembler_state *state, struct tokenizer_state *tokenizer) {
     struct token value = get_token(tokenizer);
+    assert(value.type == TOKEN_STRING);
 
-    if (value.type == TOKEN_STRING) {
-        for (numeric_value_t i = 1; i < value.contentNumeric; i += 2) {
-            if (!assembler_output_word(
-                value.content[i - 1] << 8 | value.content[i],
-                state
-            )) {
-                free_token(&value);
-                return false;
-            }
-        }
-        if (value.contentNumeric & 1)
-            if (!assembler_output_word(
-                value.content[value.contentNumeric - 1] << 8,
-                state
-            )) {
-                free_token(&value);
-                return false;
-            }
-        free_token(&value);
-
-        if (parse_sep(tokenizer, false) == SEP_FINISHED)
-            return true;
-        else
+    for (numeric_value_t i = 1; i < value.contentNumeric; i += 2) {
+        if (!assembler_output_word(
+            value.content[i - 1] << 8 | value.content[i],
+            state
+        )) {
+            free_token(&value);
             return false;
-    } else {
-        unget_token(&value, tokenizer);
+        }
+    }
+    if (value.contentNumeric & 1)
+        if (!assembler_output_word(
+            value.content[value.contentNumeric - 1] << 8,
+            state
+        )) {
+            free_token(&value);
+            return false;
+        }
+    free_token(&value);
 
-        uint16_t buffer = 0;
-        bool bufferHasValue = false;
+    if (parse_sep(tokenizer, false) == SEP_FINISHED)
+        return true;
+    else
+        return false;
+}
 
-        while (true) {
-            numeric_value_t v;
-            if (!evaluate_expression(state, tokenizer, &v, NULL))
+static bool process_db(struct assembler_state *state, struct tokenizer_state *tokenizer) {
+    uint16_t buffer = 0;
+    bool bufferHasValue = false;
+
+    while (true) {
+        numeric_value_t v;
+        if (!evaluate_expression(state, tokenizer, &v, NULL))
+            return false;
+
+        if (bufferHasValue) {
+            buffer |= v & 0xff;
+            if (assembler_output_word(buffer, state) < 0)
                 return false;
+            bufferHasValue = false;
+        } else {
+            buffer = (v & 0xff) << 8;
+            bufferHasValue = true;
+        }
 
-            if (bufferHasValue) {
-                buffer |= v & 0xff;
+        switch (parse_sep(tokenizer, true)) {
+        case SEP_ERROR:
+            return false;
+        case SEP_FINISHED:
+            if (bufferHasValue)
                 if (assembler_output_word(buffer, state) < 0)
                     return false;
-                bufferHasValue = false;
-            } else {
-                buffer = (v & 0xff) << 8;
-                bufferHasValue = true;
-            }
-
-            switch (parse_sep(tokenizer, true)) {
-            case SEP_ERROR:
-                return false;
-            case SEP_FINISHED:
-                if (bufferHasValue)
-                    if (assembler_output_word(buffer, state) < 0)
-                        return false;
-                return true;
-            case SEP_CONTINUE:
-                break;
-            }
+            return true;
+        case SEP_CONTINUE:
+            break;
         }
     }
 }
@@ -191,9 +191,12 @@ static bool process_section(struct assembler_state *state, struct tokenizer_stat
 
 bool process_pseudo_instruction(struct token* mnemonicToken, struct assembler_state* state, struct tokenizer_state* tokenizer) {
     bool ret;
-    if (!strcmp(mnemonicToken->content, ".db"))
-        ret = process_db(state, tokenizer);
-    else if (!strcmp(mnemonicToken->content, ".dw"))
+    if (!strcmp(mnemonicToken->content, ".db")) {
+        if (peek_token(tokenizer)->type == TOKEN_STRING)
+            ret = process_db_string(state, tokenizer);
+        else
+            ret = process_db(state, tokenizer);
+    } else if (!strcmp(mnemonicToken->content, ".dw"))
         ret = process_dw(state, tokenizer);
     else if (!strcmp(mnemonicToken->content, ".dd"))
         ret = process_dd(state, tokenizer);

@@ -114,7 +114,7 @@ static int parse_string_literal_escape(struct tokenizer_state* state) {
     }
 }
 
-static char* parse_string(struct tokenizer_state* state, numeric_value_t* length) {
+static char *parse_string(struct tokenizer_state* state, numeric_value_t* length) {
     while (true) {
         int c = tok_getc(state);
 
@@ -139,25 +139,19 @@ static char* parse_string(struct tokenizer_state* state, numeric_value_t* length
         }
     }
 
-    char* stringCopy = malloc_with_msg(state->buffer.used + 1, "string literal token");
-    if (!stringCopy)
+    if (!STACK_PUSH(state->buffer, '\0'))
         return NULL;
 
-    memcpy(stringCopy, state->buffer.ptr, state->buffer.used);
-    stringCopy[state->buffer.used] = '\0';
-
-    *length = state->buffer.used;
-    if (*length < 0 || (size_t)(*length) != state->buffer.used) {
-        localized_error(state->location, "Too long string literal");
+    *length = state->buffer.used - 1;
+    if (*length < 0 || (size_t)(*length) != state->buffer.used - 1) {
+        localized_error(state->location, "Too long string");
         return NULL;
     }
-    state->buffer.used = 0; // Clear the buffer for later tokens
-    return stringCopy;
+
+    return state->buffer.ptr;
 }
 
 /// Parse an identifier from tokenizer, starting with character c.
-/// Parameter size gets set to the length of the identifier (excluding terminating '\0').
-/// @return Newly allocated copy of the identifier or NULL on error.
 static char* parse_identifier(struct tokenizer_state* state, int c, numeric_value_t* length) {
     struct location locationBackup;
     do {
@@ -172,20 +166,16 @@ static char* parse_identifier(struct tokenizer_state* state, int c, numeric_valu
     state->location = locationBackup;
     ungetc(c, state->fp);
 
-    char* identifierCopy = malloc_with_msg(state->buffer.used + 1, "identifier token");
-    if (!identifierCopy)
+    if (!STACK_PUSH(state->buffer, '\0'))
         return NULL;
 
-    memcpy(identifierCopy, state->buffer.ptr, state->buffer.used);
-    identifierCopy[state->buffer.used] = '\0';
-
-    *length = state->buffer.used;
-    if (*length < 0 || (size_t)(*length) != state->buffer.used) {
+    *length = state->buffer.used - 1;
+    if (*length < 0 || (size_t)(*length) != state->buffer.used - 1) {
         localized_error(state->location, "Too long identifier");
         return NULL;
     }
-    state->buffer.used = 0; // Clear the buffer for later tokens
-    return identifierCopy;
+
+    return state->buffer.ptr;
 }
 
 /// Parse a single positive number from tokenizer, starting with a character c.
@@ -246,7 +236,7 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
                 state->location = locationBackup;
                 return ret;
             } else {
-                localized_error(state->tokenBuffer.location, "Base-%d numeric literal with no digits", base);
+                localized_error(state->peekBuffer.location, "Base-%d numeric literal with no digits", base);
                 return -1;
             }
         }
@@ -255,17 +245,16 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
         overflow = overflow || __builtin_add_overflow(ret, d, &ret);
 
         if (overflow) {
-            localized_error(state->tokenBuffer.location, "Numeric literal overflow");
+            localized_error(state->peekBuffer.location, "Numeric literal overflow");
             return -1;
         }
         haveDigits = true;
     }
 }
 
-static void load_token(struct tokenizer_state* state) {
+/// Load a token into the peek buffer
+static void load_next_token(struct tokenizer_state* state) {
     int c = tok_getc(state);
-
-    state->tokenBuffer.content = NULL;
 
     while (c == '#' || is_skippable_whitespace(c)) {
         if (c == '#') { // Skip over comments and whitespace
@@ -280,82 +269,82 @@ static void load_token(struct tokenizer_state* state) {
         }
     }
 
-    state->tokenBuffer.location = state->location;
+    state->peekBuffer.location = state->location;
+    state->peekBuffer.content = NULL;
+    state->buffer.used = 0;
 
     if (c == TOKEN_ERROR)
-        state->tokenBuffer.type = TOKEN_ERROR;
+        state->peekBuffer.type = TOKEN_ERROR;
     if (c == TOKEN_EOF)
-        state->tokenBuffer.type = TOKEN_EOF;
+        state->peekBuffer.type = TOKEN_EOF;
     else if (c == '\n' || c == ';')
-        state->tokenBuffer.type = TOKEN_EOL;
+        state->peekBuffer.type = TOKEN_EOL;
     else if (is_simple_token(c))
-        state->tokenBuffer.type = c;
+        state->peekBuffer.type = c;
     else if (c == '!') // "!="
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_NONE, TOKEN_OPERATOR_NEQ);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_NONE, TOKEN_OPERATOR_NEQ);
     else if (c == '<') // "<<" "<="
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHL, TOKEN_OPERATOR_LE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHL, TOKEN_OPERATOR_LE);
     else if (c == '>') // ">>" ">="
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHR, TOKEN_OPERATOR_GE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_SHR, TOKEN_OPERATOR_GE);
     else if (c == '*') // "**"
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_POWER, TOKEN_NONE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_POWER, TOKEN_NONE);
     else if (c == '&') // "&&"
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_AND, TOKEN_NONE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_AND, TOKEN_NONE);
     else if (c == '|') // "||"
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_OR, TOKEN_NONE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_LOGICAL_OR, TOKEN_NONE);
     else if (c == '=') // "=="
-        state->tokenBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_EQ, TOKEN_NONE);
+        state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_EQ, TOKEN_NONE);
     else if (c == '"') {
-        numeric_value_t length;
-        char* string = parse_string(state, &length);
-        if (!string) {
-            state->tokenBuffer.type = TOKEN_ERROR;
-        } else {
-            state->tokenBuffer.type = TOKEN_STRING;
-            state->tokenBuffer.content = string;
-            state->tokenBuffer.contentNumeric = length;
-        }
+        state->peekBuffer.type = TOKEN_STRING;
+        state->peekBuffer.content = parse_string(state, &state->peekBuffer.contentNumeric);
+        if (!state->peekBuffer.content)
+            state->peekBuffer.type = TOKEN_ERROR;
     } else if (is_identifier_first_char(c)) {
-        numeric_value_t length;
-        char* identifier = parse_identifier(state, c, &length);
-        if (!identifier) {
-            state->tokenBuffer.type = TOKEN_ERROR;
-        } else {
-            state->tokenBuffer.type = TOKEN_IDENTIFIER;
-            state->tokenBuffer.content = identifier;
-            state->tokenBuffer.contentNumeric = length;
-        }
+        state->peekBuffer.type = TOKEN_IDENTIFIER;
+        state->peekBuffer.content = parse_identifier(state, c, &state->peekBuffer.contentNumeric);
+        if (!state->peekBuffer.content)
+            state->peekBuffer.type = TOKEN_ERROR;
     }
     else if (isdigit(c)) {
-        numeric_value_t value = parse_number(state, c);
-        if (value < 0) {
-            state->tokenBuffer.type = TOKEN_ERROR;
-        } else {
-            state->tokenBuffer.type = TOKEN_NUMBER;
-            state->tokenBuffer.contentNumeric = value;
-        }
+        state->peekBuffer.type = TOKEN_NUMBER;
+        state->peekBuffer.contentNumeric = parse_number(state, c);
+        if (state->peekBuffer.contentNumeric < 0)
+            state->peekBuffer.type = TOKEN_ERROR;
     }
     else {
         unexpected_character_error(state->location, c);
-        state->tokenBuffer.type = TOKEN_ERROR;
+        state->peekBuffer.type = TOKEN_ERROR;
     }
 }
 
 struct token get_token(struct tokenizer_state* state) {
-    if (state->tokenBuffer.type == TOKEN_NONE)
-        load_token(state);
+    struct token ret = state->peekBuffer;
 
-    struct token ret = state->tokenBuffer;
-    state->tokenBuffer.type = TOKEN_NONE;
-    state->tokenBuffer.content = NULL;
+    if (ret.content) {
+        assert(ret.content == state->buffer.ptr);
+        size_t copiedSize = ret.contentNumeric + 1; // add byte for termination
+        ret.content = malloc_with_msg(copiedSize, "get_token content copy");
+        if (!ret.content) {
+            ret.type = TOKEN_ERROR;
+            return ret;
+        }
+        memcpy(ret.content, state->peekBuffer.content, copiedSize);
+    }
+
+    load_next_token(state);
 
     return ret;
 }
 
-void unget_token(struct token *token, struct tokenizer_state* state) {
-    assert(state->tokenBuffer.type == TOKEN_NONE);
-    state->tokenBuffer = *token;
-    token->content = NULL;
-    token->type = TOKEN_NONE;
+struct token *peek_token(struct tokenizer_state *state) {
+    return &(state->peekBuffer);
+}
+
+bool skip_token(struct tokenizer_state *state) {
+    bool ret = (state->peekBuffer.type != TOKEN_ERROR);
+    load_next_token(state);
+    return ret;
 }
 
 bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
@@ -366,8 +355,8 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
     // Clear the state, so that a tokenizer that failed to open can still be safely passed
     // to close and it is a no-op.
     state->buffer.ptr = NULL;
-    state->tokenBuffer.type = TOKEN_NONE;
-    state->tokenBuffer.content = NULL;
+    state->peekBuffer.type = TOKEN_ERROR;
+    state->peekBuffer.content = NULL;
 
     state->fp = fopen(filename, "rb");
     if (!state->fp) {
@@ -381,6 +370,8 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
         return false;
     }
 
+    load_next_token(state);
+
     return true;
 }
 
@@ -390,8 +381,6 @@ void tokenizer_close(struct tokenizer_state* state) {
     state->fp = NULL;
 
     STACK_DEINIT(state->buffer);
-
-    free_token(&(state->tokenBuffer));
 }
 
 void free_token(struct token *token) {

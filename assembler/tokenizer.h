@@ -45,7 +45,7 @@ struct token {
 struct tokenizer_state {
     FILE* fp;
     STACK_DECLARATION(char) buffer;
-    struct token tokenBuffer;
+    struct token peekBuffer;
 
     struct location location;
 };
@@ -57,12 +57,20 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state);
 
 /// Close tokenizer, free all resources. Idempotent.
 void tokenizer_close(struct tokenizer_state* state);
+
+/// Return next token. For tokens with character content this copies the data and the
+/// token needs to be freed afterwards.
 struct token get_token(struct tokenizer_state* state);
 
-/// Return the token to the unget buffer, does not have to be freed afterwards.
-/// There is only one unget buffer position, calling this twice will loose tokens
-/// and may cause memory leaks
-void unget_token(struct token *token, struct tokenizer_state* state);
+/// Return a pointer to the token that will be returned by next get_token.
+/// content of the returned token is owned by the tokenizer.
+/// Returned pointer gets invalidated by any operation on the state except peek (which returns identical token)
+struct token *peek_token(struct tokenizer_state *state);
+
+/// Equivalent to getting a token and immediately freeing it but never allocates.
+/// Returns true if the skipped token type is not error.
+bool skip_token(struct tokenizer_state *state);
+
 void free_token(struct token *token);
 char* free_token_move_content(struct token* token);
 

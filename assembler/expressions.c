@@ -79,11 +79,11 @@ static struct operator operators[] = {
     { .tokenType = TOKEN_NONE }
 };
 
-static struct operator* find_operator(struct token* token, bool findBinaryOp) {
+static struct operator* find_operator(int tokenType, bool findBinaryOp) {
     struct operator* op = operators;
 
     while (op->tokenType != TOKEN_NONE) {
-        if (op->tokenType == token->type && (findBinaryOp == (op->arity == 2)))
+        if (op->tokenType == tokenType && (findBinaryOp == (op->arity == 2)))
             return op;
         ++op;
     }
@@ -117,7 +117,7 @@ static bool pop_operator(operator_stack_t* operatorStack, numeric_value_stack_t*
 
 bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* tokenizer, numeric_value_t* ret, struct location* startLocation) {
     if (startLocation)
-        *startLocation = tokenizer->location;
+        *startLocation = peek_token(tokenizer)->location;
 
     bool successful = false;
 
@@ -129,34 +129,39 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
         goto cleanup;
     }
 
-    struct location lastLocationForErrorReports = tokenizer->location;
-    struct token token;
     bool precededByValue = false; // Flag for determining whether the operator is binary or unary
     while (true) {
-        token = get_token(tokenizer);
-        if (token.type == TOKEN_ERROR) {
+        struct token *nextToken = peek_token(tokenizer);
+        if (nextToken->type == TOKEN_ERROR) {
             goto cleanup;
-        } else if (token.type == TOKEN_NUMBER) {
+        } else if (nextToken->type == TOKEN_NUMBER) {
             if (precededByValue) {
-                localized_error(token.location, "Invalid syntax: Number preceeded by value");
+                localized_error(nextToken->location, "Invalid syntax: Number preceeded by value");
                 goto cleanup;
             }
+            struct token token = get_token(tokenizer);
+            assert(token.content == NULL); // Does not need to be freed
+
             numeric_value_t value = token.contentNumeric;
             if (!STACK_PUSH(valueStack, value))
                 goto cleanup;
             precededByValue = true;
-        } else if (token.type == TOKEN_IDENTIFIER) {
-            if (precededByValue)
-                localized_error(token.location, "Invalid syntax: Identifier precedd by value");
-            uint16_t value;
-            if (!get_symbol_value(&token, state, &value))
+        } else if (nextToken->type == TOKEN_IDENTIFIER) {
+            if (precededByValue) {
+                localized_error(nextToken->location, "Invalid syntax: Identifier precedd by value");
                 goto cleanup;
-            assert(token.content == NULL);
-            assert(token.type == TOKEN_NONE);
+            }
+            struct token token = get_token(tokenizer);
+            uint16_t value;
+            if (!get_symbol_value(&token, state, &value)) // Frees the token
+                goto cleanup;
             if (!STACK_PUSH(valueStack, value))
                 goto cleanup;
             precededByValue = true;
-        } else if (token.type == ')') {
+        } else if (nextToken->type == ')') {
+            struct token token = get_token(tokenizer);
+            assert(token.content == NULL); // Does not need to be freed
+
             while (operatorStack.used > 0 && STACK_AT_R(operatorStack, 0).op->tokenType != '(') {
                 if (!pop_operator(&operatorStack, &valueStack))
                     goto cleanup;
@@ -172,11 +177,12 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
 
             precededByValue = true;
         } else {
-            struct operator* op = find_operator(&token, precededByValue);
-            if (!op) {
-                unget_token(&token, tokenizer);
-                break;
-            }
+            struct operator* op = find_operator(nextToken->type, precededByValue);
+            if (!op)
+                break; // Unknown token, stop expression parsing
+
+            struct token token = get_token(tokenizer);
+            assert(token.content == NULL); // Does not need to be freed
 
             while (operatorStack.used > 0) {
                 struct operator* stackTopOp = STACK_AT_R(operatorStack, 0).op;
@@ -200,9 +206,6 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
 
             precededByValue = false;
         }
-
-        lastLocationForErrorReports = token.location;
-        free_token(&token);
     }
 
     while (operatorStack.used > 0)
@@ -211,12 +214,11 @@ bool evaluate_expression(struct assembler_state* state, struct tokenizer_state* 
 
     successful = (valueStack.used == 1);
     if (!successful)
-        localized_error(lastLocationForErrorReports, "Invalid syntax: %zu values left on stack", valueStack.used);
+        localized_error(peek_token(tokenizer)->location, "Invalid syntax: %zu values left on stack", valueStack.used);
     else
         *ret = STACK_AT(valueStack, 0);
 
 cleanup:
-    free_token(&token);
     STACK_DEINIT(operatorStack);
     STACK_DEINIT(valueStack);
     return successful;
