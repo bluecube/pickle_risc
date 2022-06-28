@@ -13,7 +13,7 @@
 - Most instruction single cycle
 
 ## State
-- Instruction set
+- [Instruction set](http://htmlpreview.github.io/?https://github.com/bluecube/pickle_risc/blob/master/instruction_set.html)
     - Basics done, good enough to start writing assembler and simulator
     - Some complex instructions should definitely be added later
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
@@ -21,17 +21,14 @@
     - Slightly more than a fuzzy idea of how stuff should should go together
     - The [block diagram](block_diagram.svg) shows most of the general idea
 - SW
-    - Nothing done at all
+    - MWP assembler is done
 
 ## Next steps
-- Figure out how instruction fetch will work exactly, pipelining
 - Figure out ALU design
 - Figure out MMU design
 - Figure out interrupt handling
     - Rough idea and the instructions needed to support it is already done
 - Emulator
-- Assembler
-    - Probably in C, to make it easier to self-host once/if a C compiler is ready
 - Start building the hardware in some kind of HDL
 
 ## Links
@@ -44,6 +41,9 @@
 ### Instruction set
 - MIPS Architecture
 - ARM Thumb Instruction set
+
+### Peripherials
+- Interfacing SDHC card to 6502: https://github.com/gfoot/sdcard6502
 
 ### The rest
 - MUPS/16, a nice 16bit CPU with similar goals/design: http://mups16.net/pages/overview.html#overview
