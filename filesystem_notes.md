@@ -21,12 +21,17 @@ This assumes that we will have something like an SD card connected through SPI.
 - "PICKLEFS" magic
 - Parameters?
 - 16b Pointer to first unused block
+- 16b Pointer to root directory
+
+### Boot area
+- Optional?
+- Contiguous range of blocks starting at the second block of the device
+- Must have a corresponding directory entry and file header
 
 ### Unused blocks
 - 16b pointer to next unused block
 
 ### Root directory
-- Second block of the device
 - `..` entry points to itself
 - Otherwise like normal directory
 
