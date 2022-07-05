@@ -22,49 +22,27 @@ static bool is_simple_token(int c) {
     return !!strchr(":,(){}+-/%~", c);
 }
 
-static int tok_getc(struct tokenizer_state* state) {
-    int c = fgetc(state->fp);
-    if (c == EOF) {
-        if (feof(state->fp))
-            return TOKEN_EOF;
-        else
-            return TOKEN_ERROR;
-    } else if (c == '\n') {
-        state->location.line += 1;
-        state->location.column = 0;
-    } else
-        state->location.column += 1;
-
-    return c;
-}
-
-static void unexpected_character_error(struct location location, int c) {
-    int printC = c;
-    if (!isgraph(c))
-        c = ' ';
-    localized_error(location, "Unexpected character '%c'(0x%02x)", printC, c);
-}
-
-/// Parse tokens that have different meaning when doubled (eg. <<)
+/// Parse multi character tokens in format `cc` and `c=` (were `c` is the value of the parameter).
 /// @return token type
 static int parse_magic_token(struct tokenizer_state* state, int c, int doubleCharTokenType, int eqCharTokenType) {
-    struct location locationBackup = state->location;
-    int c2 = tok_getc(state);
-    if (c2 == TOKEN_ERROR)
+    int c2;
+    if (!localized_file_getc(&state->f, &c2))
         return TOKEN_ERROR;
-    else if (c2 == c && doubleCharTokenType != TOKEN_NONE)
+
+    if (c2 == c && doubleCharTokenType != TOKEN_NONE)
         return doubleCharTokenType;
     else if (c2 == '=' && eqCharTokenType != TOKEN_NONE)
         return eqCharTokenType;
     else {
-        state->location = locationBackup;
-        ungetc(c2, state->fp);
+        localized_file_ungetc(&state->f, c2);
         return c;
     }
 }
 
 static int parse_string_literal_escape(struct tokenizer_state* state) {
-    int c = tok_getc(state);
+    int c;
+    if (!localized_file_getc(&state->f, &c))
+        return -1;
     switch (c) {
     case TOKEN_ERROR:
         return -1;
@@ -90,38 +68,40 @@ static int parse_string_literal_escape(struct tokenizer_state* state) {
     case '\\':
         return c;
     case 'x': {
-            int c1 = tok_getc(state);
-            if (c1 == TOKEN_ERROR)
+            int c1;
+            if (!localized_file_getc(&state->f, &c1))
                 return -1;
             int d1 = parse_digit(c1);
             if (d1 < 0) {
-                localized_error(state->location, "Invalid escape sequence: Expected hex digit");
+                localized_error(state->f.location, "Invalid escape sequence: Expected hex digit");
                 return -1;
             }
-            int c2 = tok_getc(state);
-            if (c2 == TOKEN_ERROR)
+            int c2;
+            if (!localized_file_getc(&state->f, &c2))
                 return -1;
             int d2 = parse_digit(c2);
             if (d2 < 0) {
-                localized_error(state->location, "Invalid escape sequence: Expected hex digit");
+                localized_error(state->f.location, "Invalid escape sequence: Expected hex digit");
                 return -1;
             }
             return d1 << 4 | d2;
         }
     default:
-        localized_error(state->location, "Invalid escape sequence");
+        localized_error(state->f.location, "Invalid escape sequence");
         return -1;
     }
 }
 
 static char *parse_string(struct tokenizer_state* state, numeric_value_t* length) {
-    while (true) {
-        int c = tok_getc(state);
+    struct location startLocation = state->f.location;
 
-        if (c == TOKEN_ERROR) {
+    while (true) {
+        int c;
+        if (!localized_file_getc(&state->f, &c))
             return NULL;
-        } else if (c == TOKEN_EOF || c == '\n') {
-            localized_error(state->location, "Unexpected end of string");
+
+        if (c == EOF || c == '\n') {
+            localized_error(state->f.location, "Unexpected end of string");
             return NULL;
         } else if (c == '"')
             break;
@@ -144,7 +124,7 @@ static char *parse_string(struct tokenizer_state* state, numeric_value_t* length
 
     *length = state->buffer.used - 1;
     if (*length < 0 || (size_t)(*length) != state->buffer.used - 1) {
-        localized_error(state->location, "Too long string");
+        localized_error(startLocation, "Too long string");
         return NULL;
     }
 
@@ -153,25 +133,22 @@ static char *parse_string(struct tokenizer_state* state, numeric_value_t* length
 
 /// Parse an identifier from tokenizer, starting with character c.
 static char* parse_identifier(struct tokenizer_state* state, int c, numeric_value_t* length) {
-    struct location locationBackup;
+    struct location startLocation = state->f.location;
     do {
         if (!STACK_PUSH(state->buffer, c))
             return NULL;
-        locationBackup = state->location;
-        c = tok_getc(state);
-        if (c == TOKEN_ERROR)
+        if (!localized_file_getc(&state->f, &c))
             return NULL;
     } while (is_identifier_char(c));
 
-    state->location = locationBackup;
-    ungetc(c, state->fp);
+    localized_file_ungetc(&state->f, c);
 
     if (!STACK_PUSH(state->buffer, '\0'))
         return NULL;
 
     *length = state->buffer.used - 1;
     if (*length < 0 || (size_t)(*length) != state->buffer.used - 1) {
-        localized_error(state->location, "Too long identifier");
+        localized_error(startLocation, "Too long identifier");
         return NULL;
     }
 
@@ -185,13 +162,14 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     numeric_value_t ret = 0;
     bool haveDigits = false;
 
+    struct location startLocation = state->f.location;
+
     if (c == '0') {
         // next character determines the base, or zero
-        struct location locationBackup = state->location;
-        c = tok_getc(state);
-        switch (c) {
-        case TOKEN_ERROR:
+        if (!localized_file_getc(&state->f, &c))
             return -1;
+
+        switch (c) {
         case 'x':
         case 'X':
             base = 16;
@@ -206,11 +184,11 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
             break;
         default:
             if (isdigit(c)) {
-                localized_error(locationBackup, "Leading zero in decimal integer literal");
+                localized_error(state->f.location, "Leading zero in decimal integer literal");
                 return -1;
             } else {
-                ungetc(c, state->fp);
-                state->location = locationBackup;
+                // Decimal zero
+                localized_file_ungetc(&state->f, c);
                 return 0;
             }
         }
@@ -223,20 +201,17 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
     }
 
     while (true) {
-        struct location locationBackup = state->location;
-        c = tok_getc(state);
-        if (c == TOKEN_ERROR)
+        if (!localized_file_getc(&state->f, &c))
             return -1;
-        else if (c == '_')
+        if (c == '_')
             continue;
         int d = parse_digit(c);
         if (d < 0 || d >= base) {
             if (haveDigits) {
-                ungetc(c, state->fp);
-                state->location = locationBackup;
+                localized_file_ungetc(&state->f, c);
                 return ret;
             } else {
-                localized_error(state->peekBuffer.location, "Base-%d numeric literal with no digits", base);
+                localized_error(startLocation, "Base-%d numeric literal with no digits", base);
                 return -1;
             }
         }
@@ -245,7 +220,7 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
         overflow = overflow || __builtin_add_overflow(ret, d, &ret);
 
         if (overflow) {
-            localized_error(state->peekBuffer.location, "Numeric literal overflow");
+            localized_error(startLocation, "Numeric literal overflow");
             return -1;
         }
         haveDigits = true;
@@ -254,28 +229,32 @@ static numeric_value_t parse_number(struct tokenizer_state* state, int c) {
 
 /// Load a token into the peek buffer
 static void load_next_token(struct tokenizer_state* state) {
-    int c = tok_getc(state);
+    state->peekBuffer.type = TOKEN_ERROR;
+
+    int c;
+    if (!localized_file_getc(&state->f, &c))
+        return;
 
     while (c == '#' || is_skippable_whitespace(c)) {
         if (c == '#') { // Skip over comments and whitespace
             do {
-                c = tok_getc(state);
-            } while (c != TOKEN_EOF && c != TOKEN_ERROR && c != '\n');
+                if (!localized_file_getc(&state->f, &c))
+                    return;
+            } while (c != EOF && c != '\n');
             continue;
         }
 
         while (is_skippable_whitespace(c)) { // Skip over whitespace
-            c = tok_getc(state);
+            if (!localized_file_getc(&state->f, &c))
+                return;
         }
     }
 
-    state->peekBuffer.location = state->location;
+    state->peekBuffer.location = state->f.location;
     state->peekBuffer.content = NULL;
     state->buffer.used = 0;
 
-    if (c == TOKEN_ERROR)
-        state->peekBuffer.type = TOKEN_ERROR;
-    if (c == TOKEN_EOF)
+    if (c == EOF)
         state->peekBuffer.type = TOKEN_EOF;
     else if (c == '\n' || c == ';')
         state->peekBuffer.type = TOKEN_EOL;
@@ -296,26 +275,19 @@ static void load_next_token(struct tokenizer_state* state) {
     else if (c == '=') // "=="
         state->peekBuffer.type = parse_magic_token(state, c, TOKEN_OPERATOR_EQ, TOKEN_NONE);
     else if (c == '"') {
-        state->peekBuffer.type = TOKEN_STRING;
         state->peekBuffer.content = parse_string(state, &state->peekBuffer.contentNumeric);
-        if (!state->peekBuffer.content)
-            state->peekBuffer.type = TOKEN_ERROR;
+        if (state->peekBuffer.content)
+            state->peekBuffer.type = TOKEN_STRING;
     } else if (is_identifier_first_char(c)) {
-        state->peekBuffer.type = TOKEN_IDENTIFIER;
         state->peekBuffer.content = parse_identifier(state, c, &state->peekBuffer.contentNumeric);
-        if (!state->peekBuffer.content)
-            state->peekBuffer.type = TOKEN_ERROR;
-    }
-    else if (isdigit(c)) {
-        state->peekBuffer.type = TOKEN_NUMBER;
+        if (state->peekBuffer.content)
+            state->peekBuffer.type = TOKEN_IDENTIFIER;
+    } else if (isdigit(c)) {
         state->peekBuffer.contentNumeric = parse_number(state, c);
-        if (state->peekBuffer.contentNumeric < 0)
-            state->peekBuffer.type = TOKEN_ERROR;
-    }
-    else {
-        unexpected_character_error(state->location, c);
-        state->peekBuffer.type = TOKEN_ERROR;
-    }
+        if (state->peekBuffer.contentNumeric >= 0)
+            state->peekBuffer.type = TOKEN_NUMBER;
+    } else
+        localized_error(state->f.location, "Unexpected character");
 }
 
 struct token get_token(struct tokenizer_state* state) {
@@ -348,25 +320,17 @@ bool skip_token(struct tokenizer_state *state) {
 }
 
 bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
-    state->location.filename = filename;
-    state->location.line = 1;
-    state->location.column = 0;
-
     // Clear the state, so that a tokenizer that failed to open can still be safely passed
     // to close and it is a no-op.
     state->buffer.ptr = NULL;
     state->peekBuffer.type = TOKEN_ERROR;
     state->peekBuffer.content = NULL;
 
-    state->fp = fopen(filename, "rb");
-    if (!state->fp) {
-        error("%s: Failed to open file", filename);
+    if (!localized_file_open(&state->f, filename))
         return false;
-    }
 
     if (!STACK_INIT(state->buffer, 32)) {
-        fclose(state->fp);
-        state->fp = NULL;
+        localized_file_close(&state->f);
         return false;
     }
 
@@ -376,10 +340,7 @@ bool tokenizer_open(const char* filename, struct tokenizer_state* state) {
 }
 
 void tokenizer_close(struct tokenizer_state* state) {
-    if (state->fp)
-        fclose(state->fp);
-    state->fp = NULL;
-
+    localized_file_close(&state->f);
     STACK_DEINIT(state->buffer);
 }
 

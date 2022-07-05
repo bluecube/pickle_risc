@@ -1,5 +1,5 @@
 #pragma once
-#include "tokenizer.h"
+#include "localized_file.h"
 #include "stack.h"
 
 /// Print an error message to stderr.
@@ -15,6 +15,5 @@ int localized_error(struct location location, const char* format, ...)
 
 typedef STACK_DECLARATION(char) print_buffer_t;
 
-bool push_identifier_to_buffer(struct token *identifier, print_buffer_t *buffer);
 bool printf_to_buffer(print_buffer_t *buffer, const char* format, ...)
     __attribute__ ((format (printf, 2, 3)));

@@ -44,27 +44,6 @@ int localized_error(struct location location, const char* format, ...) {
     return ret1 + ret2 + ret3;
 }
 
-bool push_identifier_to_buffer(struct token *identifier, print_buffer_t *buffer) {
-    assert(identifier->type == TOKEN_IDENTIFIER);
-
-    if (!buffer || !buffer->ptr)
-        return true;
-
-    size_t newSize = buffer->used + identifier->contentNumeric;
-    if (!STACK_RESERVE(*buffer, newSize))
-        return false;
-
-    memcpy(
-        &STACK_AT_R(*buffer, -1),
-        identifier->content,
-        identifier->contentNumeric
-    );
-    buffer->used = newSize;
-
-    return true;
-
-}
-
 bool printf_to_buffer(print_buffer_t *buffer, const char* format, ...) {
     if (!buffer || !buffer->ptr)
         return true;

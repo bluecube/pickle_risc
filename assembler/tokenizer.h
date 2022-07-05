@@ -1,5 +1,6 @@
 #pragma once
 #include "stack.h"
+#include "localized_file.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,12 +29,6 @@ typedef int32_t numeric_value_t;
 #define NUMERIC_VALUE_FORMAT PRId32
 typedef uint32_t unsigned_numeric_value_t;
 
-struct location {
-    const char* filename;
-    unsigned line;
-    unsigned column;
-};
-
 struct token {
     char* content;
     numeric_value_t contentNumeric;
@@ -43,11 +38,9 @@ struct token {
 };
 
 struct tokenizer_state {
-    FILE* fp;
     STACK_DECLARATION(char) buffer;
     struct token peekBuffer;
-
-    struct location location;
+    struct localized_file f;
 };
 
 /// Open given file for tokenization.

@@ -12,6 +12,28 @@
 
 #define DEFAULT_SECTION_NAME ".text"
 
+static bool push_identifier_to_buffer(struct token *identifier, print_buffer_t *buffer) {
+    assert(identifier->type == TOKEN_IDENTIFIER);
+
+    if (!buffer || !buffer->ptr)
+        return true;
+
+    size_t newSize = buffer->used + identifier->contentNumeric;
+    if (!STACK_RESERVE(*buffer, newSize))
+        return false;
+
+    memcpy(
+        &STACK_AT_R(*buffer, -1),
+        identifier->content,
+        identifier->contentNumeric
+    );
+    buffer->used = newSize;
+
+    return true;
+
+}
+
+
 /// Create a symbol in the symbol table of assembler state.
 /// Takes ownership of name.
 /// Doesn't check that the symbol doesn't alreday exist.
