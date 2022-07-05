@@ -33,7 +33,7 @@ struct assembler_state {
     int pass;
     struct ihex_output output;
 
-    print_buffer_t verbosePrintBuffer;
+    char_stack_t verbosePrintBuffer;
 };
 
 bool assembler_state_init(const char *outputFile, bool verbose, struct assembler_state* state);

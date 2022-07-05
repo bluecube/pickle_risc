@@ -13,7 +13,7 @@
 
 #define DEFAULT_SECTION_NAME ".text"
 
-static bool push_identifier_to_buffer(struct token *identifier, print_buffer_t *buffer) {
+static bool push_identifier_to_buffer(struct token *identifier, char_stack_t *buffer) {
     assert(identifier->type == TOKEN_IDENTIFIER);
 
     if (!buffer || !buffer->ptr)

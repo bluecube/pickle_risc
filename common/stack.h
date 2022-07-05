@@ -62,3 +62,5 @@
 /// Return element of the stack at index i, counting from the back (0 is the last element)
 #define STACK_AT_R(stack, i) \
     ((stack).ptr[(stack).used - 1 - (i)])
+
+typedef STACK_DECLARATION(char) char_stack_t;

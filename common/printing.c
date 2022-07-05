@@ -44,7 +44,7 @@ int localized_error(struct location location, const char* format, ...) {
     return ret1 + ret2 + ret3;
 }
 
-bool printf_to_buffer(print_buffer_t *buffer, const char* format, ...) {
+bool printf_to_buffer(char_stack_t *buffer, const char* format, ...) {
     if (!buffer || !buffer->ptr)
         return true;
 

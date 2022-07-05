@@ -13,7 +13,5 @@ int localized_error(struct location location, const char* format, ...)
     __attribute__ ((format (printf, 2, 3)));
 
 
-typedef STACK_DECLARATION(char) print_buffer_t;
-
-bool printf_to_buffer(print_buffer_t *buffer, const char* format, ...)
+bool printf_to_buffer(char_stack_t *buffer, const char* format, ...)
     __attribute__ ((format (printf, 2, 3)));
