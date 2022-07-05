@@ -126,7 +126,7 @@ bool assembler_state_init(const char *outputFile, bool verbose, struct assembler
         return false;
     }
 
-    if (!ihex_writer_open(outputFile, &state->output)) {
+    if (!ihex_output_open(&state->output, outputFile)) {
         assembler_state_deinit(state);
         return false;
     }
@@ -177,7 +177,7 @@ bool assembler_state_deinit(struct assembler_state* state) {
 
     STACK_DEINIT(state->verbosePrintBuffer);
 
-    return ihex_writer_close(&state->output);
+    return ihex_output_close(&state->output);
 }
 
 /// Process a label definition, takes ownership of nameToken
@@ -505,9 +505,9 @@ int32_t assembler_output_word(uint16_t word, struct assembler_state* state) {
     if (state->pass == 2) {
         uint16_t address = wordAddress << 1;
 
-        if (!ihex_writer_write(address, (word >> 8) & 0xff, &state->output))
+        if (!ihex_output_byte(&state->output, address, (word >> 8) & 0xff))
             return -1;
-        if (!ihex_writer_write(address + 1, word & 0xff, &state->output))
+        if (!ihex_output_byte(&state->output, address + 1, word & 0xff))
             return -1;
     }
     state->currentSection->spc += 1;

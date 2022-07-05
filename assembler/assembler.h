@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tokenizer.h"
-#include "ihex.h"
+#include "ihex_output.h"
 #include "stack.h"
 #include "printing.h"
 
@@ -30,7 +30,7 @@ struct assembler_state {
     struct section* sectionTable; // Non-owning
     struct section* lastSection; // Needed for appending the sections, non-owning
     int pass;
-    struct ihex_writer output;
+    struct ihex_output output;
 
     print_buffer_t verbosePrintBuffer;
 };
