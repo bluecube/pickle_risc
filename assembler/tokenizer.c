@@ -1,6 +1,7 @@
 #include "tokenizer.h"
-#include "util.h"
-#include "printing.h"
+
+#include "../common/util.h"
+#include "../common/printing.h"
 
 #include <ctype.h>
 #include <assert.h>

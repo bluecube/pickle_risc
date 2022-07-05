@@ -1,6 +1,7 @@
 #include "expressions.h"
-#include "printing.h"
 #include "assembler.h"
+
+#include "../common/printing.h"
 
 #include <assert.h>
 

@@ -2,8 +2,9 @@
 
 #include "tokenizer.h"
 #include "ihex_output.h"
-#include "stack.h"
-#include "printing.h"
+
+#include "../common/stack.h"
+#include "../common/printing.h"
 
 #include <stdint.h>
 #include <stdbool.h>

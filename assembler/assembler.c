@@ -1,10 +1,11 @@
 #include "assembler.h"
 #include "tokenizer.h"
-#include "util.h"
 #include "instructions.h"
-#include "printing.h"
 #include "expressions.h"
 #include "pseudo_instructions.h"
+
+#include "../common/util.h"
+#include "../common/printing.h"
 
 #include <stdlib.h>
 #include <string.h>

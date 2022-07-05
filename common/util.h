@@ -1,5 +1,4 @@
 #pragma once
-
 #include <stdlib.h>
 
 void* malloc_with_msg(size_t size, const char* label);

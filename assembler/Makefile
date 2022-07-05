@@ -1,5 +1,7 @@
 CFILES = $(wildcard *.c)
+COMMON_CFILES = $(wildcard ../common/*.c)
 OFILES = $(addprefix build/,$(CFILES:.c=.o))
+OFILES += $(subst ../common/,build/common/,$(COMMON_CFILES:.c=.o))
 DEPFILES = $(OFILES:.o=.d)
 PROG = build/pickle_as
 
@@ -18,6 +20,10 @@ $(PROG): $(OFILES)
 
 clean:
 	rm -rf build/
+
+build/common/%.o: ../common/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(DEPFLAGS) -I. -c -o $@ $<
 
 build/%.o: %.c
 	@mkdir -p $(@D)

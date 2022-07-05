@@ -1,6 +1,7 @@
 #include "ihex_output.h"
-#include "ihex.h"
-#include "printing.h"
+
+#include "../common/ihex.h"
+#include "../common/printing.h"
 
 static bool flush(struct ihex_output *state) {
     if (!state->bufferUsed)

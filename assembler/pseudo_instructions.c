@@ -1,8 +1,9 @@
 #include "assembler.h"
 #include "tokenizer.h"
 #include "pseudo_instructions.h"
-#include "printing.h"
 #include "expressions.h"
+
+#include "../common/printing.h"
 
 #include <string.h>
 #include <assert.h>

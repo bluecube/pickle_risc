@@ -1,6 +1,5 @@
 #include "assembler.h"
-#include "ihex.h"
-#include "printing.h"
+#include "../common/printing.h"
 
 #include <stdbool.h>
 #include <getopt.h>

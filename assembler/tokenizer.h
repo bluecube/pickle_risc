@@ -1,6 +1,6 @@
 #pragma once
-#include "stack.h"
-#include "localized_file.h"
+#include "../common/stack.h"
+#include "../common/localized_file.h"
 
 #include <stdio.h>
 #include <stdlib.h>
