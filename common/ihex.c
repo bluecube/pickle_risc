@@ -49,3 +49,83 @@ bool ihex_write_record(FILE *fp, uint16_t address, uint8_t recordType, char *dat
 
     return true;
 }
+
+static int read_byte(struct localized_file *f, uint8_t *checksum) {
+    int ret = 0;
+    for (int i = 0; i < 2; ++i) {
+        ret *= 16;
+        int c;
+        if (!localized_file_getc(f, &c))
+            return -1;
+
+        if (c >= '0' && c <= '9')
+            ret += c - '0';
+        else if (c >= 'a' && c <= 'f')
+            ret += c - 'a';
+        else if (c >= 'A' && c <= 'F')
+            ret += c - 'A';
+        else {
+            localized_error(f->location, "Unexpected character");
+            return -1;
+        }
+    }
+    *checksum += ret;
+    return ret;
+}
+
+bool ihex_read_record(struct localized_file *f, uint16_t *address, uint8_t *recordType, char_stack_t *data, struct location *recordLocation) {
+    while (true) {
+        int c;
+        if (!localized_file_getc(f, &c))
+            return false;
+
+        if (c == EOF) {
+            localized_error(f->location, "Unexpected end of file");
+            return false;
+        } else if (c == ':')
+            break;
+    }
+
+    *recordLocation = f->location;
+
+    uint8_t checksum = 0;
+
+    int b = read_byte(f, &checksum);
+    if (b < 0)
+        return false;
+
+    data->used = b;
+    if (!STACK_RESERVE(*data, (size_t)b))
+        return false;
+
+    b = read_byte(f, &checksum);
+    if (b < 0)
+        return false;
+    *address = b << 8;
+    b = read_byte(f, &checksum);
+    if (b < 0)
+        return false;
+    *address |= b;
+    b = read_byte(f, &checksum);
+    if (b < 0)
+        return false;
+    *recordType |= b;
+
+    for (size_t i = 0; i < data->used; ++i) {
+        b = read_byte(f, &checksum);
+        if (b < 0)
+            return false;
+        STACK_AT(*data, i) = b;
+    }
+
+    b = read_byte(f, &checksum);
+    if (b < 0)
+        return false;
+
+    if (checksum != 0) {
+        localized_error(*recordLocation, "Invalid record checskum");
+        return false;
+    }
+
+    return true;
+}

@@ -1,6 +1,8 @@
 #pragma once
 #include <stdlib.h>
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 void* malloc_with_msg(size_t size, const char* label);
 void* realloc_with_msg(void* ptr, size_t size, const char* label);
 char* strdup_with_msg(const char* s, const char* label);

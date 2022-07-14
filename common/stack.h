@@ -2,6 +2,18 @@
 
 #include "util.h"
 #include <stdlib.h>
+#include <string.h>
+
+/// Calculating next size for stack inflations.
+/// Increases the size by 50%
+#define _STACK_GROWTH(old_size) ((old_size) + (old_size + 1) / 2)
+
+inline size_t _stack_inflated_size(size_t oldSize, size_t sizeRequest) {
+    size_t size = oldSize;
+    while (size < sizeRequest)
+        size = _STACK_GROWTH(size);
+    return size;
+}
 
 #define STACK_DECLARATION(type) \
     struct { \
@@ -32,9 +44,9 @@
 
 /// Double the allocated size of the stack.
 /// @return true on success, false on error
-#define STACK_INFLATE(stack) \
+#define _STACK_INFLATE(stack) \
     ( \
-        (stack).size *= 2, \
+        (stack).size = _STACK_GROWTH((stack).size), \
         (stack).ptr = realloc_with_msg((stack).ptr, (stack).size * sizeof((stack).ptr[0]), "Stack " #stack), \
         !!((stack).ptr) \
     )
@@ -43,16 +55,33 @@
 /// @return true on success, false on error
 #define STACK_PUSH(stack, value) \
     ( \
-        (((stack).used < (stack).size) || STACK_INFLATE(stack)) && \
+        (((stack).used < (stack).size) || _STACK_INFLATE(stack)) && \
         ((stack).ptr[(stack).used++] = value, true) \
     )
 
 /// Make sure that the stack contains at least `newSize` allocated space.
+/// Doesn't go through the exponential allocation
 #define STACK_RESERVE(stack, newSize) \
     ( \
         (stack).size = ((stack).size < (newSize)) ? (newSize) : ((stack).size), \
         (stack).ptr = realloc_with_msg((stack).ptr, (stack).size * sizeof((stack).ptr[0]), "Stack " #stack), \
         !!((stack).ptr) \
+    )
+
+/// Change the used size of stack to newSize.
+/// Fills new items with zeros.
+#define STACK_RESIZE(stack, newSize) \
+    ( \
+        STACK_RESERVE(stack, _stack_inflated_size((stack).size, newSize)) && \
+        ( \
+            memset( \
+                (stack).ptr + (stack).used, \
+                0, \
+                (newSize > (stack).size) ? (newSize - (stack).size) : 0 \
+            ), \
+            (stack).used = newSize, \
+            1 \
+        ) \
     )
 
 /// Return element of the stack at index i
