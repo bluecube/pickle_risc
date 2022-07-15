@@ -11,6 +11,8 @@ typedef uint32_t physical_size_t;
 typedef int32_t physical_offset_t;
 typedef uint16_t word_t;
 
+#define PHYSICAL_ADDRESS_FORMAT "0x%06x"
+
 struct memory_mapping {
     physical_address_t start;
     physical_address_t end;

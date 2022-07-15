@@ -38,3 +38,7 @@ int parse_digit(int c) {
     else
         return -1;
 }
+
+bool intervals_overlap(size_t start1, size_t end1, size_t start2, size_t end2) {
+    return start1 < end2 && start2 < end1;
+}
