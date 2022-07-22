@@ -265,7 +265,12 @@ with document:
                         data["instructions"]
                     )
 
-                generate_optional_markdown_block("note", details, "Note")
+                if "note" in details:
+                    for note in multiline(details["note"]):
+                        with div(cls="note", __inline=False):
+                            h4("Note")
+                            raw_html = markdown.markdown(note)
+                            dominate.util.raw(raw_html)
 
     with section():
         h2("Substitutions")

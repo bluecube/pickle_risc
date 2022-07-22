@@ -175,8 +175,8 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>r</var> -= <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-andi">
-        <h3>And immediate</h3>
+      <section id="instruction-ori">
+        <h3>Or immediate</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -215,14 +215,14 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">andi</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">ori</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> &amp;= <var>immediate</var></code></pre>
+        <pre><code class="pseudocode"><var>r</var> |= <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-ori">
-        <h3>Or immediate</h3>
+      <section id="instruction-andi">
+        <h3>And immediate</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -261,11 +261,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">ori</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">andi</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> |= <var>immediate</var></code></pre>
+        <pre><code class="pseudocode"><var>r</var> &amp;= <var>immediate</var></code></pre>
       </section>
       <section id="instruction-ldi">
         <h3>Load immediate</h3>
@@ -393,7 +393,7 @@
           </tr>
           <tr>
             <td colspan="3">register</td>
-            <td colspan="8">8b signed integer</td>
+            <td colspan="8">8b unsigned integer</td>
           </tr>
         </table>
         <h4>Syntax</h4>
@@ -1028,58 +1028,6 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>a</var> = (<var>b</var> &gt;&gt; 8) | (<var>c</var> &lt;&lt; 8)</code></pre>
       </section>
-      <section id="instruction-beq">
-        <h3>Byte equality</h3>
-        <div class="description"><ul>
-<li>Sets output bit 0 if lower byte of <code>b</code> equals lower byte of <code>c</code></li>
-<li>Sets output bit 1 if upper byte of <code>b</code> equals lower byte of <code>c</code></li>
-<li>Sets output bit 2 if lower byte of <code>b</code> equals upper byte of <code>c</code></li>
-<li>Sets output bit 3 if upper byte of <code>b</code> equals upper byte of <code>c</code></li>
-</ul></div>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>01101</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">beq</span> <var>a</var>, <var>b</var>, <var>c</var></code>
-          </li>
-        </ul>
-      </section>
       <section id="instruction-cas">
         <h3>Compare and swap</h3>
         <h4>Encoding</h4>
@@ -1128,10 +1076,14 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> [<var>address</var>] == <var>expected</var>:
     [<var>address</var>] = <var>new</var>
+    <var>expected</var> = <var>new</var>
 <span class="keyword">else</span>:
     <var>expected</var> = [<var>address</var>]</code></pre>
         <div class="note">
           <h4>Note</h4><p><code>expected</code> returns the value of <code>[address]</code> <strong>after</strong> the operation</p>
+        </div>
+        <div class="note">
+          <h4>Note</h4><p>Overwrites control register Tmp1</p>
         </div>
       </section>
       <section id="instruction-memadd">
@@ -1184,6 +1136,9 @@
 [<var>address</var>] = <var>value</var></code></pre>
         <div class="note">
           <h4>Note</h4><p><code>value</code> returns the value of <code>[raddress]</code> <strong>after</strong> the operation</p>
+        </div>
+        <div class="note">
+          <h4>Note</h4><p>Overwrites control register Tmp1</p>
         </div>
       </section>
       <section id="instruction-ld">
@@ -1547,7 +1502,7 @@
           </li>
         </ul>
         <div class="note">
-          <h4>Note</h4><p>Uses the 8bit immediate (field 5), overlapping with the two zero bits from opcode. This is not a problem.</p>
+          <h4>Note</h4><p>Uses the 9bit immediate (field 5), overlapping with zero bits from opcode.</p>
         </div>
       </section>
       <section id="instruction-reti">

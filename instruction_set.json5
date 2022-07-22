@@ -7,52 +7,65 @@ instructions: {
         args: {"r": "gpr", "immediate": "u8"},
         encoding: ["00", "000", "immediate", "r"],
         pseudocode: "r += immediate",
-        cycles: 1
+        microcode: [
+            ["f3->left", "f5->right", "alu_add->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "subi": {
         title: "Subtract immediate",
         args: {"r": "gpr", "immediate": "u8"},
         encoding: ["00", "001", "immediate", "r"],
         pseudocode: "r -= immediate",
-        cycles: 1
-    },
-    "andi": {
-        title: "And immediate",
-        args: {"r": "gpr", "immediate": "u8"},
-        encoding: ["00", "010", "immediate", "r"],
-        pseudocode: "r &= immediate",
-        cycles: 1
+        microcode: [
+            ["f3->left", "f5->right", "alu_sub->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "ori": {
         title: "Or immediate",
         args: {"r": "gpr", "immediate": "u8"},
-        encoding: ["00", "011", "immediate", "r"],
+        encoding: ["00", "010", "immediate", "r"],
         pseudocode: "r |= immediate",
-        cycles: 1
+        microcode: [
+            ["f3->left", "f5->right", "alu_or->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
+    },
+    "andi": {
+        title: "And immediate",
+        args: {"r": "gpr", "immediate": "u8"},
+        encoding: ["00", "011", "immediate", "r"],
+        pseudocode: "r &= immediate",
+        microcode: [
+            ["f3->left", "f5->right", "alu_and->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "ldi": {
         title: "Load immediate",
         args: {"r": "gpr", "immediate": "u8"},
         encoding: ["00", "100", "immediate", "r"],
         pseudocode: "r = immediate",
-        cycles: 1
+        microcode: [
+            ["zero->left", "f5->right", "alu_or->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "ldui": {
         title: "Load upper immediate",
         args: {"r": "gpr", "immediate": "u8"},
         encoding: ["00", "101", "immediate", "r"],
         pseudocode: "r = immediate << 8",
-        cycles: 1
+        microcode: [
+            ["zero->left", "f5->right", "alu_bswp->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "addipc": {
         title: "Add immediate to program counter",
-        args: {"r": "gpr", "immediate": "s8"},
+        args: {"r": "gpr", "immediate": "u8"},
         encoding: ["00", "110", "r", "immediate"],
         pseudocode: "r = Pc + immediate",
-        cycles: 1
+        microcode: [
+            ["zero->left", "f5->right", "alu_bswp->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
-    /* Free opcode ["00", "111"] */
-    /* TODO: Bit operations (set, unset, toggle, test) ?? */
+    // Free opcode ["00", "111"]
 
     // 3 operand operations (Prefix 01)
     // ================================
@@ -61,105 +74,120 @@ instructions: {
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00000", "b", "c", "a"],
         pseudocode: "a = b + c",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_add->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "addc": {
         title: "Add with carry",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00001", "b", "c", "a"],
         pseudocode: "a = b + c + carry",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_addc->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "sub": {
         title: "Subtract",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00010", "b", "c", "a"],
         pseudocode: "a = b - c",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_sub->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "subc": {
         title: "Subtract with carry",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00011", "b", "c", "a"],
         pseudocode: "a = b - c + carry",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_subc->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "and": {
         title: "And",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00100", "b", "c", "a"],
         pseudocode: "a = b & c",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_and->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "or": {
         title: "Or",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00101", "b", "c", "a"],
         pseudocode: "a = b | c",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_or->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "nor": {
         title: "Nor",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00110", "b", "c", "a"],
         pseudocode: "a = ~(b | c)",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_nor->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "xor": {
         title: "Xor",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "00111", "b", "c", "a"],
         pseudocode: "a = b ^ c",
-        cycles: 1
+        cycles: 1,
+        microcode: [
+            ["f1->left", "f2->right", "alu_xor->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "andshr": {
         title: "And shift right",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01000", "b", "c", "a"],
         pseudocode: "a = (b & c) >> 1 #logical",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_andshr->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "andshra": {
         title: "And shift right arithmetic",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01001", "b", "c", "a"],
         pseudocode: "a = (b & c) >> 1 #arithmetic",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_andshra->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "andshrc": {
         title: "And shift right with carry",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01010", "b", "c", "a"],
         pseudocode: "a = carry << 7 | (b & c) >> 1 #logical",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_andshrc->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
     "cmp": {
         title: "Compare",
         args: {"a": "gpr", "b": "gpr"},
         encoding: ["01", "01011", "a", "b", "xxx"],
         pseudocode: "_ = b - c",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_sub->result" /* Ignore result */, "{next_instruction}", "end_instruction"]
+        ]
     },
     "bswp": {
         title: "Byte swap",
         args: {"a": "gpr", "b": "gpr", "c": "gpr"},
         encoding: ["01", "01100", "b", "c", "a"],
         pseudocode: "a = (b >> 8) | (c << 8)",
-        cycles: 1
+        microcode: [
+            ["f1->left", "f2->right", "alu_bswp->result", "result->f3", "{next_instruction}", "end_instruction"]
+        ]
     },
-    "beq": {
-        title: "Byte equality",
-        args: {"a": "gpr", "b": "gpr", "c": "gpr"},
-        encoding: ["01", "01101", "b", "c", "a"],
-        description: [
-            "- Sets output bit 0 if lower byte of `b` equals lower byte of `c`",
-            "- Sets output bit 1 if upper byte of `b` equals lower byte of `c`",
-            "- Sets output bit 2 if lower byte of `b` equals upper byte of `c`",
-            "- Sets output bit 3 if upper byte of `b` equals upper byte of `c`"
-        ],
-        cycles: 1
-    },
-    /* Free opcodes ["01", "01110"], ["01", "01111"], ["01", "10000"], ["01", "10001"] */
+    /* Free opcodes ["01", "01101"]. ["01", "01110"], ["01", "01111"], ["01", "10000"], ["01", "10001"] */
     /* TODO These would be nice to have, but require ability to write all three registers
     "mad": {
         title: "Multiply-add",
@@ -184,19 +212,21 @@ instructions: {
         pseudocode: [
             "if [address] == expected:",
             "    [address] = new",
+            "    expected = new",
             "else:",
             "    expected = [address]"
         ],
-        cycles: 3,
-        "_microcode": [
-            "Tmp1 = [address]",
-            "cmp expected, Tmp1; Instr = [Pc + 1]; Pc += 1",
-            "if eq:",
-            "    [address] = Rnew; end",
-            "else:",
-            "    expected = Tmp1; end",
+        note: [
+            "`expected` returns the value of `[address]` **after** the operation",
+            "Overwrites control register Tmp1",
         ],
-        note: "`expected` returns the value of `[address]` **after** the operation",
+        microcode: [
+            ["f2->right", "right->address", "0->addr_offset", "read->mem_data", "mem_data->result", "f4_override", "result->f4"],
+            ["f3->left", "f4_override", "f4->right", "alu_sub->result" /* Ignore result */, "{next_instruction}" ],
+            ["?zero", "f2->right", "right->address", "0->addr_offset", "f1->left", "left->mem_data", "mem_write", "mem_data->result", "result->f3", "end_instruction"],
+            ["?!zero", "0->left", "f4_override", "f4->right", "alu_or->result", "result->f3", "end_instruction"], // TODO: alu_or overwrites the zero flag!
+        ],
+        cycles: 3,
     },
     "memadd": {
         title: "Fetch and add",
@@ -206,8 +236,16 @@ instructions: {
             "value = [address] + inc",
             "[address] = value"
         ],
-        note: "`value` returns the value of `[raddress]` **after** the operation",
-        cycles: "3"
+        note: [
+            "`value` returns the value of `[raddress]` **after** the operation",
+            "Overwrites control register Tmp1",
+        ],
+        microcode: [
+            ["f2->right", "right->address", "0->addr_offset", "read->mem_data", "mem_data->result", "f4_override", "result->f4"],
+            ["f1->left", "f4_override", "f4->right", "alu_add->result", "result->f3", "{next_instruction}"],
+            ["f3->left", "left->mem_data", "f2->right", "right->address", "0->addr_offset", "mem_write", "end_instruction"]
+        ],
+        cycles: 3,
     },
     /* Free opcodes ["01", "10100"] - ["01", "11111"] */
 
@@ -269,7 +307,7 @@ instructions: {
         args: {"code": "u6"},
         encoding: ["1111", "000", "code", "xxx"],
         cycles: "TODO",
-        note: "Uses the 8bit immediate (field 5), overlapping with the two zero bits from opcode. This is not a problem."
+        note: "Uses the 9bit immediate (field 5), overlapping with zero bits from opcode."
     },
     "reti": {
         title: "Return from interrupt",
@@ -326,6 +364,9 @@ substitutions: {
             pseudocode: "!n"
         },
     },
+    /*next_instruction: {
+        "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
+    }*/
 }
 }
 

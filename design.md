@@ -9,6 +9,7 @@
 - 8 general purpose registers R0-R7
 - Control registers
     - ALU Status
+        - `0`
         - RW
         - Can accessed from user mode
         - Contains:
@@ -16,15 +17,18 @@
             - zero flag
             - negative flag
     - Tmp1
+        - `1`
         - RW
         - Used as temporary storage in interrupt handlers
         - Accessible to user-mode code, but not saved during interrupts (=> unusable)
         - Clobbered by some complex instructions
             - Cannot be used by the kernel to store data between context switches
     - Tmp2
+        - `2`
         - RW
         - Used as temporary storage in interrupt handlers
     - ContextID
+        - `3`
         - WO
         - 6bit
         - equivalent to process ID (with &lt; 64 processes)
@@ -32,17 +36,25 @@
         - used as a part of virtual page address
         - double buffered, only gets applied by RETI instruction
     - IntCause
+        - `4`
         - RO
         - Cause of currently processed interrupt
+    - IntBase
+        - `4` !!! Overlaps with IntCause, needs ASM changes
+        - WO
+        - Where to jump on interrupt
     - IntPc
+        - `5`
         - RW
         - Saved program counter after interrupt
         - New program counter used by RETI
     - MMUAddr: Virtual page address
+        - `6`
         - RW
         - for storing MMU records
         - set during page failure
     - MMUData
+        - `7`
         - WO
         - triggers the MMU write at given MMUAddr
 - Separate instruction virtual address space
@@ -90,7 +102,7 @@
 <tr><th>2</th><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
 <tr><th>3</th><td colspan="13"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td></tr>
 <tr><th>4</th><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><th>5</th><td colspan="5"></td><td colspan="8">immediate value<br>assert right bus</td><td colspan="3"></td></tr>
+<tr><th>5</th><td colspan="4"></td><td colspan="9">immediate value<br>assert right bus</td><td colspan="3"></td></tr>
 <tr><th>6</th><td colspan="3"></td><td colspan="7">immediate value (load/store)<br>add to address</td><td colspan="6"></td></tr>
 <tr><th>7</th><td colspan="7"></td><td colspan="9">immediate value (rjmp)<br>add to address</td></tr>
 </table>
@@ -146,35 +158,50 @@ Total 15
 (goal is as small as possible multiple of 8)
 
 - 2b: Left bus source
-    - GPR: instruction field 1
-    - GPR: instruction field 3
-    - Pc
+    - `0->left`: 0
+    - `f1->left`: GPR: instruction field 1
+    - `f3->left`: GPR: instruction field 3
+    - `pc->left`: Pc
 - 2b: Right bus source
-    - GPR: instruction field 2
-    - Immediate value: instruction field 5
-    - Control register: instruction field 4
-- 1b: Result bus source
+    - `f2->right`: GPR: instruction field 2
+    - `f4->right`: Control register: instruction field 4
+    - `f5->right`: Immediate value: instruction field 5
+- 4b: Result bus source
     - ALU
-    - Memory read
+        - `alu_add->result`
+        - `alu_addc->result`
+        - `alu_sub->result`
+        - `alu_subc->result`
+        - `alu_and->result`
+        - `alu_or->result`
+        - `alu_nor->result`
+        - `alu_xor->result`
+        - `alu_andshr->result`
+        - `alu_andshra->result`
+        - `alu_andshrc->result`
+        - `alu_bswp->result`
+    - `mem_data->result`: Memory data
 - 1b: Address base bus source
-    - Right bus
-    - Pc
+    - `right->address`: Right bus
+    - `pc->address`" Pc
 - 2b: Address offset bus source
-    - 0
-    - +1
-    - Immediate value: instruction field 6 (load/store)
-    - Immediate value: Instruction field 7 (rjmp)
-- 1b: Override control register selection (instruction field 4)
-- 1b: Load control register: instruction field 4
-- 1b: Load GPR: instruction field 3
-- 1b: Load PC
-- 1b: Memory write
-- 5b: ALU control (TODO, 5b is the lower bound)
-- 1b: Reset microprogram counter, clock the decoded μcode latch
+    - `0->addr_offset`: 0
+    - `1->addr_offset`: 1
+    - `f6->addr_offset`: Immediate value: instruction field 6 (load/store)
+    - `f7->addr_offset`: Immediate value: Instruction field 7 (rjmp)
+- 1b: `f4_override` Override control register selection to value 0 (instruction field 4)
+- 1b: `store_f4`: Load control register: instruction field 4
+- 1b: `store_f3`: Load GPR: instruction field 3
+- 1b: `store_pc`: Load PC
+- 1b: Memory data bus source
+    - `left->mem_data`: Assign from left bus
+    - `read->mem_data`: Memory read
+- 1b: `mem_write`: Memory write
+- 1b: `end_instruction`: Reset microprogram counter, clock the decoded μcode latch
 - 1b: Write interrupt ID into cause register, clear pending interrupt flag
 - 1b: Write 6bits from immediate to upper 8bits of cause register
 
-Total 21
+Total 20
 
 #### TODO
 - How is PC increment and "pipelining" handled?
