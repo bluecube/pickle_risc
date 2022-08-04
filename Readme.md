@@ -2,6 +2,24 @@
 
 ... so I would like to build a computer, this time a little closer to "from scratch".
 
+## TODO (immediate small stuff)
+
+- Use half add instead of andshr
+    - Figure out overflow & carry
+- r0 should be hardware zero register
+    - + One less register to build
+    - + Makes for a kind of neater instruction set
+    - - Increased register pressure
+        - going from 8 to 7 feels pretty significant
+- Redesign instruction set
+    - Figure out byte operation instructions
+        - Byteswap (as designed now)
+        - Upsample as in opencl: (0x00AA, 0x00BB) -> 0xAABB
+        - Get rid of byte comparison
+    - Add push / pop
+    - Add JAL instructions
+
+
 ## Goals
 - Fun!
 - Can run a multitasking OS
