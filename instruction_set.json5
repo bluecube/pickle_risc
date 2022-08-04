@@ -256,14 +256,20 @@ instructions: {
         args: {"dest": "gpr", "address": "gpr", "offset": "s7"},
         encoding: ["10", "0", "offset", "address", "dest"],
         pseudocode: "dest = [address + offset]",
-        cycles: 2
+        microcode: [
+            ["f2->right", "right->address", "f6->addr_offset", "read->mem_data", "mem_data->result", "result->f3"],
+            ["{next_instruction}", "end_instruction"],
+        ]
     },
     "st": {
         title: "Store",
         args: {"address": "gpr", "value": "gpr", "offset": "s7"},
         encoding: ["10", "1", "offset", "address", "value"],
         pseudocode: "[address + offset] = value",
-        cycles: 2
+        microcode: [
+            ["f3->left", "left->mem_data", "f2->right", "right->address", "f6->addr_offset", "mem_write"],
+            ["{next_instruction}", "end_instruction"],
+        ]
     },
 
     // Jumps (Prefix 110)
@@ -273,13 +279,21 @@ instructions: {
         args: {"address": "gpr"},
         encoding: ["110", "0", "{condition}", "xxx", "address", "xxx"],
         pseudocode: "if {condition}: Pc = address",
-        cycles: "TODO"
+        microcode: [
+            ["?{condition}", "f2->right", "right->address", "0->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction", "end_instruction"],
+            ["?!{condition}", "{next_instruction}", "end_instruction"]
+        ],
+        cycles: 1
     },
     "rjmp{condition}": {
         title: "Relative jump {condition}",
         args: {"jump_offset": "s9"},
         encoding: ["110", "1", "{condition}", "jump_offset"],
         pseudocode: "if {condition}: Pc += jump_offset",
+        microcode: [
+            ["?{condition}", "pc->address", "f7->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction", "end_instruction"],
+            ["?!{condition}", "{next_instruction}", "end_instruction"]
+        ]
         cycles: 1
     },
 
@@ -299,6 +313,34 @@ instructions: {
         pseudocode: "cr = a",
         cycles: 1
     },
+    /*
+    "crpush": {
+        title: "crpush",
+        args: {"cr": "cr", "r": "gpr"},
+        encoding: ["01", "10100", "cr", "xxxxx", "r"],
+        pseudocode: [
+            "[cr] = r",
+            "r = cr"
+        ],
+        microcode: [
+            ["f3->left", "left->mem_data", "f4->right", "right->address", "0->addr_offset", "mem_write"],
+            ["f4->right", "0->left", "alu_or->result", "result->f3", "{next_instruction}", "end_instruction"],
+        ]
+    },
+    "crpop": {
+        title: "crpop",
+        args: {"cr": "cr", "r": "gpr"},
+        encoding: ["01", "10100", "cr", "xxxxx", "r"],
+        pseudocode: [
+            "[cr] = r",
+            "r = cr"
+        ],
+        microcode: [
+            ["f3->left", "left->mem_data", "f4->right", "right->address", "0->addr_offset", "mem_write"],
+            ["f4->right", "0->left", "alu_or->result", "result->f3", "{next_instruction}", "end_instruction"],
+        ]
+    },
+    */
 
     // System (Prefix 1111)
     // ============================
@@ -330,43 +372,43 @@ substitutions: {
         "": {
             title: "unconditional",
             encoding: "000",
-            pseudocode: "true"
+            microcode: "true"
         },
         "?z": {
             title: "if zero",
             encoding: "001",
-            pseudocode: "z"
+            microcode: "zero",
         },
         "?c": {
             title: "if carry",
             encoding: "010",
-            pseudocode: "c"
+            microcode: "carry"
         },
         "?n": {
             title: "if negative",
             encoding: "011",
-            pseudocode: "n"
+            microcode: "negative"
         },
         /* Unused condition "100" */
         "?nz": {
             title: "if not zero",
             encoding: "101",
-            pseudocode: "!z"
+            microcode: "!zero"
         },
         "?nc": {
             title: "if not carry",
             encoding: "110",
-            pseudocode: "!c"
+            microcode: "!carry"
         },
         "?nn": {
             title: "if not negative",
             encoding: "111",
-            pseudocode: "!n"
+            microcode: "!negative"
         },
     },
-    /*next_instruction: {
+    next_instruction: {
         "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
-    }*/
+    }
 }
 }
 
