@@ -3,10 +3,16 @@
 import tqdm
 
 import math
+import copy
 import heapq
 import dataclasses
 import itertools
 import collections
+import os
+import sys
+import multiprocessing
+import functools
+import contextlib
 
 opcode = object()
 
@@ -104,7 +110,8 @@ def capabilities_to_bitsets():
             if arg_capabilities is opcode:
                 continue
             else:
-                args[arg_name] = arg_bits, sum(capabilities_enc[cap] for cap in arg_capabilities)
+                encoded = sum(capabilities_enc[cap] for cap in arg_capabilities)
+                args[arg_name] = arg_bits, encoded
 
 
 def _pop_from_list(l, predicate):
@@ -118,7 +125,7 @@ def _pop_from_list(l, predicate):
     return None
 
 
-def assign_opcodes(instructions, cosmetic_instruction_pairs):
+def assign_opcodes(instructions, cosmetic_instruction_pairs, print_fun=None):
     @dataclasses.dataclass
     class HuffmanItem:
         total_used_bits: int
@@ -201,12 +208,12 @@ def assign_opcodes(instructions, cosmetic_instruction_pairs):
 
     huffman_codes = heap[0].instructions
 
-    if True:
+    if print_fun:
         for instr, code in sorted(huffman_codes.items(), key=lambda x: x[1]):
             bits_used = len(code)
             if bits_used > 16:
                 raise Exception(f"Instruction {instr} has {bits_used} bits used")
-            print(f"{code:7}: {instr} ({bits_used} bits used)")
+            print_fun(f"{code:7}: {instr} ({bits_used} bits used)")
 
     return heap[0].instructions
 
@@ -282,47 +289,86 @@ def _instruction_encodings(
         yield from fit_intervals(permutation, 0, wiggle_room_bits, [])
 
 
-def _all_field_allocations(instructions, opcode_assignments):
-    full_instruction_mask = 0xffff
+def _parallel_product_min_map_fun(remaining_iterables, key_fun, task_tuple):
+    key_part1 = key_fun[0](task_tuple)
 
-    instruction_encoding_options = [
-        list(_instruction_encodings(
-            instruction_name, instruction_args,
-            opcode_assignments,
-            full_instruction_mask
-        ))
-        for instruction_name, instruction_args in instructions.items()
-    ]
+    it = itertools.product(*remaining_iterables)
+    value = next(it)
+    best = task_tuple + value
+    best_key = key_fun[1](value, copy.copy(key_part1))
+    for remaining_tuple in it:
+        value = task_tuple + remaining_tuple
+        key = key_fun[1](remaining_tuple, copy.copy(key_part1))
+        if key < best_key:
+            best = value
+            best_key = key
 
-    #for x in instruction_encoding_options:
-    #    print(x)
-
-    total_count = math.prod(len(x) for x in instruction_encoding_options)
-
-    for specific_encoding in tqdm.tqdm(itertools.product(*instruction_encoding_options), total=total_count):
-        yield specific_encoding
+    return (best, best_key)
 
 
-def _field_allocation_cost(field_allocation):
-    #all_fields = collections.defaultdict(set)
-    #for instr_args in field_allocation:
-    #    for arg_id, arg_mask, arg_capabilities in instr_args:
-    #        all_fields.setdefault(arg_mask, set()).update(arg_capabilities)
+def _parallel_product_min(iterables, key_fun, improvement_callback, chunk_size=1024, granularity=1024 * 2):
+    iterables = list(iterables)
+    total_count = math.prod(len(x) for x in iterables)
 
+    target_task_count = os.cpu_count() * chunk_size * granularity
+    split_index = len(iterables)
+    task_count = 1
+
+    for i in range(len(iterables)):
+        if task_count >= target_task_count:
+            split_index = i
+            break
+        else:
+            task_count *= len(iterables[i])
+
+    task_iterables = iterables[0:split_index]
+    remaining_iterables = iterables[split_index:]
+
+    with multiprocessing.Pool() as pool:
+        best = None
+        best_key = None
+        for value, key in tqdm.tqdm(
+            pool.imap_unordered(
+                functools.partial(_parallel_product_min_map_fun, remaining_iterables, key_fun),
+                itertools.product(*task_iterables),
+                chunksize=chunk_size
+            ),
+            total=task_count,
+            unit_scale=total_count//task_count,
+            smoothing=0.00001,
+            dynamic_ncols=True,
+        ):
+            if best is None or key < best_key:
+                best = value
+                best_key = key
+                improvement_callback(best, best_key)
+
+    return best, best_key
+
+
+# PyPy doesn't support `int.bit_count(), so we have to implement it manually here
+def _bit_count(x):
+    for i in itertools.count():
+        if x == 0:
+            return i
+        x = x & (x - 1)
+
+
+def _field_allocation_cost_part1(field_allocation_part1):
     all_fields = collections.defaultdict(int)
-    for instr_args in field_allocation:
+    for instr_args in field_allocation_part1:
         for arg_id, arg_mask, arg_capabilities in instr_args:
             all_fields[arg_mask] |= arg_capabilities
 
-    # PyPy doesn't support `int.bit_count(), so we have to implement it manually here
-    def bit_count(x):
-        for i in itertools.count():
-            if x == 0:
-                return i
-            x = x & (x - 1)
-    main_cost = sum(bit_count(x) for x in all_fields.values())
+    return all_fields
 
-    #main_cost = sum(x.bit_count() for x in all_fields.values())
+
+def _field_allocation_cost_part2(field_allocation_part2, all_fields):
+    for instr_args in field_allocation_part2:
+        for arg_id, arg_mask, arg_capabilities in instr_args:
+            all_fields[arg_mask] |= arg_capabilities
+
+    main_cost = sum(_bit_count(x) for x in all_fields.values())
     return main_cost, len(all_fields)
 
 
@@ -335,45 +381,56 @@ def _merge_fields(field_allocation):
             field_capabilities.update(decoded_capabilities)
             field_users.append(arg_id)
 
-#            try:
-#                field_capabilities, field_users = merged_fields[arg_mask]
-#                field_capabilities.update(arg_capabilities)
-#                field_users.append(arg_id)
-#            except KeyError:
-#                field_capabilities = set(arg_capabilities)
-#                field_users = [arg_id]
-#                merged_fields[arg_mask] = (field_capabilities, field_users)
-
     return merged_fields
 
 
-def _print_fields(f):
-    for mask, (capabilities, users) in sorted(f.items()):
-        print(f"{mask:019_b}: " + ", ".join(capabilities))
-        print("    " + ", ".join(f"{instr}/{field}" for instr, field in users))
+def field_allocations(instructions, opcode_assignments, print_fun=None):
+    full_instruction_mask = 0xffff
+
+    instruction_encoding_options = [
+        list(_instruction_encodings(
+            instruction_name, instruction_args,
+            opcode_assignments,
+            full_instruction_mask
+        ))
+        for instruction_name, instruction_args in instructions.items()
+    ]
+
+    if print_fun:
+        def improvement_callback(field_allocation, cost):
+            print_fun()
+            print_fun()
+            print_fun("Found new best:", cost)
+            merged = _merge_fields(field_allocation)
+            for mask, (capabilities, users) in sorted(merged.items()):
+                print_fun(f"{mask:019_b}: " + ", ".join(capabilities))
+                print_fun("    " + ", ".join(f"{instr}/{field}" for instr, field in users))
+    else:
+        def improvement_callback(*args, **kwargs):
+            pass
+
+    return _parallel_product_min(
+        instruction_encoding_options,
+        key_fun=(_field_allocation_cost_part1, _field_allocation_cost_part2),
+        improvement_callback=improvement_callback,
+    )
 
 
-def field_allocations(instructions, opcode_assignments):
-    best = None
-    best_cost = None
-    for fa in _all_field_allocations(instructions, opcode_assignments):
-        cost = _field_allocation_cost(fa)
-        if best is None or cost < best_cost:
-            best = _merge_fields(fa)
-            best_cost = cost
-        #merged_fields = _merge_fields(fa)
-        #cost = (sum(len(x[0]) for x in merged_fields.values()), len(merged_fields))
-        #if best is None or cost < best_cost:
-        #    best = merged_fields
-        #    best_cost = cost
-            if True:
-                print()
-                print("Found new best:", cost)
-                _print_fields(best)
+@contextlib.contextmanager
+def printing():
+    if len(sys.argv) == 2:
+        print(f"Opening {sys.argv[1]} for output duplication")
+        with open(sys.argv[1], "w", buffering=1) as fp:
+            def p(*args, **kwargs):
+                print(*args, **kwargs)
+                print(*args, **kwargs, file=fp)
+            yield p
+    else:
+        yield print
 
-    return best
 
 capabilities_to_bitsets()
 
-opcode_assignments = assign_opcodes(instructions, instruction_pairs)
-field_allocations(instructions, opcode_assignments)
+with printing() as print_fun:
+    opcode_assignments = assign_opcodes(instructions, instruction_pairs, print_fun)
+    field_allocations(instructions, opcode_assignments, print_fun)
