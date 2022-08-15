@@ -18,63 +18,69 @@ opcode = object()
 
 r = 3
 
+caps = {name: 1 << i for i, name in enumerate([
+    "reg_to_left_bus", "reg_to_right_bus", "load_reg",
+    "to_right_bus", "upper_to_left_bus",
+    "to_addr_offset",
+    "control_register"
+])}
+
 instructions = {
     "_immediate_alu": {
-        "reg": (r, ("reg_to_left_bus", "load_reg")),
-        "immediate": (7, ("to_right_bus",)),
+        "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
+        "immediate": (7, caps["to_right_bus"]),
         "op": (3, opcode),
     },
     "_3op_alu": {
-        "destination": (r, ("load_reg",)),
-        "source1": (r, ("reg_to_left_bus",)),
-        "source2": (r, ("reg_to_right_bus",)),
+        "destination": (r, caps["load_reg"]),
+        "source1": (r, caps["reg_to_left_bus"]),
+        "source2": (r, caps["reg_to_right_bus"]),
         "op": (4, opcode),
     },
     "jl": {
-        "offset": (10, ("to_addr_offset",)),
-        "link_register": (r, ("load_reg",)),
+        "offset": (10, caps["to_addr_offset"]),
+        "link_register": (r, caps["load_reg"]),
     },
     "jla": {
-        "address": (r, ("reg_to_right_bus",)),
-        "link_register": (r, ("load_reg",)),
+        "address": (r, caps["reg_to_right_bus"]),
+        "link_register": (r, caps["load_reg"]),
     },
     "_branch": {
-        "offset": (7, ("to_addr_offset",)),
-        "link_register": (r, ("load_reg",)),
+        "offset": (7, caps["to_addr_offset"]),
         "condition": (3, opcode),
     },
     "ldui": {
-        "immediate": (9, ("upper_to_left_bus",)),  # Or upper to right bus
-        "reg": (r, ("load_reg",)),
+        "immediate": (9, caps["upper_to_left_bus"]),  # Or upper to right bus
+        "reg": (r, caps["load_reg"]),
     },
     "pop": {
-        "destination": (r, ("load_reg",)),
-        "address": (r, ("reg_to_right_bus", "load_reg")),
+        "destination": (r, caps["load_reg"]),
+        "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
     },
     "push": {
-        "source": (r, ("reg_to_left_bus",)),
-        "address": (r, ("reg_to_right_bus", "load_reg")),
+        "source": (r, caps["reg_to_left_bus"]),
+        "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
     },
     "ld": {
-        "destination": (r, ("load_reg",)),
-        "address": (r, ("reg_to_right_bus",)),
-        "offset": (7, ("to_addr_offset",)),  # any other destination type would work too
+        "destination": (r, caps["load_reg"]),
+        "address": (r, caps["reg_to_right_bus"]),
+        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
     },
     "st": {
-        "source": (r, ("reg_to_left_bus",)),
-        "address": (r, ("reg_to_right_bus",)),
-        "offset": (7, ("to_addr_offset",)),  # any other destination type would work too
+        "source": (r, caps["reg_to_left_bus"]),
+        "address": (r, caps["reg_to_right_bus"]),
+        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
     },
     "ldcr": {
-        "destination": (r, ("load_reg",)),
-        "control_register": (3, ("control_register",)),
+        "destination": (r, caps["load_reg"]),
+        "control_register": (3, caps["control_register"]),
     },
     "stcr": {
-        "source": (r, ("reg_to_left_bus",)),
-        "control_register": (3, ("control_register",)),
+        "source": (r, caps["reg_to_left_bus"]),
+        "control_register": (3, caps["control_register"]),
     },
     "syscall": {
-        "code": (7, ("to_right_bus",)),
+        "code": (7, caps["to_right_bus"]),
     },
     "reti": {},
     "break": {}
@@ -87,32 +93,6 @@ instruction_pairs = [
     ("ld", "st"),
     ("ldcr", "stcr"),
 ]
-
-
-def capabilities_to_bitsets():
-    capabilities_names = set()
-    for instr, args in instructions.items():
-        for arg_name, (arg_bits, arg_capabilities) in args.items():
-            if arg_capabilities is opcode:
-                continue
-            else:
-                if not isinstance(arg_capabilities, tuple):
-                    raise ValueError(f"Arg capabilities must be a tuple ({instruction_name}, {arg_name})")
-
-                capabilities_names.update(arg_capabilities)
-
-    global capabilities_enc
-    capabilities_enc = {name: 1 << i for i, name in enumerate(capabilities_names)}
-
-    for instr, args in instructions.items():
-        for arg_name in args:
-            arg_bits, arg_capabilities = args[arg_name]
-            if arg_capabilities is opcode:
-                continue
-            else:
-                encoded = sum(capabilities_enc[cap] for cap in arg_capabilities)
-                args[arg_name] = arg_bits, encoded
-
 
 def _pop_from_list(l, predicate):
     """ Find first item in the list that makes predicate return true, modify the list to remove the item,
@@ -376,7 +356,7 @@ def _merge_fields(field_allocation):
     merged_fields = {}
     for instr_args in field_allocation:
         for arg_id, arg_mask, arg_capabilities in instr_args:
-            decoded_capabilities = {name for name, bit in capabilities_enc.items() if arg_capabilities & bit}
+            decoded_capabilities = {name for name, bit in caps.items() if arg_capabilities & bit}
             field_capabilities, field_users = merged_fields.setdefault(arg_mask, (set(), []))
             field_capabilities.update(decoded_capabilities)
             field_users.append(arg_id)
@@ -428,8 +408,6 @@ def printing():
     else:
         yield print
 
-
-capabilities_to_bitsets()
 
 with printing() as print_fun:
     opcode_assignments = assign_opcodes(instructions, instruction_pairs, print_fun)
