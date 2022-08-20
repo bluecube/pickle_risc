@@ -16,7 +16,7 @@ import contextlib
 
 opcode = object()
 
-r = 3
+r = 4
 
 caps = {name: 1 << i for i, name in enumerate([
     "reg_to_left_bus", "reg_to_right_bus", "load_reg",
@@ -26,57 +26,78 @@ caps = {name: 1 << i for i, name in enumerate([
 ])}
 
 instructions = {
-    "_immediate_alu": {
+    "_immediate_alu": { # 13b
         "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "immediate": (7, caps["to_right_bus"]),
+        "immediate": (6, caps["to_right_bus"]),
         "op": (3, opcode),
     },
-    "_3op_alu": {
-        "destination": (r, caps["load_reg"]),
-        "source1": (r, caps["reg_to_left_bus"]),
-        "source2": (r, caps["reg_to_right_bus"]),
+    "_alu": { # 12b
+        "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
+        "source": (r, caps["reg_to_right_bus"]),
         "op": (4, opcode),
     },
-    "jl": {
-        "offset": (10, caps["to_addr_offset"]),
+    "j": { # 9b
+        "offset": (9, caps["to_addr_offset"]),
+    },
+    "ja": { # 4b
+        "address": (r, caps["reg_to_right_bus"]),
+    },
+    "jl": { # 13b
+        "offset": (9, caps["to_addr_offset"]),
         "link_register": (r, caps["load_reg"]),
     },
-    "jla": {
+    "jla": { # 8b
         "address": (r, caps["reg_to_right_bus"]),
         "link_register": (r, caps["load_reg"]),
     },
-    "_branch": {
-        "offset": (7, caps["to_addr_offset"]),
+    "_branch": { # 9b
+        "offset": (6, caps["to_addr_offset"]),
         "condition": (3, opcode),
     },
-    "ldui": {
-        "immediate": (9, caps["upper_to_left_bus"]),  # Or upper to right bus
+    "ldui": { # 14b
+        "immediate": (10, caps["upper_to_left_bus"]),  # Or upper to right bus
         "reg": (r, caps["load_reg"]),
     },
-    "_pop_push": {
+    "_pop_push": { # 9b
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
     },
-    "_ld_st": {
+    "_ld_st": { # 14b
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"]),
-        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
+        "offset": (5, caps["to_addr_offset"]),  # any other destination type would work too
     },
-    "_ldcr_stcr": {
+    "_ldcr_stcr": { # 8b
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "control_register": (3, caps["control_register"]),
     },
-    "syscall": {
-        "code": (7, caps["to_right_bus"]),
+    "syscall": { # 6b
+        "code": (6, caps["to_right_bus"]),
     },
-    "reti": {},
-    "break": {}
+    "reti": {}, # 0b
+    "break": {} # 0b
 }
 
-full_mask = 0xffff
+# Cosmetic only: Make pairs of instructions occupy successive encodings
+instruction_pairs = [
+    ("_immediate_alu", "_3op_alu"),
+    ("pop", "push"),
+    ("ld", "st"),
+    ("ldcr", "stcr"),
+]
+
+def _pop_from_list(l, predicate):
+    """ Find first item in the list that makes predicate return true, modify the list to remove the item,
+    return it. """
+
+    for i, v in enumerate(l):
+        if predicate(v):
+            l.pop(i)
+            return v
+    return None
 
 
 def assign_opcodes(instructions, cosmetic_instruction_pairs, print_fun=None):
