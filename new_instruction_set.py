@@ -79,97 +79,168 @@ instructions = {
 full_mask = 0xffff
 
 
-def assign_opcodes(instructions, cosmetic_instruction_pairs, print_fun=None):
-    @dataclasses.dataclass
-    class HuffmanItem:
-        total_used_bits: int
-        opcode_used_bits: int
-        min_id: int
-        max_id: int
-        instructions: dict
+def _instruction_bit_counts(instructions):
+    """ Return number of bits required for arguments (including extra opcodes)
+    and number of bits used for extra opcodes for every instruction type"""
 
-        def __lt__(self, other):
-            if self.total_used_bits != other.total_used_bits:
-                return self.total_used_bits < other.total_used_bits
-            elif self.opcode_used_bits != other.opcode_used_bits:
-                return self.opcode_used_bits < other.opcode_used_bits
-            else:
-                return self.max_id < other.min_id
-
-        def __gt__(self, other):
-            if self.total_used_bits != other.total_used_bits:
-                return self.total_used_bits > other.total_used_bits
-            elif self.opcode_used_bits != other.opcode_used_bits:
-                return self.opcode_used_bits > other.opcode_used_bits
-            else:
-                return self.min_id > other.max_id
-
-        @classmethod
-        def merge(cls, a, b):
-            instructions = {}
-            for instr, enc in a.instructions.items():
-                instructions[instr] = "0" + enc
-            for instr, enc in b.instructions.items():
-                instructions[instr] = "1" + enc
-            return cls(
-                total_used_bits=max(a.total_used_bits, b.total_used_bits) + 1,
-                opcode_used_bits=max(a.opcode_used_bits, b.opcode_used_bits) + 1,
-                min_id=min(a.min_id, b.min_id),
-                max_id=max(a.max_id, b.max_id),
-                instructions=instructions
-            )
-
-        def __str__(self):
-            return str(self.instructions)
-
-    heap = []
-    for i, (instr, args) in enumerate(instructions.items()):
-        bits_used = 0
+    for instr, args in instructions.items():
+        used_bits = 0
         extra_opcode_bits = 0
-        for arg, arg_spec in args.items():
-            bits_used += arg_spec[0]
-            if arg_spec[1] is opcode:
-                extra_opcode_bits += arg_spec[0]
+        for (arg_bits, arg_caps) in args.values():
+            used_bits += arg_bits
+            if arg_caps is opcode:
+                extra_opcode_bits += arg_bits
+        yield (instr, used_bits, extra_opcode_bits)
 
-        heap.append(HuffmanItem(
-            total_used_bits=bits_used,
-            opcode_used_bits=extra_opcode_bits,
-            min_id=i,
-            max_id=i,
-            instructions={instr: "x" * extra_opcode_bits}
+
+@dataclasses.dataclass
+class _HuffmanTreeItem:
+    remaining_bits: int
+    min_id: int
+    max_id: int
+    instructions: dict
+
+    def __lt__(self, other):
+        return self.remaining_bits > other.remaining_bits
+
+    @classmethod
+    def merge(cls, a, b):
+        instructions = {}
+        for instr, enc in a.instructions.items():
+            instructions[instr] = "0" + enc
+        for instr, enc in b.instructions.items():
+            instructions[instr] = "1" + enc
+
+        remaining_bits = min(a.remaining_bits, b.remaining_bits) - 1
+        if remaining_bits < 0:
+            return None
+
+        return cls(
+            remaining_bits=remaining_bits,
+            min_id=min(a.min_id, b.min_id),
+            max_id=max(a.max_id, b.max_id),
+            instructions=instructions
+        )
+
+    def __str__(self):
+        return str(self.instructions)
+
+
+def _length_n_prefixes(strings, length):
+    ret = set()
+    for s in strings:
+        if len(s) >= length:
+            ret.add(s[:length])
+    return ret
+
+
+def _reorder_opcodes(codes, max_opcode_bits):
+    for prefix_length in reversed(range(1, max_opcode_bits)):
+        prefix_to_codes = {
+            prefix: [x for x in codes.items() if x[0].startswith(prefix)]
+            for prefix in _length_n_prefixes(codes.keys(), prefix_length)
+        }
+        prefix_to_weight = {
+            prefix: (
+                sum(x[1] for x in l) / len(l),
+                max(x[1] for x in l)
+            )
+            for prefix, l in prefix_to_codes.items()
+        }
+
+        mapping = list(zip(
+            sorted(prefix_to_weight.keys(), key=lambda x: prefix_to_weight[x]),
+            sorted(prefix_to_weight.keys()),
         ))
 
-    for name1, name2 in cosmetic_instruction_pairs:
-        item1 = _pop_from_list(heap, lambda x: name1 in x.instructions)
-        item2 = _pop_from_list(heap, lambda x: name2 in x.instructions)
-        heap.append(HuffmanItem.merge(item1, item2))
+        new_codes = {}
+        for code, i in codes.items():
+            mapped = None
+            for pattern, replacement in mapping:
+                if code.startswith(pattern):
+                    mapped = (replacement + code[len(pattern):], i)
+            if mapped is None:
+                mapped = (code, i)
+
+            new_codes[mapped[0]] = mapped[1]
+
+        codes = new_codes
+
+    return codes
+
+
+def _assign_opcodes(instructions, max_opcode_bits):
+    """ Assign opcodes limited to a given length.
+    Returns dict with assignments or None if the instructions cannot fit into
+    the bit limit """
+
+    heap = []
+
+    for i, (instr, used_bits, extra_opcode_bits) in enumerate(_instruction_bit_counts(instructions)):
+        if extra_opcode_bits >= max_opcode_bits:
+            return None
+
+        total_remaining_bits = 16 - used_bits
+        opcode_remaining_bits = max_opcode_bits - extra_opcode_bits
+
+        heap.append(_HuffmanTreeItem(
+            remaining_bits=min(total_remaining_bits, opcode_remaining_bits),
+            min_id=i,
+            max_id=i,
+            instructions={instr: ""}
+        ))
 
     heapq.heapify(heap)
-
-    ordered_instruction_names = list(instructions.keys())
 
     while len(heap) > 1:
         left = heapq.heappop(heap)
         right = heapq.heappop(heap)
 
-        # Cosmetics: Push first and last instruction to the beginning/end
-        if ordered_instruction_names[0] in right.instructions:
-            left, right = right, left
-        elif ordered_instruction_names[-1] in left.instructions:
+        if left.min_id > right.min_id or left.max_id > right.max_id:
             left, right = right, left
 
-        heapq.heappush(heap, HuffmanItem.merge(left, right))
+        merged = _HuffmanTreeItem.merge(left, right)
 
-    huffman_codes = heap[0].instructions
+        if not merged:
+            return None
 
-    if print_fun:
-        for instr, code in sorted(huffman_codes.items(), key=lambda x: x[1]):
-            bits_used = len(code)
-            if bits_used > 16:
-                raise Exception(f"Instruction {instr} has {bits_used} bits used")
-            print_fun(f"{code:7}: {instr} ({bits_used} bits used)")
+        heapq.heappush(heap, merged)
 
     return heap[0].instructions
+
+
+def assign_opcodes(instructions, print_fun):
+    for max_opcode_bits in range(1, 16):
+        opcodes = _assign_opcodes(instructions, max_opcode_bits)
+        if opcodes is not None:
+            break
+    if opcodes is None:
+        raise ValueError("Instructions cannot be assigned to opcodes")
+
+    reordering_codes = _reorder_opcodes(
+        {
+            opcodes[instr]: i for i, instr in enumerate(instructions.keys())
+        },
+        max_opcode_bits
+    )
+    reordered = [None] * len(opcodes)
+    for opcode, i in reordering_codes.items():
+        reordered[i] = opcode
+
+    reordered_opcodes = dict(zip(instructions.keys(), reordered))
+
+    if print_fun:
+        print_fun(f"max opode length: {max_opcode_bits}b")
+        for instr, used_bits, extra_opcode_bits in _instruction_bit_counts(instructions):
+            opcode = reordered_opcodes[instr]
+            opcode_bits = len(opcode)
+            total_opcode_bits = opcode_bits + extra_opcode_bits
+            total_bits = used_bits + opcode_bits
+            if total_bits > 16:
+                raise Exception(f"Instruction {instr} has {total_bits} bits used")
+            print_fun(f"{opcode}{'x' * extra_opcode_bits}{' ' * (max_opcode_bits - total_opcode_bits)}: {instr} ({total_bits} bits used)")
+
+    return reordered_opcodes
 
 
 #def _field_bits(mask, n, accumulator=0):
@@ -384,5 +455,5 @@ def printing():
 
 
 with printing() as print_fun:
-    opcode_assignments = assign_opcodes(instructions, instruction_pairs, print_fun)
+    opcode_assignments = assign_opcodes(instructions, print_fun)
     field_allocations(instructions, opcode_assignments, print_fun)
