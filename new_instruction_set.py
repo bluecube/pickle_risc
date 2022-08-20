@@ -53,30 +53,20 @@ instructions = {
         "immediate": (9, caps["upper_to_left_bus"]),  # Or upper to right bus
         "reg": (r, caps["load_reg"]),
     },
-    "pop": {
-        "destination": (r, caps["load_reg"]),
+    "_pop_push": {
+        "store_flag": (1, opcode),
+        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
     },
-    "push": {
-        "source": (r, caps["reg_to_left_bus"]),
-        "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
-    },
-    "ld": {
-        "destination": (r, caps["load_reg"]),
+    "_ld_st": {
+        "store_flag": (1, opcode),
+        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"]),
         "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
     },
-    "st": {
-        "source": (r, caps["reg_to_left_bus"]),
-        "address": (r, caps["reg_to_right_bus"]),
-        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
-    },
-    "ldcr": {
-        "destination": (r, caps["load_reg"]),
-        "control_register": (3, caps["control_register"]),
-    },
-    "stcr": {
-        "source": (r, caps["reg_to_left_bus"]),
+    "_ldcr_stcr": {
+        "store_flag": (1, opcode),
+        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "control_register": (3, caps["control_register"]),
     },
     "syscall": {
@@ -86,23 +76,7 @@ instructions = {
     "break": {}
 }
 
-# Cosmetic only: Make pairs of instructions occupy successive encodings
-instruction_pairs = [
-    ("_immediate_alu", "_3op_alu"),
-    ("pop", "push"),
-    ("ld", "st"),
-    ("ldcr", "stcr"),
-]
-
-def _pop_from_list(l, predicate):
-    """ Find first item in the list that makes predicate return true, modify the list to remove the item,
-    return it. """
-
-    for i, v in enumerate(l):
-        if predicate(v):
-            l.pop(i)
-            return v
-    return None
+full_mask = 0xffff
 
 
 def assign_opcodes(instructions, cosmetic_instruction_pairs, print_fun=None):
