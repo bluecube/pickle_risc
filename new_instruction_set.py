@@ -301,6 +301,16 @@ def _instruction_encodings(
             return
 
         arg_name, arg_bits, arg_capabilities = remaining_args[0]
+
+        if arg_bits == 0:
+            yield from fit_intervals(
+                remaining_args[1:],
+                starting_at + arg_bits,
+                wiggle_room_available,
+                accumulator + [((instruction_name, arg_name), 0, arg_capabilities)]
+            )
+            return
+
         base_mask = (1 << arg_bits) - 1
         for gap in range(wiggle_room_available + 1):
             yield from fit_intervals(
