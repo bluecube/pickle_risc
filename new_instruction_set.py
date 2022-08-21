@@ -17,6 +17,7 @@ import contextlib
 opcode = object()
 
 r = 4
+immediate_bits = 7
 
 caps = {name: 1 << i for i, name in enumerate([
     "reg_to_left_bus", "reg_to_right_bus", "load_reg",
@@ -26,59 +27,76 @@ caps = {name: 1 << i for i, name in enumerate([
 ])}
 
 instructions = {
-    "_immediate_alu": { # 13b
+    "_immediate_alu": {
         "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "immediate": (6, caps["to_right_bus"]),
-        "op": (3, opcode),
+        "immediate": (immediate_bits, caps["to_right_bus"]),
+        "op": (2, opcode),
+            # add
+            # and xor
+            # ldi
     },
-    "_alu": { # 12b
+    "_alu": {
         "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
         "source": (r, caps["reg_to_right_bus"]),
         "op": (4, opcode),
+            # add addc sub subc neg cmp
+            # and or xor not
+            # shr shra shrc
+            # mov
+            # fetch_and_add ( tmp = [source]; reg += tmp; [source] = reg )
     },
-    "j": { # 9b
-        "offset": (9, caps["to_addr_offset"]),
+    "_3operand": {
+        "dest": (r, caps["load_reg"]),
+        "source1": (r, caps["reg_to_left_bus"]),
+        "source2": (r, caps["reg_to_right_bus"]),
+        "op": (1, opcode),
+            # CAS
+            # memcpy?
     },
-    "ja": { # 4b
+    "_extension": {
+        "ext_code": (1, opcode),
+    },
+    "_j": {
+        "offset": (10, caps["to_addr_offset"]),
+        "link_register": (0, caps["load_reg"]), # fixed to register 14
+        #"link_register": (r, caps["load_reg"]),
+        "link": (1, opcode),
+    },
+    "_ja": {
         "address": (r, caps["reg_to_right_bus"]),
+        "link_register": (0, caps["load_reg"]), # fixed to register 14
+        #"link_register": (r, caps["load_reg"]),
+        "link": (1, opcode),
     },
-    "jl": { # 13b
+    "_branch": {
         "offset": (9, caps["to_addr_offset"]),
-        "link_register": (r, caps["load_reg"]),
-    },
-    "jla": { # 8b
-        "address": (r, caps["reg_to_right_bus"]),
-        "link_register": (r, caps["load_reg"]),
-    },
-    "_branch": { # 9b
-        "offset": (6, caps["to_addr_offset"]),
         "condition": (3, opcode),
     },
-    "ldui": { # 14b
-        "immediate": (10, caps["upper_to_left_bus"]),  # Or upper to right bus
+    "ldui": {
+        "immediate": (16 - immediate_bits, caps["upper_to_left_bus"]),  # Or upper to right bus
         "reg": (r, caps["load_reg"]),
     },
-    "_pop_push": { # 9b
+    "_pop_push": {
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
     },
-    "_ld_st": { # 14b
+    "_ld_st": {
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"]),
         "offset": (5, caps["to_addr_offset"]),  # any other destination type would work too
     },
-    "_ldcr_stcr": { # 8b
+    "_ldcr_stcr": {
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "control_register": (3, caps["control_register"]),
     },
-    "syscall": { # 6b
-        "code": (6, caps["to_right_bus"]),
+    "syscall": {
+        "code": (immediate_bits, caps["to_right_bus"]),
     },
-    "reti": {}, # 0b
-    "break": {} # 0b
+    "reti": {},
+    "break": {}
 }
 
 # Cosmetic only: Make pairs of instructions occupy successive encodings
