@@ -16,7 +16,8 @@ import contextlib
 
 opcode = object()
 
-r = 3
+r = 4
+immediate_bits = 7
 
 caps = {name: 1 << i for i, name in enumerate([
     "reg_to_left_bus", "reg_to_right_bus", "load_reg",
@@ -28,29 +29,51 @@ caps = {name: 1 << i for i, name in enumerate([
 instructions = {
     "_immediate_alu": {
         "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "immediate": (7, caps["to_right_bus"]),
-        "op": (3, opcode),
+        "immediate": (immediate_bits, caps["to_right_bus"]),
+        "op": (2, opcode),
+            # add
+            # and xor
+            # ldi
     },
-    "_3op_alu": {
-        "destination": (r, caps["load_reg"]),
+    "_alu": {
+        "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
+        "source": (r, caps["reg_to_right_bus"]),
+        "op": (4, opcode),
+            # add addc sub subc neg cmp
+            # and or xor not
+            # shr shra shrc
+            # mov
+            # fetch_and_add ( tmp = [source]; reg += tmp; [source] = reg )
+    },
+    "_3operand": {
+        "dest": (r, caps["load_reg"]),
         "source1": (r, caps["reg_to_left_bus"]),
         "source2": (r, caps["reg_to_right_bus"]),
-        "op": (4, opcode),
+        "op": (1, opcode),
+            # CAS
+            # memcpy?
     },
-    "jl": {
+    "_extension": {
+        "ext_code": (1, opcode),
+    },
+    "_j": {
         "offset": (10, caps["to_addr_offset"]),
-        "link_register": (r, caps["load_reg"]),
+        "link_register": (0, caps["load_reg"]), # fixed to register 14
+        #"link_register": (r, caps["load_reg"]),
+        "link": (1, opcode),
     },
-    "jla": {
+    "_ja": {
         "address": (r, caps["reg_to_right_bus"]),
-        "link_register": (r, caps["load_reg"]),
+        "link_register": (0, caps["load_reg"]), # fixed to register 14
+        #"link_register": (r, caps["load_reg"]),
+        "link": (1, opcode),
     },
     "_branch": {
-        "offset": (7, caps["to_addr_offset"]),
+        "offset": (9, caps["to_addr_offset"]),
         "condition": (3, opcode),
     },
     "ldui": {
-        "immediate": (9, caps["upper_to_left_bus"]),  # Or upper to right bus
+        "immediate": (16 - immediate_bits, caps["upper_to_left_bus"]),  # Or upper to right bus
         "reg": (r, caps["load_reg"]),
     },
     "_pop_push": {
@@ -62,7 +85,7 @@ instructions = {
         "store_flag": (1, opcode),
         "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
         "address": (r, caps["reg_to_right_bus"]),
-        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
+        "offset": (5, caps["to_addr_offset"]),  # any other destination type would work too
     },
     "_ldcr_stcr": {
         "store_flag": (1, opcode),
@@ -70,13 +93,29 @@ instructions = {
         "control_register": (3, caps["control_register"]),
     },
     "syscall": {
-        "code": (7, caps["to_right_bus"]),
+        "code": (immediate_bits, caps["to_right_bus"]),
     },
     "reti": {},
     "break": {}
 }
 
-full_mask = 0xffff
+# Cosmetic only: Make pairs of instructions occupy successive encodings
+instruction_pairs = [
+    ("_immediate_alu", "_3op_alu"),
+    ("pop", "push"),
+    ("ld", "st"),
+    ("ldcr", "stcr"),
+]
+
+def _pop_from_list(l, predicate):
+    """ Find first item in the list that makes predicate return true, modify the list to remove the item,
+    return it. """
+
+    for i, v in enumerate(l):
+        if predicate(v):
+            l.pop(i)
+            return v
+    return None
 
 
 def _instruction_bit_counts(instructions):
