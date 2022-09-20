@@ -287,11 +287,9 @@ def _instruction_encodings(
     total_arg_bits = 0
 
     for arg_name, (arg_bits, arg_capabilities) in instruction_args.items():
-        if arg_capabilities is opcode:
-            continue
-
         total_arg_bits += arg_bits
-        all_args.append((arg_name, arg_bits, arg_capabilities))
+        if arg_capabilities is not opcode:
+            all_args.append((arg_name, arg_bits, arg_capabilities))
 
     wiggle_room_bits = 16 - used_opcode_length - total_arg_bits
 
