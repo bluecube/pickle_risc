@@ -99,24 +99,6 @@ instructions = {
     "break": {}
 }
 
-# Cosmetic only: Make pairs of instructions occupy successive encodings
-instruction_pairs = [
-    ("_immediate_alu", "_3op_alu"),
-    ("pop", "push"),
-    ("ld", "st"),
-    ("ldcr", "stcr"),
-]
-
-def _pop_from_list(l, predicate):
-    """ Find first item in the list that makes predicate return true, modify the list to remove the item,
-    return it. """
-
-    for i, v in enumerate(l):
-        if predicate(v):
-            l.pop(i)
-            return v
-    return None
-
 
 def _instruction_bit_counts(instructions):
     """ Return number of bits required for arguments (including extra opcodes)
