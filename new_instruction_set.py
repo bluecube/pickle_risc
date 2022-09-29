@@ -16,84 +16,84 @@ import contextlib
 
 opcode = object()
 
-r = 4
-immediate_bits = 7
+r = 5
+d_imm = 9
+j_imm = 9
+ldst_imm = 7
 
 caps = {name: 1 << i for i, name in enumerate([
-    "reg_to_left_bus", "reg_to_right_bus", "load_reg",
-    "to_right_bus", "upper_to_left_bus",
-    "to_addr_offset",
+    "reg_to_bus", "load_reg",
+    "immediate_data", "immediate_addr_offset",
     "control_register"
 ])}
 
 instructions = {
-    "_immediate_alu": {
-        "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "immediate": (immediate_bits, caps["to_right_bus"]),
-        "op": (2, opcode),
-            # add
-            # and xor
-            # ldi
-    },
-    "_alu": {
-        "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "source": (r, caps["reg_to_right_bus"]),
+    "_alu_binary_imm": {  # A = A <op> immediate
+        "immediate": (d_imm, caps["immediate_data"]),
         "op": (4, opcode),
-            # add addc sub subc neg cmp
-            # and or xor not
-            # shr shra shrc
-            # mov
-            # fetch_and_add ( tmp = [source]; reg += tmp; [source] = reg )
+            # This will have identical mnemonics and functions to "_alu_binary"
     },
-    "_3operand": {
-        "dest": (r, caps["load_reg"]),
-        "source1": (r, caps["reg_to_left_bus"]),
-        "source2": (r, caps["reg_to_right_bus"]),
-        "op": (1, opcode),
-            # CAS
-            # memcpy?
+    "_alu_binary_reg": {  # A = A <op> reg
+        "reg": (r, caps["reg_to_bus"]),
+        "op": (4, opcode),
+            # add addc
+            # sub subc
+            # rsub rsubc (A = reg - A)
+            # cmp
+            # and or xor
+            # set (A = reg)
+            # set_hi (A = (A & 0xff) | (reg << 8))
+            # mul4 (A = (A & 0x0F) * (reg & 0x0F))
     },
-    "_extension": {
-        "ext_code": (1, opcode),
+    "_alu_unary_A": {  # A = <op>(A)
+        "op": (3, opcode),
+            # not
+            # shl shlc shr shra shrc
+            # hi
+            # sex
+            #
+            # `lo` == `and 0xff`
+            # `neg` == `rsub 0`
     },
-    "_j": {
-        "offset": (10, caps["to_addr_offset"]),
-        "link_register": (0, caps["load_reg"]), # fixed to register 14
-        #"link_register": (r, caps["load_reg"]),
+    "add_pc": {},  # A += Pc
+    "to_scratchpad": {  # reg = A
+        "reg": (r, caps["load_reg"]),
+    },
+    "_j_jl": {  # if link: A = Pc; Pc = Pc + offset, Instruction = Pc
+        "jump_offset": (j_imm, caps["immediate_addr_offset"]),
         "link": (1, opcode),
     },
-    "_ja": {
-        "address": (r, caps["reg_to_right_bus"]),
-        "link_register": (0, caps["load_reg"]), # fixed to register 14
-        #"link_register": (r, caps["load_reg"]),
+    "_ja_jal": {  # Mar = A; Pc = Mar (through addr bus), Instruction = [Mar], if link: A = Pc (through data bus)
         "link": (1, opcode),
     },
     "_branch": {
-        "offset": (9, caps["to_addr_offset"]),
+        "jump_offset": (j_imm, caps["immediate_addr_offset"]),
         "condition": (3, opcode),
     },
-    "ldui": {
-        "immediate": (16 - immediate_bits, caps["upper_to_left_bus"]),  # Or upper to right bus
-        "reg": (r, caps["load_reg"]),
+    "ld": {  # A = [address + offset]
+        "address": (r, caps["reg_to_bus"]),
+        "offset": (ldst_imm, caps["immediate_addr_offset"]),
     },
-    "_pop_push": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
-        "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
+    "st": {  # [address + offset] = A
+        "address": (r, caps["reg_to_bus"]),
+        "offset": (ldst_imm, caps["immediate_addr_offset"]),
     },
-    "_ld_st": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
-        "address": (r, caps["reg_to_right_bus"]),
-        "offset": (5, caps["to_addr_offset"]),  # any other destination type would work too
+    "ldp": {  # A = [address + offset + <program segment>]
+        "address": (r, caps["reg_to_bus"]),
+        "offset": (ldst_imm, caps["immediate_addr_offset"]),
     },
-    "_ldcr_stcr": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
+    "st_cond": {  # if not interrupted since last ld: [address + offset] = A, else: Pc += offset
+        "address": (r, caps["reg_to_bus"]),
+        "jump_offset": (ldst_imm, caps["immediate_addr_offset"]),
+    },
+    "ldcr": {  # A = control_register
+        "control_register": (3, caps["control_register"]),
+    },
+    "stcr": {  # control_register = A
         "control_register": (3, caps["control_register"]),
     },
     "syscall": {
-        "code": (immediate_bits, caps["to_right_bus"]),
+        "code": (d_imm, caps["immediate_data"]),
     },
     "reti": {},
     "break": {}
