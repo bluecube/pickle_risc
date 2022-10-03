@@ -3,44 +3,41 @@
 ## Basic design
 - 16bit
 - microcoded
-- mostly RISC, but some complex instructions
-- 16bit addressable memory only!
+- most instructions take only single clock cycle
+- word addressable memory only!
     - 8bit access emulated in SW
-- 8 general purpose registers R0-R7
+- 7 general purpose registers R1-R7
+    - R0 is hardware zero register
 - Control registers
-    - ALU Status
+    - ALUStatus
         - `0`
         - RW
-        - Can accessed from user mode
+        - Accessible from user mode
         - Contains:
-            - carry flag
-            - zero flag
-            - negative flag
-    - Tmp1
+            - 1b carry flag
+            - 1b zero flag
+            - 1b negative flag
+            - 1b overflow flag (?)
+    - CpuStatus
         - `1`
         - RW
-        - Used as temporary storage in interrupt handlers
-        - Accessible to user-mode code, but not saved during interrupts (=> unusable)
-        - Clobbered by some complex instructions
-            - Cannot be used by the kernel to store data between context switches
-    - Tmp2
-        - `2`
-        - RW
-        - Used as temporary storage in interrupt handlers
+        - Contains:
+            - 1b interrupt enabled flag
+            - 1b kernel mode flag
+            - 1b MMU enabled flag
+            - ?b frequency selection (?)
     - ContextID
-        - `3`
+        - `2`
         - WO
         - 6bit
-        - equivalent to process ID (with &lt; 64 processes)
-        - Context ID of 0 for kernel mode and disabled interrupts, otherwise user mode
-        - used as a part of virtual page address
-        - double buffered, only gets applied by RETI instruction
+        - Used as a part of virtual page address
+            - Equivalent to process ID (with &lt; 64 processes)
     - IntCause
-        - `4`
+        - `3`
         - RO
         - Cause of currently processed interrupt
     - IntBase
-        - `4` !!! Overlaps with IntCause, needs ASM changes
+        - `4`
         - WO
         - Where to jump on interrupt
     - IntPc
@@ -81,80 +78,18 @@
     - Theoretically about 5MHz max clock speed?
 
 
-## Instruction format
-
-### Fields
-
-<table>
-<tr>
-    <th>Field number</th>
-    <th>15</th><th>14</th>
-    <th>13</th><th>12</th>
-    <th>11</th><th>10</th>
-    <th>9</th><th>8</th>
-    <th>7</th><th>6</th>
-    <th>5</th><th>4</th>
-    <th>3</th><th>2</th>
-    <th>1</th><th>0</th>
-</tr>
-<tr><th>0</th><td colspan="7">opcode</td><td colspan="9"></td></tr>
-<tr><th>1</th><td colspan="7"></td><td colspan="3">register ID<br>assert left bus</td><td colspan="6"></td></tr>
-<tr><th>2</th><td colspan="10"></td><td colspan="3">register ID<br>assert right bus</td><td colspan="3"></td></tr>
-<tr><th>3</th><td colspan="13"></td><td colspan="3">register ID<br>assert left bus, load from result bus</td></tr>
-<tr><th>4</th><td colspan="5"></td><td colspan="3">control register ID<br>assert right bus, load from result bus</td><td colspan="8"></td></tr>
-<tr><th>5</th><td colspan="4"></td><td colspan="9">immediate value<br>assert right bus</td><td colspan="3"></td></tr>
-<tr><th>6</th><td colspan="3"></td><td colspan="7">immediate value (load/store)<br>add to address</td><td colspan="6"></td></tr>
-<tr><th>7</th><td colspan="7"></td><td colspan="9">immediate value (rjmp)<br>add to address</td></tr>
-</table>
-
-### Opcodes
-
-<table>
-<tr>
-    <th>00</th>
-    <td colspan="3">Immediate operations</td>
-</tr>
-<tr>
-    <th rowspan="2">01</th>
-    <th>0</th>
-    <td colspan="2">Basic 3 operand operations</td>
-</tr>
-<tr>
-    <th>1</th>
-    <td colspan="2">Complex 3 operand operations</td>
-</tr>
-<tr>
-    <th>10</th>
-    <td colspan="3">Load / store</td>
-</tr>
-<tr>
-    <th rowspan="3">11</th>
-    <th>0</th>
-    <td colspan="2">Jump</td>
-</tr>
-<tr>
-    <th rowspan="2">1</th>
-    <th>0</th>
-    <td>Control registers</td>
-</tr>
-<tr>
-    <th>1</th>
-    <td>System operations</td>
-</tr>
-</table>
-
 ## Microcode ROM
 ### Incoming signals
 (goal is 13 (= 8k ROM), or 15 (= 32k ROM))
 - 7 bits from instruction
-- 3 bits from microprogram counter
+- 1 bits from microprogram counter
 - 1 bit interrupt pending
 - 1 bit kernel mode
 - 3 bits condition flags
 
-Total 15
+Total 13
 
-### Outgoing control lines
+### Outgoing control lines (TODO: Outdated)
 (goal is as small as possible multiple of 8)
 
 - 2b: Left bus source
@@ -203,11 +138,6 @@ Total 15
 
 Total 20
 
-#### TODO
-- How is PC increment and "pipelining" handled?
-- ALU control
-- How to store interrupt cause from SW interrupt?
-
 ## Memory
 - 16 bit-addressable memory (Byte level access emulated in SW)
 - Separate data and program segments
@@ -221,9 +151,6 @@ Total 20
         - `R` - Read allowed
         - `W` - Write allowed
         - `F` - Frame address (14b)
-    - Hardcoded page:
-        - Context = 0, Segment = 1, Address = 0x0000 - 0x0FFF) -> boot EEPROM, read only
-            - Need to map further pages manually from bootloader
     - Software page fault handling
         - raises interrupt on access violation
     - 10b page size -> 1kWord = 2kB pages

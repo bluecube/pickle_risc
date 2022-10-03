@@ -1,3 +1,42 @@
+/* Instruction encoding summary:
+
+immmediate 00xx xiii iiii irrr
+3-operand  010x xxxb bbaa addd
+branch     011x xxoo oooo o___
+ld         100a aaoo oooo oddd
+st         101a aaoo oooo oddd
+ldcr       1100 ccc________ddd
+stcr       1101 ccc________ddd
+(ext)      1110
+syscall    1111 000i iiii i___      Shares constant with `immediate`, top 2 bits are zero
+jump abs   1111 001a aa__ _lll
+jump       1111 01oo oooo olll
+ldp        1111 100a aa__ _ddd
+st_cond    1111 101a aa__ _ddd
+reti       1111 110_ ____ ____
+break      1111 111_ ____ ____
+
+Instruction fields:
+these need to be implemented in HW to decode the instructions
+
+0 Opcode           xxxx xxx_ ____ ____
+1 Right bus immm   ____ _iii iiii i___
+    - Sign extended
+2 Destination reg  ____ ____ ____ _rrr
+3 Left bus reg     ____ ____ ____ _rrr
+4 Left bus reg     ____ ____ __rr r___
+5 Right bus reg    ____ ___r rr__ ____
+6 Right bus reg    ___r rr__ ____ ____
+7 Addr offset imm  ____ __ii iiii i___
+    - Sign extended
+8 Control register ____ ccc_ ____ ____
+    - Overlaps with opcode, so that access can be restricted outside kernel mode
+
+*/
+
+
+// NOTE: The following is still out of date!
+
 {
 instructions: {
     // Immediate operations (Prefix 00)

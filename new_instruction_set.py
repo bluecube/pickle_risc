@@ -16,7 +16,9 @@ import contextlib
 
 opcode = object()
 
-r = 3
+r = 3  # r0 <=> 0
+d_imm = 8
+a_imm = 7
 
 caps = {name: 1 << i for i, name in enumerate([
     "reg_to_left_bus", "reg_to_right_bus", "load_reg",
@@ -26,47 +28,69 @@ caps = {name: 1 << i for i, name in enumerate([
 ])}
 
 instructions = {
-    "_immediate_alu": {
+    "_immediate_alu": {  # reg = reg <op> immediate
         "reg": (r, caps["reg_to_left_bus"] | caps["load_reg"]),
-        "immediate": (7, caps["to_right_bus"]),
+        "immediate": (d_imm, caps["to_right_bus"]),
         "op": (3, opcode),
+            # addi
+            # andi ori xori
+            # cmpi
+            # ldi, ldui
+            # addipc (reg = Pc + immediate)
     },
     "_3op_alu": {
         "destination": (r, caps["load_reg"]),
         "source1": (r, caps["reg_to_left_bus"]),
         "source2": (r, caps["reg_to_right_bus"]),
         "op": (4, opcode),
+            # add addc sub subc
+            # and or xor
+            # cmp
+            # hadd, haddc ( destination = (source1 + source2) >> 1, carry from the MSb, leaves from LSb )
+            # upsample (destination = source1 << 8 | (source2 & 0xff))
     },
-    "jl": {
-        "offset": (10, caps["to_addr_offset"]),
+    "j": {
+        "offset": (a_imm, caps["to_addr_offset"]),
         "link_register": (r, caps["load_reg"]),
     },
-    "jla": {
+    "ja": {
         "address": (r, caps["reg_to_right_bus"]),
         "link_register": (r, caps["load_reg"]),
     },
     "_branch": {
-        "offset": (7, caps["to_addr_offset"]),
+        "offset": (a_imm, caps["to_addr_offset"]),
         "condition": (3, opcode),
+            # zero, >0, <0, overflow, carry
     },
-    "ldui": {
-        "immediate": (9, caps["upper_to_left_bus"]),  # Or upper to right bus
-        "reg": (r, caps["load_reg"]),
-    },
-    "_pop_push": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
-        "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
-    },
-    "_ld_st": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
+    # "_pop_push": {
+    #    "store_flag": (1, opcode),
+    #    "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
+    #    "address": (r, caps["reg_to_right_bus"] | caps["load_reg"]),
+    # },
+    "ld": {
+        "data": (r, caps["load_reg"]),
         "address": (r, caps["reg_to_right_bus"]),
-        "offset": (7, caps["to_addr_offset"]),  # any other destination type would work too
+        "offset": (a_imm, caps["to_addr_offset"]),
     },
-    "_ldcr_stcr": {
-        "store_flag": (1, opcode),
-        "data": (r, caps["load_reg"] | caps["reg_to_left_bus"]),
+    "st": {
+        "data": (r, caps["reg_to_left_bus"]),
+        "address": (r, caps["reg_to_right_bus"]),
+        "offset": (a_imm, caps["to_addr_offset"]),
+    },
+    "ldp": {
+        "data": (r, caps["load_reg"]),
+        "address": (r, caps["reg_to_right_bus"]),
+    },
+    "st_cond": {
+        "data": (r, caps["reg_to_left_bus"]),
+        "address": (r, caps["reg_to_right_bus"]),
+    },
+    "ldcr": {
+        "data": (r, caps["load_reg"]),
+        "control_register": (3, caps["control_register"]),
+    },
+    "stcr": {
+        "data": (r, caps["reg_to_left_bus"]),
         "control_register": (3, caps["control_register"]),
     },
     "syscall": {

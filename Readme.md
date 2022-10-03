@@ -2,51 +2,44 @@
 
 ... so I would like to build a computer, this time a little closer to "from scratch".
 
-## TODO (immediate small stuff)
-
-- Use half add instead of andshr
-    - Figure out overflow & carry
-- r0 should be hardware zero register
-    - + One less register to build
-    - + Makes for a kind of neater instruction set
-    - - Increased register pressure
-        - going from 8 to 7 feels pretty significant
-- Redesign instruction set
-    - Figure out byte operation instructions
-        - Byteswap (as designed now)
-        - Upsample as in opencl: (0x00AA, 0x00BB) -> 0xAABB
-        - Get rid of byte comparison
-    - Add push / pop
-    - Add JAL instructions
-
-
 ## Goals
 - Fun!
+- Aiming for a poorly defined balance between "easy to build" and "not too slow"
 - Can run a multitasking OS
 - Serve web site about itself (like Magic-1 does)
     - SLIP over UART?
 - Serial console interface
-- Potentially Games
+    - No graphics output
 - Run at ~2MHz clock
+    - 4MHz as a stretch goal :)
 - Most instruction single cycle
 
 ## State
+<!--
 - [Instruction set](http://htmlpreview.github.io/?https://github.com/bluecube/pickle_risc/blob/master/instruction_set.html)
-    - Basics done, good enough to start writing assembler and simulator
-    - Some complex instructions should definitely be added later
+-->
+- Instruction set
+    - Almost finished the revision, needs expanding into microcode
+    - Some complex instructions might be added later
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together
     - The [block diagram](block_diagram.svg) shows most of the general idea
 - SW
     - MWP assembler is done
+    - Started working on emulator
+    - Lisp interpreter as shell
+        - Probably loosely based on [Make a Lisp](https://github.com/kanaka/mal/blob/master/process/guide.md)
+        - Compiler as a stretch goal
 
 ## Next steps
+- Finalize the new instruction set
+- Emulator
+- Lisp interpreter
 - Figure out ALU design
 - Figure out MMU design
 - Figure out interrupt handling
     - Rough idea and the instructions needed to support it is already done
-- Emulator
 - Start building the hardware in some kind of HDL
 
 ## Links
