@@ -240,11 +240,6 @@ Total 20
 - RTC
 - Storage
     - SD card using SPI interface?
-- GPU
-    - Not too interested in building one, but it would be nice to have one
-    - Perhaps we could cheat and connect RaspberryPI to the memory bus and use it as a GPU?
-- Sound
-    - Same as GPU, maximum cheating
 
 ## Parts
 - 74LVC16374 - 16-bit edge-triggered D-type flip-flop; 5 V tolerant; 3-state
