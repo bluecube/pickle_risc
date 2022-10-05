@@ -30,7 +30,11 @@
         - Compiler as a stretch goal
 
 ## Next steps
-- Finalize the new instruction set
+This is the high level to do list, roughly in the order of decreasing priorities.
+Long term plans (and hopes and dreams) go to the [notes](notes/) directory.
+
+- Figure out details of microcode
+- Write microcode for instructions
 - Emulator
 - Lisp interpreter
 - Figure out ALU design
