@@ -14,8 +14,8 @@ word.
 
 The following list is loosely based on MAL's types
 
-- Nil (encoded [inline](#Pointer tagging))
-- Small int (encoded [inline](#Pointer tagging))
+- Nil (encoded [inline](#pointer-tagging))
+- Small int (encoded [inline](#pointer-tagging))
 - Cons
 - String
 - Symbol
