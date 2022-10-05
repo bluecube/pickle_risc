@@ -33,7 +33,7 @@ def generate_substitution(name):
 
 
 @table(cls="encoding")
-def generate_encoding_table(encoding, args):
+def generate_encoding_table(encoding, args, menmonic):
     with tr():
         for i in reversed(range(16)):
             th(str(i))
@@ -62,7 +62,7 @@ def generate_encoding_table(encoding, args):
                     elif arg_type[0] == "u":
                         signed = False
                     else:
-                        raise ValueError("Unexpected argument type " + repr(arg_type))
+                        raise ValueError(f"Unexpected argument type {arg_type!r}, ({mnemonic}/{piece})")
 
                     arg_size = int(arg_type[1:])
                     arg_desc = f"{arg_size}b {'signed' if signed else 'unsigned'} integer"
@@ -70,7 +70,7 @@ def generate_encoding_table(encoding, args):
                 td(generate_arg(piece), colspan=arg_size)
                 descriptions_row.append((arg_desc, arg_size))
             else:
-                raise ValueError("Unexpected encoding piece " + repr(piece))
+                raise ValueError(f"Unexpected encoding piece {piece!r} ({mnemonic})")
     with tr():
         for arg_desc, arg_size in descriptions_row:
             td(arg_desc, colspan=arg_size)
@@ -252,7 +252,7 @@ with document:
                 generate_optional_markdown_block("description", details, None)
 
                 h4("Encoding")
-                generate_encoding_table(details["encoding"], instruction_args)
+                generate_encoding_table(details["encoding"], instruction_args, mnemonic)
 
                 h4("Syntax")
                 generate_substituted_syntax(mnemonic, data["substitutions"])

@@ -84,7 +84,7 @@
     <section>
       <h2>Instructions</h2>
       <section id="instruction-addi">
-        <h3>Add immediate</h3>
+        <h3>Add immediate value to register</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -116,7 +116,7 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
@@ -129,8 +129,8 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>r</var> += <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-subi">
-        <h3>Subtract immediate</h3>
+      <section id="instruction-andi">
+        <h3>Bitwise and immediate value with register</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -162,21 +162,21 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">subi</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">andi</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> -= <var>immediate</var></code></pre>
+        <pre><code class="pseudocode"><var>r</var> &amp;= <var>immediate</var></code></pre>
       </section>
       <section id="instruction-ori">
-        <h3>Or immediate</h3>
+        <h3>Bitwise or immediate value with register</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -208,7 +208,7 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
@@ -221,8 +221,8 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>r</var> |= <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-andi">
-        <h3>And immediate</h3>
+      <section id="instruction-xori">
+        <h3>Bitwise xor immediate value with register</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -254,21 +254,21 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">andi</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">xori</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> &amp;= <var>immediate</var></code></pre>
+        <pre><code class="pseudocode"><var>r</var> ^= <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-ldi">
-        <h3>Load immediate</h3>
+      <section id="instruction-cmpi">
+        <h3>Compare immediate value with register</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -300,21 +300,21 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">ldi</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">cmpi</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var></code></pre>
+        <pre><code class="pseudocode">ignore_value(<var>r</var> - <var>immediate</var>)</code></pre>
       </section>
-      <section id="instruction-ldui">
-        <h3>Load upper immediate</h3>
+      <section id="instruction-ldi">
+        <h3>Load immediate value</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -346,21 +346,21 @@
             <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
-            <td colspan="8">8b unsigned integer</td>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">ldui</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">ldi</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var> &lt;&lt; 8</code></pre>
+        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var></code></pre>
       </section>
-      <section id="instruction-addipc">
-        <h3>Add immediate to program counter</h3>
+      <section id="instruction-ldui">
+        <h3>Load immediate value to high byte</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -388,22 +388,68 @@
             <td colspan="3" rowspan="2">
               <code>110</code>
             </td>
-            <td colspan="3"><var>r</var></td>
             <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
           </tr>
           <tr>
+            <td colspan="8">8b signed integer</td>
             <td colspan="3">register</td>
-            <td colspan="8">8b unsigned integer</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">addipc</span> <var>r</var>, <var>immediate</var></code>
+            <code class="asm_syntax"><span class="mnemonic">ldui</span> <var>r</var>, <var>immediate</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>r</var> = Pc + <var>immediate</var></code></pre>
+        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var> &lt;&lt; 8</code></pre>
+      </section>
+      <section id="instruction-addipc">
+        <h3>Add immediate value to program counter</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>111</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">addipc</span> <var>rd</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">r = Pc + <var>immediate</var></code></pre>
       </section>
       <section id="instruction-add">
         <h3>Add</h3>
@@ -428,15 +474,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00000</code>
+            <td colspan="4" rowspan="2">
+              <code>0000</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -447,11 +493,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">add</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">add</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> + <var>c</var></code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> + <var>rs2</var></code></pre>
       </section>
       <section id="instruction-addc">
         <h3>Add with carry</h3>
@@ -476,15 +522,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00001</code>
+            <td colspan="4" rowspan="2">
+              <code>0001</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -495,11 +541,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">addc</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">addc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> + <var>c</var> + carry</code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> + <var>rs2</var> + carry</code></pre>
       </section>
       <section id="instruction-sub">
         <h3>Subtract</h3>
@@ -524,15 +570,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00010</code>
+            <td colspan="4" rowspan="2">
+              <code>0010</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -543,11 +589,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">sub</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">sub</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> - <var>c</var></code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> - <var>rs2</var></code></pre>
       </section>
       <section id="instruction-subc">
         <h3>Subtract with carry</h3>
@@ -572,15 +618,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00011</code>
+            <td colspan="4" rowspan="2">
+              <code>0011</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -591,14 +637,14 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">subc</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">subc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> - <var>c</var> + carry</code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> - <var>rs2</var> - carry</code></pre>
       </section>
       <section id="instruction-and">
-        <h3>And</h3>
+        <h3>Bitwise and</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -620,15 +666,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00100</code>
+            <td colspan="4" rowspan="2">
+              <code>0100</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -639,14 +685,14 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">and</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">and</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> &amp; <var>c</var></code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> &amp; <var>rs2</var></code></pre>
       </section>
       <section id="instruction-or">
-        <h3>Or</h3>
+        <h3>Bitwise or</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -668,15 +714,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00101</code>
+            <td colspan="4" rowspan="2">
+              <code>0101</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -687,62 +733,14 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">or</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">or</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> | <var>c</var></code></pre>
-      </section>
-      <section id="instruction-nor">
-        <h3>Nor</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>00110</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">nor</span> <var>a</var>, <var>b</var>, <var>c</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = ~(<var>b</var> | <var>c</var>)</code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> | <var>rs2</var></code></pre>
       </section>
       <section id="instruction-xor">
-        <h3>Xor</h3>
+        <h3>Bitwise xor</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -764,15 +762,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>00111</code>
+            <td colspan="4" rowspan="2">
+              <code>0110</code>
             </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">register</td>
@@ -783,155 +781,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">xor</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">xor</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>b</var> ^ <var>c</var></code></pre>
-      </section>
-      <section id="instruction-andshr">
-        <h3>And shift right</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>01000</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">andshr</span> <var>a</var>, <var>b</var>, <var>c</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = (<var>b</var> &amp; <var>c</var>) &gt;&gt; 1 <span class="comment">#logical</span></code></pre>
-      </section>
-      <section id="instruction-andshra">
-        <h3>And shift right arithmetic</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>01001</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">andshra</span> <var>a</var>, <var>b</var>, <var>c</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = (<var>b</var> &amp; <var>c</var>) &gt;&gt; 1 <span class="comment">#arithmetic</span></code></pre>
-      </section>
-      <section id="instruction-andshrc">
-        <h3>And shift right with carry</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>01010</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">andshrc</span> <var>a</var>, <var>b</var>, <var>c</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = carry &lt;&lt; 7 | (<var>b</var> &amp; <var>c</var>) &gt;&gt; 1 <span class="comment">#logical</span></code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> ^ <var>rs2</var></code></pre>
       </section>
       <section id="instruction-cmp">
         <h3>Compare</h3>
@@ -956,193 +810,241 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
             </td>
-            <td colspan="5" rowspan="2">
-              <code>01011</code>
+            <td colspan="4" rowspan="2">
+              <code>0111</code>
             </td>
-            <td colspan="3"><var>a</var></td>
-            <td colspan="3"><var>b</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">cmp</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">ignore_value(<var>rs1</var> - <var>rs2</var>)</code></pre>
+      </section>
+      <section id="instruction-hadd">
+        <h3>Halving add</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1000</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">hadd</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> + <var>rs2</var>) &gt;&gt; 1</code></pre>
+      </section>
+      <section id="instruction-haddc">
+        <h3>Halving add with carry</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1001</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">haddc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> + <var>rs2</var> + carry &lt;&lt; 15) &gt;&gt; 1</code></pre>
+        <div class="note">
+          <h4>Note</h4><p><code>haddc</code> operation only sets carry from the least significant side, even though the operation may overflow on both sides! E.g. <code>haddc(0x8000, 0x8000)</code> with <code>carry = 1</code>, will result in carry not being set.</p>
+        </div>
+      </section>
+      <section id="instruction-upsample">
+        <h3>Upsample two 8bit values to 16bit</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1010</code>
+            </td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">upsample</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> &lt;&lt; 8) | (<var>rs2</var> &amp; 0xff)</code></pre>
+      </section>
+      <section id="instruction-j{condition}">
+        <h3>Jump relative</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>011</code>
+            </td>
+            <td colspan="3" rowspan="2"><a class="substitution" href="#substitution-condition">{condition}</a></td>
+            <td colspan="7"><var>offset</var></td>
             <td class="placeholder" colspan="3" rowspan="2">ignored</td>
           </tr>
           <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
+            <td colspan="7">7b signed integer</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">cmp</span> <var>a</var>, <var>b</var></code>
+            <code class="asm_syntax"><span class="mnemonic">j?z</span> <var>offset</var></code>
           </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode">_ = <var>b</var> - c</code></pre>
-      </section>
-      <section id="instruction-bswp">
-        <h3>Byte swap</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>01100</code>
-            </td>
-            <td colspan="3"><var>b</var></td>
-            <td colspan="3"><var>c</var></td>
-            <td colspan="3"><var>a</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">bswp</span> <var>a</var>, <var>b</var>, <var>c</var></code>
+            <code class="asm_syntax"><span class="mnemonic">j?c</span> <var>offset</var></code>
           </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = (<var>b</var> &gt;&gt; 8) | (<var>c</var> &lt;&lt; 8)</code></pre>
-      </section>
-      <section id="instruction-cas">
-        <h3>Compare and swap</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>10010</code>
-            </td>
-            <td colspan="3"><var>new</var></td>
-            <td colspan="3"><var>address</var></td>
-            <td colspan="3"><var>expected</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">cas</span> <var>address</var>, <var>expected</var>, <var>new</var></code>
+            <code class="asm_syntax"><span class="mnemonic">j?n</span> <var>offset</var></code>
           </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><span class="keyword">if</span> [<var>address</var>] == <var>expected</var>:
-    [<var>address</var>] = <var>new</var>
-    <var>expected</var> = <var>new</var>
-<span class="keyword">else</span>:
-    <var>expected</var> = [<var>address</var>]</code></pre>
-        <div class="note">
-          <h4>Note</h4><p><code>expected</code> returns the value of <code>[address]</code> <strong>after</strong> the operation</p>
-        </div>
-        <div class="note">
-          <h4>Note</h4><p>Overwrites control register Tmp1</p>
-        </div>
-      </section>
-      <section id="instruction-memadd">
-        <h3>Fetch and add</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="2" rowspan="2">
-              <code>01</code>
-            </td>
-            <td colspan="5" rowspan="2">
-              <code>10011</code>
-            </td>
-            <td colspan="3"><var>inc</var></td>
-            <td colspan="3"><var>address</var></td>
-            <td colspan="3"><var>value</var></td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">memadd</span> <var>value</var>, <var>address</var>, <var>inc</var></code>
+            <code class="asm_syntax"><span class="mnemonic">j?nz</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?nc</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?nn</span> <var>offset</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>value</var> = [<var>address</var>] + <var>inc</var>
-[<var>address</var>] = <var>value</var></code></pre>
+        <pre><code class="pseudocode"><span class="keyword">if</span> <a class="substitution" href="#substitution-condition">{condition}</a>: Pc += <var>offset</var></code></pre>
         <div class="note">
-          <h4>Note</h4><p><code>value</code> returns the value of <code>[raddress]</code> <strong>after</strong> the operation</p>
-        </div>
-        <div class="note">
-          <h4>Note</h4><p>Overwrites control register Tmp1</p>
+          <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
       <section id="instruction-ld">
-        <h3>Load</h3>
+        <h3>Load from memory</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1170,27 +1072,27 @@
             <td colspan="1" rowspan="2">
               <code>0</code>
             </td>
-            <td colspan="7"><var>offset</var></td>
             <td colspan="3"><var>address</var></td>
-            <td colspan="3"><var>dest</var></td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
-            <td colspan="7">7b signed integer</td>
             <td colspan="3">register</td>
+            <td colspan="7">7b signed integer</td>
             <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">ld</span> <var>dest</var>, <var>address</var>, <var>offset</var></code>
+            <code class="asm_syntax"><span class="mnemonic">ld</span> <var>rd</var>, <var>address</var>, <var>offset</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>dest</var> = [<var>address</var> + <var>offset</var>]</code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = memory[<var>address</var> + <var>offset</var>]</code></pre>
       </section>
       <section id="instruction-st">
-        <h3>Store</h3>
+        <h3>Store to memory</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1218,152 +1120,24 @@
             <td colspan="1" rowspan="2">
               <code>1</code>
             </td>
-            <td colspan="7"><var>offset</var></td>
             <td colspan="3"><var>address</var></td>
-            <td colspan="3"><var>value</var></td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>rs</var></td>
           </tr>
           <tr>
+            <td colspan="3">register</td>
             <td colspan="7">7b signed integer</td>
             <td colspan="3">register</td>
-            <td colspan="3">register</td>
           </tr>
         </table>
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">st</span> <var>address</var>, <var>value</var>, <var>offset</var></code>
+            <code class="asm_syntax"><span class="mnemonic">st</span> <var>address</var>, <var>offset</var>, <var>rs</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode">[<var>address</var> + <var>offset</var>] = <var>value</var></code></pre>
-      </section>
-      <section id="instruction-jmp{condition}">
-        <h3>Absolute jump</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="3" rowspan="2">
-              <code>110</code>
-            </td>
-            <td colspan="1" rowspan="2">
-              <code>0</code>
-            </td>
-            <td colspan="3" rowspan="2"><a class="substitution" href="#substitution-condition">{condition}</a></td>
-            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
-            <td colspan="3"><var>address</var></td>
-            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
-          </tr>
-          <tr>
-            <td colspan="3">register</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?z</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?c</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?n</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?nz</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?nc</span> <var>address</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">jmp?nn</span> <var>address</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><span class="keyword">if</span> <a class="substitution" href="#substitution-condition">{condition}</a>: Pc = <var>address</var></code></pre>
-      </section>
-      <section id="instruction-rjmp{condition}">
-        <h3>Relative jump</h3>
-        <h4>Encoding</h4>
-        <table class="encoding">
-          <tr>
-            <th>15</th>
-            <th>14</th>
-            <th>13</th>
-            <th>12</th>
-            <th>11</th>
-            <th>10</th>
-            <th>9</th>
-            <th>8</th>
-            <th>7</th>
-            <th>6</th>
-            <th>5</th>
-            <th>4</th>
-            <th>3</th>
-            <th>2</th>
-            <th>1</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td colspan="3" rowspan="2">
-              <code>110</code>
-            </td>
-            <td colspan="1" rowspan="2">
-              <code>1</code>
-            </td>
-            <td colspan="3" rowspan="2"><a class="substitution" href="#substitution-condition">{condition}</a></td>
-            <td colspan="9"><var>jump_offset</var></td>
-          </tr>
-          <tr>
-            <td colspan="9">9b signed integer</td>
-          </tr>
-        </table>
-        <h4>Syntax</h4>
-        <ul class="asm_syntax">
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?z</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?c</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?n</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?nz</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?nc</span> <var>jump_offset</var></code>
-          </li>
-          <li>
-            <code class="asm_syntax"><span class="mnemonic">rjmp?nn</span> <var>jump_offset</var></code>
-          </li>
-        </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><span class="keyword">if</span> <a class="substitution" href="#substitution-condition">{condition}</a>: Pc += <var>jump_offset</var></code></pre>
+        <pre><code class="pseudocode">memory[<var>address</var> + <var>offset</var>] = <var>rs</var></code></pre>
       </section>
       <section id="instruction-ldcr">
         <h3>Load from control register</h3>
@@ -1388,15 +1162,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="4" rowspan="2">
-              <code>1110</code>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
             </td>
             <td colspan="1" rowspan="2">
               <code>0</code>
             </td>
             <td colspan="3"><var>cr</var></td>
-            <td class="placeholder" colspan="5" rowspan="2">ignored</td>
-            <td colspan="3"><var>a</var></td>
+            <td class="placeholder" colspan="6" rowspan="2">ignored</td>
+            <td colspan="3"><var>rd</var></td>
           </tr>
           <tr>
             <td colspan="3">control register</td>
@@ -1406,11 +1180,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">ldcr</span> <var>a</var>, <var>cr</var></code>
+            <code class="asm_syntax"><span class="mnemonic">ldcr</span> <var>rd</var>, <var>cr</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>a</var> = <var>cr</var></code></pre>
+        <pre><code class="pseudocode"><var>rd</var> = <var>cr</var></code></pre>
       </section>
       <section id="instruction-stcr">
         <h3>Store to control register</h3>
@@ -1435,15 +1209,15 @@
             <th>0</th>
           </tr>
           <tr>
-            <td colspan="4" rowspan="2">
-              <code>1110</code>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
             </td>
             <td colspan="1" rowspan="2">
               <code>1</code>
             </td>
             <td colspan="3"><var>cr</var></td>
-            <td class="placeholder" colspan="5" rowspan="2">ignored</td>
-            <td colspan="3"><var>a</var></td>
+            <td class="placeholder" colspan="6" rowspan="2">ignored</td>
+            <td colspan="3"><var>rs</var></td>
           </tr>
           <tr>
             <td colspan="3">control register</td>
@@ -1453,11 +1227,11 @@
         <h4>Syntax</h4>
         <ul class="asm_syntax">
           <li>
-            <code class="asm_syntax"><span class="mnemonic">stcr</span> <var>cr</var>, <var>a</var></code>
+            <code class="asm_syntax"><span class="mnemonic">stcr</span> <var>cr</var>, <var>rs</var></code>
           </li>
         </ul>
         <h4>Pseudocode</h4>
-        <pre><code class="pseudocode"><var>cr</var> = <var>a</var></code></pre>
+        <pre><code class="pseudocode"><var>cr</var> = <var>rs</var></code></pre>
       </section>
       <section id="instruction-syscall">
         <h3>Syscall</h3>
@@ -1501,9 +1275,194 @@
             <code class="asm_syntax"><span class="mnemonic">syscall</span> <var>code</var></code>
           </li>
         </ul>
-        <div class="note">
-          <h4>Note</h4><p>Uses the 9bit immediate (field 5), overlapping with zero bits from opcode.</p>
-        </div>
+      </section>
+      <section id="instruction-ja">
+        <h3>Jump absolute with link</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>001</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>link</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ja</span> <var>address</var>, <var>link</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>link</var> = Pc
+Pc = <var>address</var></code></pre>
+      </section>
+      <section id="instruction-j">
+        <h3>Jump relative with link</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="2" rowspan="2">
+              <code>01</code>
+            </td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>link</var></td>
+          </tr>
+          <tr>
+            <td colspan="7">7b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j</span> <var>offset</var>, <var>link</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>link</var> = Pc
+Pc += <var>offset</var></code></pre>
+      </section>
+      <section id="instruction-ldp">
+        <h3>Load from program memory</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>100</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ldp</span> <var>rd</var>, <var>address</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = program_memory[<var>address</var>]</code></pre>
+      </section>
+      <section id="instruction-st_cond">
+        <h3>Store to memory conditional</h3>
+        <div class="description"><p>Stores a value in memory unless the CPU was interrupted since last load</p></div>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>101</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>rs</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">st_cond</span> <var>address</var>, <var>rs</var></code>
+          </li>
+        </ul>
       </section>
       <section id="instruction-reti">
         <h3>Return from interrupt</h3>
@@ -1532,7 +1491,7 @@
               <code>1111</code>
             </td>
             <td colspan="3" rowspan="2">
-              <code>001</code>
+              <code>110</code>
             </td>
             <td class="placeholder" colspan="9" rowspan="2">ignored</td>
           </tr>
@@ -1544,9 +1503,6 @@
             <code class="asm_syntax"><span class="mnemonic">reti</span></code>
           </li>
         </ul>
-        <h4>Pseudocode</h4>
-        <pre><code class="pseudocode">Pc = IntPc
-<span class="keyword">apply</span> ContextID</code></pre>
       </section>
       <section id="instruction-break">
         <h3>Break</h3>
@@ -1600,19 +1556,12 @@
             <th>encoding</th>
           </tr>
           <tr>
-            <td>unconditional</td>
-            <td class="placeholder">empty</td>
-            <td>
-              <code>000</code>
-            </td>
-          </tr>
-          <tr>
             <td>if zero</td>
             <td>
               <code>?z</code>
             </td>
             <td>
-              <code>001</code>
+              <code>000</code>
             </td>
           </tr>
           <tr>
@@ -1621,7 +1570,7 @@
               <code>?c</code>
             </td>
             <td>
-              <code>010</code>
+              <code>001</code>
             </td>
           </tr>
           <tr>
@@ -1630,7 +1579,7 @@
               <code>?n</code>
             </td>
             <td>
-              <code>011</code>
+              <code>010</code>
             </td>
           </tr>
           <tr>
@@ -1639,7 +1588,7 @@
               <code>?nz</code>
             </td>
             <td>
-              <code>101</code>
+              <code>100</code>
             </td>
           </tr>
           <tr>
@@ -1648,7 +1597,7 @@
               <code>?nc</code>
             </td>
             <td>
-              <code>110</code>
+              <code>101</code>
             </td>
           </tr>
           <tr>
@@ -1657,7 +1606,7 @@
               <code>?nn</code>
             </td>
             <td>
-              <code>111</code>
+              <code>110</code>
             </td>
           </tr>
         </table>
