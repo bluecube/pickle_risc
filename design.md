@@ -1,5 +1,8 @@
 # Pickle RISC 16bit CPU
 
+This document contains notes about the hardware design that didn't fit anywhere else.
+As usual this is incomplete and slightly outdated.
+
 ## Basic design
 - 16bit
 - microcoded
@@ -25,6 +28,7 @@
             - 1b interrupt enabled flag
             - 1b kernel mode flag
             - 1b MMU enabled flag
+            - 1b sleep bit
             - ?b frequency selection (?)
     - ContextID
         - `2`
