@@ -20,7 +20,7 @@ As usual this is incomplete and slightly outdated.
             - 1b carry flag
             - 1b zero flag
             - 1b negative flag
-            - 1b overflow flag (?)
+            - 1b overflow flag
     - CpuStatus
         - `1`
         - RW

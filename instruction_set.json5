@@ -187,11 +187,60 @@ instructions: {
 
     // Branch (Prefix 011)
     // ===========================
-    "j{condition}": {
-        title: "Jump relative {condition}",
+    "j?z": {
+        title: "Jump if zero",
         args: {"offset": "s7"},
-        encoding: ["011", "{condition}", "offset", "xxx"],
-        pseudocode: "if {condition}: Pc += offset",
+        encoding: ["011", "000", "offset", "xxx"],
+        pseudocode: "if zero: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?!z": {
+        title: "Jump if not zero",
+        args: {"offset": "s7"},
+        encoding: ["011", "001", "offset", "xxx"],
+        pseudocode: "if !zero: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?c": {
+        title: "Jump if carry",
+        args: {"offset": "s7"},
+        encoding: ["011", "010", "offset", "xxx"],
+        pseudocode: "if carry: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?!c": {
+        title: "Jump if not carry",
+        args: {"offset": "s7"},
+        encoding: ["011", "011", "offset", "xxx"],
+        pseudocode: "if !carry: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?n": {
+        title: "Jump if negative",
+        args: {"offset": "s7"},
+        encoding: ["011", "100", "offset", "xxx"],
+        pseudocode: "if negative: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?!n": {
+        title: "Jump if not negative",
+        args: {"offset": "s7"},
+        encoding: ["011", "101", "offset", "xxx"],
+        pseudocode: "if !negative: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?o": {
+        title: "Jump if overflow",
+        args: {"offset": "s7"},
+        encoding: ["011", "110", "offset", "xxx"],
+        pseudocode: "if overflow: Pc += offset",
+        note: "Branch delay slot",
+    },
+    "j?!o": {
+        title: "Jump if not overflow",
+        args: {"offset": "s7"},
+        encoding: ["011", "111", "offset", "xxx"],
+        pseudocode: "if !overflow: Pc += offset",
         note: "Branch delay slot",
     },
 
@@ -237,7 +286,7 @@ instructions: {
         encoding: ["1111", "000", "code", "xxx"],
     },
     "ja": {
-        title: "Jump absolute with link",
+        title: "Absolute jump with link",
         args: {"address": "gpr", "link": "gpr"},
         encoding: ["1111", "001", "address", "xxx", "link"],
         pseudocode: [
@@ -246,7 +295,7 @@ instructions: {
         ],
     },
     "j": {
-        title: "Jump relative with link",
+        title: "Relative jump with link",
         args: {"offset": "s7", "link": "gpr"},
         encoding: ["1111", "01", "offset", "link"],
         pseudocode: [
@@ -276,44 +325,10 @@ instructions: {
         encoding: ["1111", "111", "xxxxxxxxx"],
     },
 },
-substitutions: {
-    condition: {
-        "?z": {
-            title: "if zero",
-            encoding: "000",
-            microcode: "zero",
-        },
-        "?c": {
-            title: "if carry",
-            encoding: "001",
-            microcode: "carry"
-        },
-        "?n": {
-            title: "if negative",
-            encoding: "010",
-            microcode: "negative"
-        },
-        /* Unused condition "011" */
-        "?nz": {
-            title: "if not zero",
-            encoding: "100",
-            microcode: "!zero"
-        },
-        "?nc": {
-            title: "if not carry",
-            encoding: "101",
-            microcode: "!carry"
-        },
-        "?nn": {
-            title: "if not negative",
-            encoding: "110",
-            microcode: "!negative"
-        },
-        /* Unused condition "111" */
-    },
-    // next_instruction: {
-    //    "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
-    // }
-}
+/*substitutions: {
+    next_instruction: {
+       "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
+    }
+}*/
 }
 

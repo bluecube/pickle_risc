@@ -28,10 +28,6 @@ def generate_mnemonic(name, link=True):
         return span(name, cls="mnemonic", __inline=True)
 
 
-def generate_substitution(name):
-    return a("{" + name + "}", href=f"#substitution-{name}", cls="substitution", __inline=True)
-
-
 @table(cls="encoding")
 def generate_encoding_table(encoding, args, menmonic):
     with tr():
@@ -44,10 +40,6 @@ def generate_encoding_table(encoding, args, menmonic):
                 td(code(piece), colspan=len(piece), rowspan=2)
             elif all(x == "x" for x in piece):
                 td("ignored", colspan=len(piece), rowspan=2, cls="placeholder")
-            elif piece[0] == "{" and piece[-1] == "}":
-                subst_name = piece[1:-1]
-                subst_size = len(next(iter(data["substitutions"][subst_name].values()))["encoding"])
-                td(generate_substitution(subst_name), colspan=subst_size, rowspan=2)
             elif piece in args:
                 arg_type = args[piece]
                 if arg_type == "gpr":
@@ -76,31 +68,18 @@ def generate_encoding_table(encoding, args, menmonic):
             td(arg_desc, colspan=arg_size)
 
 
-@ul(cls="asm_syntax")
-def generate_substituted_syntax(mnemonic, substitutions):
-    substituted_mnemonics = [mnemonic]
-    for subst_name, subst_details in substitutions.items():
-        subst_key = "{" + subst_name + "}"
-        if subst_key not in mnemonic:
-            continue
-        substituted_mnemonics = [
-            m.replace(subst_key, subst_value)
-            for m in substituted_mnemonics
-            for subst_value in subst_details.keys()
-        ]
-
-    for m in substituted_mnemonics:
-        with li():
-            asm_syntax_element = code(cls="asm_syntax")
-            asm_syntax_element += generate_mnemonic(m, link=False)
-            first_arg = True
-            for arg in instruction_args.keys():
-                if first_arg:
-                    asm_syntax_element += " "
-                    first_arg = False
-                else:
-                    asm_syntax_element += ", "
-                asm_syntax_element += generate_arg(arg)
+@p(cls="asm_syntax")
+def generate_syntax(mnemonic):
+    asm_syntax_element = code(cls="asm_syntax")
+    asm_syntax_element += generate_mnemonic(mnemonic, link=False)
+    first_arg = True
+    for arg in instruction_args.keys():
+        if first_arg:
+            asm_syntax_element += " "
+            first_arg = False
+        else:
+            asm_syntax_element += ", "
+        asm_syntax_element += generate_arg(arg)
 
 
 @pre
@@ -122,10 +101,7 @@ def generate_highlighted_pseudocode(pseudocode, args, all_instructions):
             if matched in args:
                 pseudocode_element += generate_arg(matched)
             elif matched in all_instructions:
-                # TODO: This cannot match substituted instructions
                 pseudocode_element += generate_mnemonic(matched)
-            elif matched[0] == "{":
-                pseudocode_element += generate_substitution(matched[1:-1])
             elif matched[0] == "#":
                 pseudocode_element += span(matched, cls="comment")
             elif matched in ["if", "else", "apply", "while"]:
@@ -168,7 +144,7 @@ with document.head:
             width: 50em;
         }
 
-        code, var, .substitution {
+        code, var {
             background-color: #eee;
             font-family: monospace;
             font-style: normal;
@@ -255,7 +231,7 @@ with document:
                 generate_encoding_table(details["encoding"], instruction_args, mnemonic)
 
                 h4("Syntax")
-                generate_substituted_syntax(mnemonic, data["substitutions"])
+                generate_syntax(mnemonic)
 
                 if "pseudocode" in details:
                     h4("Pseudocode")
@@ -271,24 +247,5 @@ with document:
                             h4("Note")
                             raw_html = markdown.markdown(note)
                             dominate.util.raw(raw_html)
-
-    with section():
-        h2("Substitutions")
-        for substitution, options in data["substitutions"].items():
-            with section(id="substitution-" + substitution):
-                h3("{" + substitution + "}")
-                with table():
-                    with tr():
-                        th("decription")
-                        th("syntax")
-                        th("encoding")
-                    for syntax, details in options.items():
-                        with tr():
-                            td(details["title"])
-                            if syntax:
-                                td(code(syntax))
-                            else:
-                                td("empty", cls="placeholder")
-                            td(code(details["encoding"]))
 
 args.output.write(document.render())
