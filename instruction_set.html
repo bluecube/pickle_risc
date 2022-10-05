@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pickle RISC instruction set</title>
+    <style type="text/css">
+        pre code {
+            display: block;
+            width: 50em;
+        }
+
+        code, var, .substitution {
+            background-color: #eee;
+            font-family: monospace;
+            font-style: normal;
+        }
+
+        var {
+            font-style: italic;
+        }
+
+        code .mnemonic {
+            font-weight: bold;
+            color: #00a;
+        }
+
+        code .comment {
+            color: #060;
+        }
+
+        code .keyword {
+            color: #700;
+        }
+
+        code .comment {
+            color: #080;
+        }
+
+        .placeholder {
+            color: #999;
+        }
+
+        .placeholder::before {
+            content: '\3C';
+        }
+
+        .placeholder::after {
+            content: '\3E';
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        table td {
+            padding-left: 1em;
+            padding-right: 1em;
+        }
+
+
+        table.encoding {
+            table-layout: fixed;
+        }
+
+        table.encoding td {
+            border: .01em solid black;
+            text-align: center;
+            padding: 0.2em;
+        }
+
+        table.encoding th {
+            font-weight: normal;
+            width: 2em;
+        }
+
+        ul.asm_syntax {
+            list-style: none;
+            padding: 0;
+        }
+
+    </style>
+  </head>
+  <body>
+    <h1>Pickle RISC instruction set</h1>
+    <section>
+      <h2>Instructions</h2>
+      <section id="instruction-addi">
+        <h3>Add immediate value to register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>000</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">addi</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> += <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-andi">
+        <h3>Bitwise and immediate value with register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>001</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">andi</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> &amp;= <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-ori">
+        <h3>Bitwise or immediate value with register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ori</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> |= <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-xori">
+        <h3>Bitwise xor immediate value with register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>011</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">xori</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> ^= <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-cmpi">
+        <h3>Compare immediate value with register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>100</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">cmpi</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">ignore_value(<var>r</var> - <var>immediate</var>)</code></pre>
+      </section>
+      <section id="instruction-ldi">
+        <h3>Load immediate value</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>101</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ldi</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-ldui">
+        <h3>Load immediate value to high byte</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>r</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ldui</span> <var>r</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>r</var> = <var>immediate</var> &lt;&lt; 8</code></pre>
+      </section>
+      <section id="instruction-addipc">
+        <h3>Add immediate value to program counter</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>00</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>111</code>
+            </td>
+            <td colspan="8"><var>immediate</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="8">8b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">addipc</span> <var>rd</var>, <var>immediate</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">r = Pc + <var>immediate</var></code></pre>
+      </section>
+      <section id="instruction-add">
+        <h3>Add</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0000</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">add</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> + <var>rs2</var></code></pre>
+      </section>
+      <section id="instruction-addc">
+        <h3>Add with carry</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0001</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">addc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> + <var>rs2</var> + carry</code></pre>
+      </section>
+      <section id="instruction-sub">
+        <h3>Subtract</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0010</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">sub</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> - <var>rs2</var></code></pre>
+      </section>
+      <section id="instruction-subc">
+        <h3>Subtract with carry</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0011</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">subc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> - <var>rs2</var> - carry</code></pre>
+      </section>
+      <section id="instruction-and">
+        <h3>Bitwise and</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0100</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">and</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> &amp; <var>rs2</var></code></pre>
+      </section>
+      <section id="instruction-or">
+        <h3>Bitwise or</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0101</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">or</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> | <var>rs2</var></code></pre>
+      </section>
+      <section id="instruction-xor">
+        <h3>Bitwise xor</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0110</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">xor</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>rs1</var> ^ <var>rs2</var></code></pre>
+      </section>
+      <section id="instruction-cmp">
+        <h3>Compare</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>0111</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">cmp</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">ignore_value(<var>rs1</var> - <var>rs2</var>)</code></pre>
+      </section>
+      <section id="instruction-hadd">
+        <h3>Halving add</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1000</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">hadd</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> + <var>rs2</var>) &gt;&gt; 1</code></pre>
+      </section>
+      <section id="instruction-haddc">
+        <h3>Halving add with carry</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1001</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">haddc</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> + <var>rs2</var> + carry &lt;&lt; 15) &gt;&gt; 1</code></pre>
+        <div class="note">
+          <h4>Note</h4><p><code>haddc</code> operation only sets carry from the least significant side, even though the operation may overflow on both sides! E.g. <code>haddc(0x8000, 0x8000)</code> with <code>carry = 1</code>, will result in carry not being set.</p>
+        </div>
+      </section>
+      <section id="instruction-upsample">
+        <h3>Upsample two 8bit values to 16bit</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1010</code>
+            </td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">upsample</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> &lt;&lt; 8) | (<var>rs2</var> &amp; 0xff)</code></pre>
+      </section>
+      <section id="instruction-j{condition}">
+        <h3>Jump relative</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>011</code>
+            </td>
+            <td colspan="3" rowspan="2"><a class="substitution" href="#substitution-condition">{condition}</a></td>
+            <td colspan="7"><var>offset</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+          </tr>
+          <tr>
+            <td colspan="7">7b signed integer</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?z</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?c</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?n</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?nz</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?nc</span> <var>offset</var></code>
+          </li>
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j?nn</span> <var>offset</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><span class="keyword">if</span> <a class="substitution" href="#substitution-condition">{condition}</a>: Pc += <var>offset</var></code></pre>
+        <div class="note">
+          <h4>Note</h4><p>Branch delay slot</p>
+        </div>
+      </section>
+      <section id="instruction-ld">
+        <h3>Load from memory</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>10</code>
+            </td>
+            <td colspan="1" rowspan="2">
+              <code>0</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="7">7b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ld</span> <var>rd</var>, <var>address</var>, <var>offset</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = memory[<var>address</var> + <var>offset</var>]</code></pre>
+      </section>
+      <section id="instruction-st">
+        <h3>Store to memory</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="2" rowspan="2">
+              <code>10</code>
+            </td>
+            <td colspan="1" rowspan="2">
+              <code>1</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>rs</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="7">7b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">st</span> <var>address</var>, <var>offset</var>, <var>rs</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode">memory[<var>address</var> + <var>offset</var>] = <var>rs</var></code></pre>
+      </section>
+      <section id="instruction-ldcr">
+        <h3>Load from control register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
+            </td>
+            <td colspan="1" rowspan="2">
+              <code>0</code>
+            </td>
+            <td colspan="3"><var>cr</var></td>
+            <td class="placeholder" colspan="6" rowspan="2">ignored</td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">control register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ldcr</span> <var>rd</var>, <var>cr</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = <var>cr</var></code></pre>
+      </section>
+      <section id="instruction-stcr">
+        <h3>Store to control register</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
+            </td>
+            <td colspan="1" rowspan="2">
+              <code>1</code>
+            </td>
+            <td colspan="3"><var>cr</var></td>
+            <td class="placeholder" colspan="6" rowspan="2">ignored</td>
+            <td colspan="3"><var>rs</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">control register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">stcr</span> <var>cr</var>, <var>rs</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>cr</var> = <var>rs</var></code></pre>
+      </section>
+      <section id="instruction-syscall">
+        <h3>Syscall</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>000</code>
+            </td>
+            <td colspan="6"><var>code</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+          </tr>
+          <tr>
+            <td colspan="6">6b unsigned integer</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">syscall</span> <var>code</var></code>
+          </li>
+        </ul>
+      </section>
+      <section id="instruction-ja">
+        <h3>Jump absolute with link</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>001</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>link</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ja</span> <var>address</var>, <var>link</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>link</var> = Pc
+Pc = <var>address</var></code></pre>
+      </section>
+      <section id="instruction-j">
+        <h3>Jump relative with link</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="2" rowspan="2">
+              <code>01</code>
+            </td>
+            <td colspan="7"><var>offset</var></td>
+            <td colspan="3"><var>link</var></td>
+          </tr>
+          <tr>
+            <td colspan="7">7b signed integer</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">j</span> <var>offset</var>, <var>link</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>link</var> = Pc
+Pc += <var>offset</var></code></pre>
+      </section>
+      <section id="instruction-ldp">
+        <h3>Load from program memory</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>100</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">ldp</span> <var>rd</var>, <var>address</var></code>
+          </li>
+        </ul>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = program_memory[<var>address</var>]</code></pre>
+      </section>
+      <section id="instruction-st_cond">
+        <h3>Store to memory conditional</h3>
+        <div class="description"><p>Stores a value in memory unless the CPU was interrupted since last load</p></div>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>101</code>
+            </td>
+            <td colspan="3"><var>address</var></td>
+            <td class="placeholder" colspan="3" rowspan="2">ignored</td>
+            <td colspan="3"><var>rs</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">st_cond</span> <var>address</var>, <var>rs</var></code>
+          </li>
+        </ul>
+      </section>
+      <section id="instruction-reti">
+        <h3>Return from interrupt</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>110</code>
+            </td>
+            <td class="placeholder" colspan="9" rowspan="2">ignored</td>
+          </tr>
+          <tr></tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">reti</span></code>
+          </li>
+        </ul>
+      </section>
+      <section id="instruction-break">
+        <h3>Break</h3>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="2">
+              <code>1111</code>
+            </td>
+            <td colspan="3" rowspan="2">
+              <code>111</code>
+            </td>
+            <td class="placeholder" colspan="9" rowspan="2">ignored</td>
+          </tr>
+          <tr></tr>
+        </table>
+        <h4>Syntax</h4>
+        <ul class="asm_syntax">
+          <li>
+            <code class="asm_syntax"><span class="mnemonic">break</span></code>
+          </li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <h2>Substitutions</h2>
+      <section id="substitution-condition">
+        <h3>{condition}</h3>
+        <table>
+          <tr>
+            <th>decription</th>
+            <th>syntax</th>
+            <th>encoding</th>
+          </tr>
+          <tr>
+            <td>if zero</td>
+            <td>
+              <code>?z</code>
+            </td>
+            <td>
+              <code>000</code>
+            </td>
+          </tr>
+          <tr>
+            <td>if carry</td>
+            <td>
+              <code>?c</code>
+            </td>
+            <td>
+              <code>001</code>
+            </td>
+          </tr>
+          <tr>
+            <td>if negative</td>
+            <td>
+              <code>?n</code>
+            </td>
+            <td>
+              <code>010</code>
+            </td>
+          </tr>
+          <tr>
+            <td>if not zero</td>
+            <td>
+              <code>?nz</code>
+            </td>
+            <td>
+              <code>100</code>
+            </td>
+          </tr>
+          <tr>
+            <td>if not carry</td>
+            <td>
+              <code>?nc</code>
+            </td>
+            <td>
+              <code>101</code>
+            </td>
+          </tr>
+          <tr>
+            <td>if not negative</td>
+            <td>
+              <code>?nn</code>
+            </td>
+            <td>
+              <code>110</code>
+            </td>
+          </tr>
+        </table>
+      </section>
+    </section>
+  </body>
+</html>

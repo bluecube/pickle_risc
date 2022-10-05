@@ -15,12 +15,8 @@
 - Most instruction single cycle
 
 ## State
-<!--
 - [Instruction set](http://htmlpreview.github.io/?https://github.com/bluecube/pickle_risc/blob/master/instruction_set.html)
--->
-- Instruction set
-    - Almost finished the revision, needs expanding into microcode
-    - Some complex instructions might be added later
+    - Needs expanding into microcode
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together

@@ -47,7 +47,7 @@ instructions = {
             # and or xor
             # cmp
             # hadd, haddc ( destination = (source1 + source2) >> 1, carry from the MSb, leaves from LSb )
-            # upsample (destination = source1 << 8 | (source2 & 0xff))
+            # upsample (destination = source2 << 8 | (source1 & 0xff))
     },
     "j": {
         "offset": (a_imm, caps["to_addr_offset"]),
