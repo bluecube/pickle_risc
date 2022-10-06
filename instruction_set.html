@@ -944,8 +944,8 @@
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> &lt;&lt; 8) | (<var>rs2</var> &amp; 0xff)</code></pre>
       </section>
-      <section id="instruction-j?z">
-        <h3>Jump if zero</h3>
+      <section id="instruction-bz">
+        <h3>Branch if zero</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -982,7 +982,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?z</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bz</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> zero: Pc += <var>offset</var></code></pre>
@@ -990,8 +990,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?!z">
-        <h3>Jump if not zero</h3>
+      <section id="instruction-bnz">
+        <h3>Branch if not zero</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1028,7 +1028,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?!z</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bnz</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> !zero: Pc += <var>offset</var></code></pre>
@@ -1036,8 +1036,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?c">
-        <h3>Jump if carry</h3>
+      <section id="instruction-bc">
+        <h3>Branch if carry</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1074,7 +1074,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?c</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bc</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> carry: Pc += <var>offset</var></code></pre>
@@ -1082,8 +1082,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?!c">
-        <h3>Jump if not carry</h3>
+      <section id="instruction-bnc">
+        <h3>Branch if not carry</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1120,7 +1120,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?!c</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bnc</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> !carry: Pc += <var>offset</var></code></pre>
@@ -1128,8 +1128,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?n">
-        <h3>Jump if negative</h3>
+      <section id="instruction-bn">
+        <h3>Branch if negative</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1166,7 +1166,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?n</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bn</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> negative: Pc += <var>offset</var></code></pre>
@@ -1174,8 +1174,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?!n">
-        <h3>Jump if not negative</h3>
+      <section id="instruction-bnn">
+        <h3>Branch if not negative</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1212,7 +1212,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?!n</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bnn</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> !negative: Pc += <var>offset</var></code></pre>
@@ -1220,8 +1220,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?o">
-        <h3>Jump if overflow</h3>
+      <section id="instruction-bo">
+        <h3>Branch if overflow</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1258,7 +1258,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?o</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bo</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> overflow: Pc += <var>offset</var></code></pre>
@@ -1266,8 +1266,8 @@
           <h4>Note</h4><p>Branch delay slot</p>
         </div>
       </section>
-      <section id="instruction-j?!o">
-        <h3>Jump if not overflow</h3>
+      <section id="instruction-bno">
+        <h3>Branch if not overflow</h3>
         <h4>Encoding</h4>
         <table class="encoding">
           <tr>
@@ -1304,7 +1304,7 @@
         </table>
         <h4>Syntax</h4>
         <p class="asm_syntax">
-          <code class="asm_syntax"><span class="mnemonic">j?!o</span> <var>offset</var></code>
+          <code class="asm_syntax"><span class="mnemonic">bno</span> <var>offset</var></code>
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><span class="keyword">if</span> !overflow: Pc += <var>offset</var></code></pre>

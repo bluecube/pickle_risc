@@ -187,57 +187,57 @@ instructions: {
 
     // Branch (Prefix 011)
     // ===========================
-    "j?z": {
-        title: "Jump if zero",
+    "bz": {
+        title: "Branch if zero",
         args: {"offset": "s7"},
         encoding: ["011", "000", "offset", "xxx"],
         pseudocode: "if zero: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?!z": {
-        title: "Jump if not zero",
+    "bnz": {
+        title: "Branch if not zero",
         args: {"offset": "s7"},
         encoding: ["011", "001", "offset", "xxx"],
         pseudocode: "if !zero: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?c": {
-        title: "Jump if carry",
+    "bc": {
+        title: "Branch if carry",
         args: {"offset": "s7"},
         encoding: ["011", "010", "offset", "xxx"],
         pseudocode: "if carry: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?!c": {
-        title: "Jump if not carry",
+    "bnc": {
+        title: "Branch if not carry",
         args: {"offset": "s7"},
         encoding: ["011", "011", "offset", "xxx"],
         pseudocode: "if !carry: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?n": {
-        title: "Jump if negative",
+    "bn": {
+        title: "Branch if negative",
         args: {"offset": "s7"},
         encoding: ["011", "100", "offset", "xxx"],
         pseudocode: "if negative: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?!n": {
-        title: "Jump if not negative",
+    "bnn": {
+        title: "Branch if not negative",
         args: {"offset": "s7"},
         encoding: ["011", "101", "offset", "xxx"],
         pseudocode: "if !negative: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?o": {
-        title: "Jump if overflow",
+    "bo": {
+        title: "Branch if overflow",
         args: {"offset": "s7"},
         encoding: ["011", "110", "offset", "xxx"],
         pseudocode: "if overflow: Pc += offset",
         note: "Branch delay slot",
     },
-    "j?!o": {
-        title: "Jump if not overflow",
+    "bno": {
+        title: "Branch if not overflow",
         args: {"offset": "s7"},
         encoding: ["011", "111", "offset", "xxx"],
         pseudocode: "if !overflow: Pc += offset",
