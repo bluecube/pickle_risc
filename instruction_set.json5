@@ -325,6 +325,10 @@ instructions: {
         encoding: ["1111", "111", "xxxxxxxxx"],
     },
 },
+"invalid_instruction": {
+    title: "Handler for unused / invalid instructions",
+    //TODO: microcode
+},
 /*substitutions: {
     next_instruction: {
        "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],

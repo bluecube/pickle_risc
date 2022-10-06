@@ -14,7 +14,7 @@ LDFLAGS = $(CFLAGS)
 
 DEPFLAGS = -MMD -MP -MF $(@:.o=.d)
 
-OFILES += build/instructions.o
+OFILES += build/instruction_handler.o
 
 $(PROG): $(OFILES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
@@ -34,11 +34,10 @@ build/%.o: build/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(DEPFLAGS) -I. -c -o $@ $<
 
-#build/instructions.c: ../instruction_set.json5
-#	@mkdir -p $(@D)
-#	./generate_instructions.py --header-name "instructions.h" -o $@ $<
-
-#build/instructions.c: generate_instructions.py
+build/instruction_handler.c: ../instruction_set.json5
+	@mkdir -p $(@D)
+	./generate_instruction_handler.py --header-name "instruction_handler.h" -o $@ $<
+build/instruction_handler.c: generate_instruction_handler.py
 
 -include $(DEPFILES)
 
