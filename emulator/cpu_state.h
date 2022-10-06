@@ -25,19 +25,19 @@ struct memory_mapping {
 };
 
 struct cpu_state {
-    uint16_t reg[8];
-    uint16_t pc;
+    word_t reg[8];
+    word_t pc;
 
-    uint16_t contextId;
-    uint16_t intPc;
-    uint16_t intCause;
-    uint16_t mmuAddr;
-    uint16_t tmp1;
-    uint16_t tmp2;
-    uint16_t aluFlags;
+    word_t contextId;
+    word_t intPc;
+    word_t intCause;
+    word_t mmuAddr;
+    word_t tmp1;
+    word_t tmp2;
+    word_t aluFlags;
 
-    uint16_t instruction;
-    uint16_t latchedInstruction;
+    word_t instruction;
+    word_t latchedInstruction;
 
     STACK_DECLARATION(struct memory_mapping) physicalMemory;
     int nextMappingId;

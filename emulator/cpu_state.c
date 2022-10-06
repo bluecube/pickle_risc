@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 static void reset_registers(struct cpu_state *state) {
-    for (uint16_t i = 0; i < ARRAY_SIZE(state->reg); ++i)
+    for (size_t i = 0; i < ARRAY_SIZE(state->reg); ++i)
         state->reg[i] = 0;
 
     state->pc = 0;
