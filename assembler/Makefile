@@ -36,12 +36,11 @@ build/%.o: build/%.c
 build/instructions.c: ../instruction_set.json5
 	@mkdir -p $(@D)
 	./generate_instructions.py --header-name "instructions.h" -o $@ $<
+build/instructions.c: generate_instructions.py
 
 build/%.hex: %.s $(PROG)
 	@mkdir -p $(@D)
 	$(PROG) -v -o $@ $<
-
-build/instructions.c: generate_instructions.py
 
 -include $(DEPFILES)
 

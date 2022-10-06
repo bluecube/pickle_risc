@@ -9,7 +9,6 @@ import copy
 instruction_bits = 16
 max_args = 3
 
-
 parser = argparse.ArgumentParser(description='Generate C instruction definitions')
 parser.add_argument('input', metavar='INPUT', type=argparse.FileType("r"),
                     help='Instruction definition file')
@@ -25,6 +24,7 @@ header_name = args.header_name
 
 outfile.write(f"#include \"{header_name}\"\n")
 outfile.write("#include <stddef.h>\n")
+outfile.write("\n")
 outfile.write("struct instruction instructions[] = {\n")
 
 for mnemonic, details in data["instructions"].items():
