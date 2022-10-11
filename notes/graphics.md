@@ -11,11 +11,15 @@ and implement the display server on a "real" computer.
 - High-ish resolution
 - GUI system similar to Windows 3.0 can be built on top of it
 - Fast enough for GUI and simple games
-    - Even when runnign over low bandwidth SLIP link
+    - Even when running over low bandwidth SLIP link
 
 # Design
 - 640x480 or 800x600 resolution (fixed?)
-- 64kB (or 64kW ?) graphics memory
+- Graphics memory
+    - 64kB at 4bpp is not enough even for single 640x480 screen!
+    - 64kW at 4bpp is slightly more than single 800x600 screen
+    - => 16bit pointers are not enough
+    - 2MB (1MW) might be a reasonable amount of overkill (17 full screens @ 800x600)
 - 16 sprites
     - Rendered with fixed Z order
         - Start pointer in graphics memory
@@ -27,7 +31,15 @@ and implement the display server on a "real" computer.
         - 90° rotations?
 - Commands:
     - Upload to graphics memory
+        - How to support transparent uploaded data?
+            - (useful  for client side text rendering)
     - Copy in graphics memory
+    - Draw primitives in graphics memory
+        - Axis aligned rectangles
+            - filled
+            - outlined
+        - Lines?
+        - Circles?
     - Set sprite parameters
 - Events:
     - Keyboard
