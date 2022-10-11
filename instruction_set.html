@@ -943,6 +943,56 @@
         </p>
         <h4>Pseudocode</h4>
         <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> &lt;&lt; 8) | (<var>rs2</var> &amp; 0xff)</code></pre>
+        <div class="note">
+          <h4>Note</h4><p>Encoding of this instruction has the source registers backwards compared to all other ALU instruction. This is because this functional unit is reused for <code>ldui</code> instruction and we need to have the upper byte come from the right bus.</p>
+        </div>
+      </section>
+      <section id="instruction-byteswap">
+        <h3>Swap bytes of words</h3>
+        <div class="description"><p>This instruction takes the middle word of the concatenation of the two source words (in big endian): <code>byteswap(0xaabb, 0xccdd) = 0xbbcc</code></p></div>
+        <h4>Encoding</h4>
+        <table class="encoding">
+          <tr>
+            <th>15</th>
+            <th>14</th>
+            <th>13</th>
+            <th>12</th>
+            <th>11</th>
+            <th>10</th>
+            <th>9</th>
+            <th>8</th>
+            <th>7</th>
+            <th>6</th>
+            <th>5</th>
+            <th>4</th>
+            <th>3</th>
+            <th>2</th>
+            <th>1</th>
+            <th>0</th>
+          </tr>
+          <tr>
+            <td colspan="3" rowspan="2">
+              <code>010</code>
+            </td>
+            <td colspan="4" rowspan="2">
+              <code>1011</code>
+            </td>
+            <td colspan="3"><var>rs2</var></td>
+            <td colspan="3"><var>rs1</var></td>
+            <td colspan="3"><var>rd</var></td>
+          </tr>
+          <tr>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+            <td colspan="3">register</td>
+          </tr>
+        </table>
+        <h4>Syntax</h4>
+        <p class="asm_syntax">
+          <code class="asm_syntax"><span class="mnemonic">byteswap</span> <var>rd</var>, <var>rs1</var>, <var>rs2</var></code>
+        </p>
+        <h4>Pseudocode</h4>
+        <pre><code class="pseudocode"><var>rd</var> = (<var>rs1</var> &lt;&lt; 8) | (<var>rs2</var> &gt;&gt; 8)</code></pre>
       </section>
       <section id="instruction-bz">
         <h3>Branch if zero</h3>

@@ -33,8 +33,6 @@ these need to be implemented in HW to decode the instructions
 */
 
 
-// NOTE: The following is still out of date!
-
 {
 instructions: {
     // Immediate operations (Prefix 00)
@@ -182,8 +180,16 @@ instructions: {
         args: {"rd": "gpr", "rs1": "gpr", "rs2": "gpr"},
         encoding: ["010", "1010", "rs1", "rs2", "rd"],
         pseudocode: "rd = (rs1 << 8) | (rs2 & 0xff)",
+        note: "Encoding of this instruction has the source registers backwards compared to all other ALU instruction. This is because this functional unit is reused for `ldui` instruction and we need to have the upper byte come from the right bus."
     },
-    // Free opcodes ["010", "1011"] - ["010", "1111"]
+    "byteswap": {
+        title: "Swap bytes of words",
+        description: "This instruction takes the middle word of the concatenation of the two source words (in big endian): `byteswap(0xaabb, 0xccdd) = 0xbbcc`",
+        args: {"rd": "gpr", "rs1": "gpr", "rs2": "gpr"},
+        encoding: ["010", "1011", "rs2", "rs1", "rd"],
+        pseudocode: "rd = (rs1 << 8) | (rs2 >> 8)",
+    },
+    // Free opcodes ["010", "1100"] - ["010", "1111"]
 
     // Branch (Prefix 011)
     // ===========================
