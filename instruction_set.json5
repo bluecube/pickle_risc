@@ -52,7 +52,7 @@ instructions: {
         encoding: ["00", "001", "immediate", "r"],
         pseudocode: "r &= immediate",
         microcode: [
-            ["f2->left", "f5->right", "alu_and->result", "result->f1", "{next_instruction}", "end_instruction"]
+            ["f2->left", "f7->right", "alu_and->result", "result->f1", "{next_instruction}", "end_instruction"]
         ]
     },
     "ori": {
@@ -331,13 +331,10 @@ instructions: {
         encoding: ["1111", "111", "xxxxxxxxx"],
     },
 },
-"invalid_instruction": {
-    title: "Handler for unused / invalid instructions",
-    //TODO: microcode
-},
+//"invalid_instruction_microcode": [[]] //TODO: microcode
 /*substitutions: {
     next_instruction: {
-       "microcode": ["pc->address", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
+       "microcode": ["pc->addr_base", "1->addr_offset", "mem_address->pc", "read->mem_data", "mem_data->instruction"],
     }
 }*/
 }
