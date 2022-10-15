@@ -161,6 +161,7 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
 
     let mut target = File::create(target_path)?;
 
+    writeln!(target, "#[allow(unreachable_code)]")?;
     writeln!(target, "match opcode >> {} {{", instruction_bits - opcode_bits)?;
     let opcode_table = make_opcode_table(&definition, opcode_bits, instruction_bits)?;
     for (count, (first_opcode, instruction)) in opcode_table
@@ -236,7 +237,7 @@ fn generate_microcode_step(step: usize, microcode: &Vec<String>, target: &mut fs
     const INDENT: &str = "        ";
 
     writeln!(target, "{}{{ // Microcode step {}", INDENT, step)?;
-    writeln!(target, "{}    let mut segment = VirtualMemorySegment::DataSegment;", INDENT)?;
+    writeln!(target, "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::DataSegment;", INDENT)?;
 
     let mut microinstructions = microcode.iter()
         .map(|microinstruction| translate_microinstruction(microinstruction))
