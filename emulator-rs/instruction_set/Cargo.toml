@@ -1,0 +1,11 @@
+[package]
+name = "instruction_set"
+description = "Helper crate for parsing Pickle RISC instruction set definition json5"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+json5 = "0.4.1"
+serde = { version = "1.0.145", features = ["derive"] }
+thiserror = "1.0.37"
+anyhow = "1.0.65"

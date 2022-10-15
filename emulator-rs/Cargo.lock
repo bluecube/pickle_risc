@@ -137,6 +137,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "instruction_set"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "json5",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "iset"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,12 +269,11 @@ name = "pickle-emu"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "instruction_set",
  "iset",
  "itertools",
- "json5",
  "num_enum",
  "proptest",
- "serde",
  "test-strategy",
  "thiserror",
  "ux",
