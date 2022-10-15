@@ -147,12 +147,20 @@ impl CpuState {
         todo!();
     }
 
-    fn read_memory_virt(&self, address: VirtualMemoryAddress) -> Word {
-        todo!();
+    fn read_memory_virt(&self, address: VirtualMemoryAddress) -> anyhow::Result<Word> {
+        if let Some(physical_address) = self.map_memory(address, false) {
+            self.read_memory_phys(physical_address)
+        } else {
+            todo!("Interrupt");
+        }
     }
 
-    fn write_memory_virt(&mut self, address: VirtualMemoryAddress, value: Word) {
-        todo!();
+    fn write_memory_virt(&mut self, address: VirtualMemoryAddress, value: Word) -> anyhow::Result<()> {
+        if let Some(physical_address) = self.map_memory(address, true) {
+            self.write_memory_phys(physical_address, value)
+        } else {
+            todo!("Interrupt");
+        }
     }
 
     fn read_memory_phys(&self, address: PhysicalMemoryAddress) -> anyhow::Result<Word> {
@@ -201,7 +209,7 @@ impl CpuState {
         self.page_table[usize::from(page_table_index)] = record;
     }
 
-    fn step(&mut self, opcode: Word) {
+    fn step(&mut self, opcode: Word) -> anyhow::Result<()> {
         include!(concat!(env!("OUT_DIR"), "/instruction_handler.rs"));
     }
 }
