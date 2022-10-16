@@ -4,16 +4,14 @@ use thiserror::Error;
 use num_enum::{TryFromPrimitive, IntoPrimitive};
 use ux::*; // Non-standard integer types
 
-
-macro_rules! field {
-    ($e:expr, $bits:expr) => { (($e) & ((1 << $bits) - 1)).try_into().expect("Should fit because of the mask size") }
-}
+use crate::util::*;
 
 type Word = u16;
 type PhysicalMemoryAddress = u32;
 type ContextId = u6;
 type GprIndex = u3;
 type CrIndex = u3;
+type PageOffset = u10;
 
 #[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
 #[repr(u16)]
@@ -22,17 +20,15 @@ enum VirtualMemorySegment {
     ProgramSegment = 1,
 }
 
-const PAGE_SIZE_BITS: u32 = 10;
-
 #[derive(Copy, Clone, Debug)]
 struct VirtualMemoryAddress(u16, VirtualMemorySegment);
 
 impl VirtualMemoryAddress {
     /// Split address into page number and offset within the page
-    fn split_page_offset(&self) -> (u6, u32) {
+    fn split_page_offset(&self) -> (u6, PageOffset) {
         (
-            (self.0 >> PAGE_SIZE_BITS).try_into().expect("Should be limited by range of the input u16"),
-            field!(self.0, PAGE_SIZE_BITS)
+            (self.0 >> PageOffset::BITS).try_into().expect("Should be limited by range of the input u16"),
+            field!(self.0, PageOffset)
         )
     }
 }
@@ -70,13 +66,13 @@ impl From<Word> for PageTableIndex {
     fn from(v: Word) -> Self {
         let mut vv = v;
 
-        let page_number: u6 = field!(vv, 6);
+        let page_number = field!(vv, u6);
         vv >>= 6;
 
         let segment: VirtualMemorySegment = (vv & 1).try_into().unwrap();
         vv >>= 1;
 
-        let context_id: u6 = field!(vv, 6);
+        let context_id = field!(vv, u6);
 
         PageTableIndex{ context_id, segment, page_number }
     }
@@ -95,7 +91,7 @@ impl From<Word> for PageTableRecord {
     fn from(v: Word) -> PageTableRecord {
         let mut vv = v;
 
-        let frame_number: u14 = field!(vv, 14);
+        let frame_number = field!(vv, u14);
         vv >>= 14;
 
         let writable = (vv & 1) != 0;
@@ -133,17 +129,17 @@ impl CpuState {
         }
     }
 
-    fn set_gpr(&mut self, index: GprIndex, value: Word) {
+    pub fn set_gpr(&mut self, index: GprIndex, value: Word) {
         if index > GprIndex::new(0) {
             self.gpr[usize::try_from(index).unwrap() - 1] = value
         }
     }
 
-    fn get_cr(&self, index: CrIndex) -> Word {
+    pub fn get_cr(&self, index: CrIndex) -> Word {
         todo!();
     }
 
-    fn set_cr(&mut self, index: CrIndex, value: Word) {
+    pub fn set_cr(&mut self, index: CrIndex, value: Word) {
         todo!();
     }
 
@@ -199,7 +195,7 @@ impl CpuState {
             None
         } else {
             Some(
-                PhysicalMemoryAddress::from(page.frame_number) << PAGE_SIZE_BITS |
+                PhysicalMemoryAddress::from(page.frame_number) << PageOffset::BITS |
                 PhysicalMemoryAddress::from(page_offset)
             )
         }
@@ -209,7 +205,7 @@ impl CpuState {
         self.page_table[usize::from(page_table_index)] = record;
     }
 
-    fn step(&mut self, opcode: Word) -> anyhow::Result<()> {
+    pub fn step(&mut self, opcode: Word) -> anyhow::Result<()> {
         include!(concat!(env!("OUT_DIR"), "/instruction_handler.rs"));
     }
 }
@@ -223,39 +219,4 @@ pub enum EmulatorError {
 pub trait MemoryMapping: std::fmt::Debug {
     fn read(&self, address: PhysicalMemoryAddress) -> anyhow::Result<Word>;
     fn write(&mut self, address: PhysicalMemoryAddress, value: Word) -> anyhow::Result<()>;
-}
-
-fn sign_extend(value: u16, bits: u32) -> u16 {
-    assert_eq!(value >> bits, 0);
-    let m = 1 << (bits - 1);
-    (value ^ m).wrapping_sub(m)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use proptest::prelude::*;
-    use test_strategy::proptest;
-
-    #[test]
-    fn test_sign_extend_examples() {
-        assert_eq!(sign_extend(0b10, 2), 0xfffe);
-        assert_eq!(sign_extend(0b01, 2), 0b01);
-    }
-
-    #[proptest]
-    fn test_sign_extend_complete(
-        #[strategy((2u16..=15u16).prop_flat_map(|bits| (
-            Just(bits),
-            (-1i16 << (bits - 1))..=(((1u16 << (bits - 1)) - 1) as i16)
-        )))]
-        bits_num: (u16, i16)
-    ) {
-        let (bits, num) = bits_num;
-        let mask = (1u16 << bits) - 1;
-        println!("bits: {} => {:?} => {}", bits, (-1i16 << (bits - 1))..=(((1u16 << (bits - 1)) - 1) as i16), num);
-
-        let unsigned = num as u16;
-        assert_eq!(sign_extend(unsigned & mask, bits), unsigned);
-    }
 }

@@ -128,12 +128,12 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "pc->left" => ("let left_bus = self.pc;", 0),
         "pc->addr_base" => ("let addr_base_bus = self.pc;", 0),
         "zero->left" => ("let left_bus = 0;", 0),
-        "f2->left" => ("let left_bus = self.get_gpr(field!(opcode, 3));", 0),
-        "f3->left" => ("let left_bus = self.get_gpr(field!(opcode >> 3, 3));", 0),
-        "f4->right" => ("let right_bus = self.get_gpr(field!(opcode >> 6, 3));", 0),
-        "f5->right" => ("let right_bus = self.get_gpr(field!(opcode >> 10, 3));", 0),
-        "f6->right" => ("let right_bus = self.get_cr(field!(opcode >> 9, 3));", 0),
-        "f7->right" => ("let right_bus = sign_extend(field!(opcode >> 3, 8), 8);", 0),
+        "f2->left" => ("let left_bus = self.get_gpr(field!(opcode, GprIndex));", 0),
+        "f3->left" => ("let left_bus = self.get_gpr(field!(opcode >> 3, GprIndex));", 0),
+        "f4->right" => ("let right_bus = self.get_gpr(field!(opcode >> 6, GprIndex));", 0),
+        "f5->right" => ("let right_bus = self.get_gpr(field!(opcode >> 10, GprIndex));", 0),
+        "f6->right" => ("let right_bus = self.get_cr(field!(opcode >> 9, CrIndex));", 0),
+        "f7->right" => ("let right_bus = sign_extend_field(opcode >> 3, 8);", 0),
 
         "right->addr_base" => ("let addr_base_bus = right_bus;", 1),
         "left->mem_data" => ("let mem_data = left_bus;", 1),
@@ -145,7 +145,7 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "alu_sub->result" => ("let result_bus = left_bus.wrapping_sub(right_bus);", 1),
         "alu_upsample->result" => ("let result_bus = (left_bus & 0xff) | (right_bus & 0xff) << 8;", 1),
 
-        "f8->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(sign_extend((opcode >> 3) & 0x7F, 7));", 2),
+        "f8->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(sign_extend_field(opcode >> 3, 7));", 2),
         "zero->addr_offset" => ("let mem_address = addr_base_bus;", 2),
         "one->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(1);", 2),
 
@@ -156,8 +156,8 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "mem_data->instruction" => ("self.next_opcode = mem_data;", 4),
         "mem_data->result" => ("let result_bus = mem_data;", 4),
 
-        "result->f1" => ("self.set_gpr(field!(opcode, 3), result_bus);", 5),
-        "result->f6" => ("self.set_cr(field!(opcode >> 9, 3), result_bus);", 5),
+        "result->f1" => ("self.set_gpr(field!(opcode, GprIndex), result_bus);", 5),
+        "result->f6" => ("self.set_cr(field!(opcode >> 9, CrIndex), result_bus);", 5),
         _ => ("todo!();", 9999)
     };
     (format!("{} // {}", code, microinstruction), priority)

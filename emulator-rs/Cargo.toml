@@ -11,6 +11,7 @@ thiserror = "1.0.37"
 #ux = "0.1.5"
 ux = { git = "https://github.com/bluecube/uX.git", branch = "pr-bits" }
 num_enum = "0.5.7"
+more-asserts = "0.3.1"
 
 [dev-dependencies]
 test-strategy = "0.2.1"
