@@ -1,3 +1,5 @@
+//! Utilities that don't fit anywhere else
+
 use more_asserts::*;
 
 /// Takes `type::BITS` least significant bits and converts them to `type` using

@@ -103,7 +103,7 @@ fn generate_microcode_step(step: usize, microcode: &Vec<String>, target: &mut Fi
     const INDENT: &str = "        ";
 
     writeln!(target, "{}{{ // Microcode step {}", INDENT, step)?;
-    writeln!(target, "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::DataSegment;", INDENT)?;
+    writeln!(target, "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;", INDENT)?;
 
     let mut microinstructions: Vec<(String, usize)> = microcode.iter()
         .map(|microinstruction| translate_microinstruction(microinstruction))
@@ -128,11 +128,11 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "pc->left" => ("let left_bus = self.pc;", 0),
         "pc->addr_base" => ("let addr_base_bus = self.pc;", 0),
         "zero->left" => ("let left_bus = 0;", 0),
-        "f2->left" => ("let left_bus = self.get_gpr(field!(opcode, GprIndex));", 0),
-        "f3->left" => ("let left_bus = self.get_gpr(field!(opcode >> 3, GprIndex));", 0),
-        "f4->right" => ("let right_bus = self.get_gpr(field!(opcode >> 6, GprIndex));", 0),
-        "f5->right" => ("let right_bus = self.get_gpr(field!(opcode >> 10, GprIndex));", 0),
-        "f6->right" => ("let right_bus = self.get_cr(field!(opcode >> 9, CrIndex));", 0),
+        "f2->left" => ("let left_bus = self.get_gpr(field!(opcode, Gpr));", 0),
+        "f3->left" => ("let left_bus = self.get_gpr(field!(opcode >> 3, Gpr));", 0),
+        "f4->right" => ("let right_bus = self.get_gpr(field!(opcode >> 6, Gpr));", 0),
+        "f5->right" => ("let right_bus = self.get_gpr(field!(opcode >> 10, Gpr));", 0),
+        "f6->right" => ("let right_bus = self.get_cr(field!(opcode >> 9, ControlRegister));", 0),
         "f7->right" => ("let right_bus = sign_extend_field(opcode >> 3, 8);", 0),
 
         "right->addr_base" => ("let addr_base_bus = right_bus;", 1),
@@ -156,8 +156,8 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "mem_data->instruction" => ("self.next_opcode = mem_data;", 4),
         "mem_data->result" => ("let result_bus = mem_data;", 4),
 
-        "result->f1" => ("self.set_gpr(field!(opcode, GprIndex), result_bus);", 5),
-        "result->f6" => ("self.set_cr(field!(opcode >> 9, CrIndex), result_bus);", 5),
+        "result->f1" => ("self.set_gpr(field!(opcode, Gpr), result_bus);", 5),
+        "result->f6" => ("self.set_cr(field!(opcode >> 9, ControlRegister), result_bus);", 5),
         _ => ("todo!();", 9999)
     };
     (format!("{} // {}", code, microinstruction), priority)
