@@ -235,10 +235,27 @@ fn sign_extend(value: u16, bits: u32) -> u16 {
 mod tests {
     use super::*;
     use proptest::prelude::*;
+    use test_strategy::proptest;
 
     #[test]
-    fn sign_extend_examples() {
+    fn test_sign_extend_examples() {
         assert_eq!(sign_extend(0b10, 2), 0xfffe);
         assert_eq!(sign_extend(0b01, 2), 0b01);
+    }
+
+    #[proptest]
+    fn test_sign_extend_complete(
+        #[strategy((2u16..=15u16).prop_flat_map(|bits| (
+            Just(bits),
+            (-1i16 << (bits - 1))..=(((1u16 << (bits - 1)) - 1) as i16)
+        )))]
+        bits_num: (u16, i16)
+    ) {
+        let (bits, num) = bits_num;
+        let mask = (1u16 << bits) - 1;
+        println!("bits: {} => {:?} => {}", bits, (-1i16 << (bits - 1))..=(((1u16 << (bits - 1)) - 1) as i16), num);
+
+        let unsigned = num as u16;
+        assert_eq!(sign_extend(unsigned & mask, bits), unsigned);
     }
 }
