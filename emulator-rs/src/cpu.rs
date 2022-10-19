@@ -16,9 +16,9 @@ pub struct CpuState {
     int_cause: Word,
     mmu_addr: Word,
 
-    page_table: [PageTableRecord; PageTableIndex::MAX + 1],
+    page_table: [PageTableRecord; 1 << PageTableIndex::BITS],
 
-    physical_memory: IntervalMap<PhysicalMemoryAddress, Box<dyn MemoryMapping>>,
+    physical_memory: IntervalMap<u32, Box<dyn MemoryMapping>>,
 }
 
 impl CpuState {
@@ -44,51 +44,52 @@ impl CpuState {
         todo!();
     }
 
-    fn read_memory_virt(&self, address: VirtualMemoryAddress) -> anyhow::Result<Word> {
-        if let Some(physical_address) = self.map_memory(address, false) {
-            self.read_memory_phys(physical_address)
+    fn read_memory_virt(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment) -> anyhow::Result<Word> {
+        if let Some(physical_address) = self.map_memory(address, segment, false) {
+            self.read_memory_phys(&physical_address)
         } else {
             todo!("Interrupt");
         }
     }
 
-    fn write_memory_virt(&mut self, address: VirtualMemoryAddress, value: Word) -> anyhow::Result<()> {
-        if let Some(physical_address) = self.map_memory(address, true) {
-            self.write_memory_phys(physical_address, value)
+    fn write_memory_virt(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, value: Word) -> anyhow::Result<()> {
+        if let Some(physical_address) = self.map_memory(address, segment, true) {
+            self.write_memory_phys(&physical_address, value)
         } else {
             todo!("Interrupt");
         }
     }
 
-    fn read_memory_phys(&self, address: PhysicalMemoryAddress) -> anyhow::Result<Word> {
+    fn read_memory_phys(&self, address: &PhysicalMemoryAddress) -> anyhow::Result<Word> {
+        let a = address.into();
         let (mapping_range, mapping) = self.physical_memory
-            .overlap(address)
+            .overlap(a)
             .at_most_one()
             .expect("Memory mappings should not overlap")
-            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address, pc: self.pc })?;
+            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address: *address, pc: self.pc })?;
 
-        mapping.read(address - mapping_range.start)
+        mapping.read(a - mapping_range.start)
     }
 
-    fn write_memory_phys(&mut self, address: PhysicalMemoryAddress, value: Word) -> anyhow::Result<()> {
+    fn write_memory_phys(&mut self, address: &PhysicalMemoryAddress, value: Word) -> anyhow::Result<()> {
+        let a = address.into();
         let (mapping_range, mapping) = self.physical_memory
-            .overlap_mut(address)
+            .overlap_mut(a)
             .at_most_one()
             .expect("Memory mappings should not overlap")
-            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address, pc: self.pc })?;
+            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address: *address, pc: self.pc })?;
 
-        mapping.write(address - mapping_range.start, value)
+        mapping.write(a - mapping_range.start, value)
     }
 
-    fn map_memory(&self, address: VirtualMemoryAddress, write: bool) -> Option<PhysicalMemoryAddress> {
-        let (page_number, page_offset) = address.split_page_offset();
+    fn map_memory(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, write: bool) -> Option<PhysicalMemoryAddress> {
         let page_table_index = PageTableIndex {
             context_id: self.context_id,
-            segment: address.1,
-            page_number: page_number.into()
+            segment: *segment,
+            page_number: address.page_number
         };
 
-        let page = self.page_table[usize::from(page_table_index)];
+        let page = self.page_table[usize::from(&page_table_index)];
 
         if write && !page.writable {
             None
@@ -96,13 +97,15 @@ impl CpuState {
             None
         } else {
             Some(
-                PhysicalMemoryAddress::from(page.frame_number) << PageOffset::BITS |
-                PhysicalMemoryAddress::from(page_offset)
+                PhysicalMemoryAddress {
+                    frame_number: page.frame_number,
+                    offset: address.offset
+                }
             )
         }
     }
 
-    fn write_memory_mapping(&mut self, page_table_index: PageTableIndex, record: PageTableRecord) {
+    fn write_memory_mapping(&mut self, page_table_index: &PageTableIndex, record: PageTableRecord) {
         self.page_table[usize::from(page_table_index)] = record;
     }
 
@@ -112,6 +115,6 @@ impl CpuState {
 }
 
 pub trait MemoryMapping: std::fmt::Debug {
-    fn read(&self, address: PhysicalMemoryAddress) -> anyhow::Result<Word>;
-    fn write(&mut self, address: PhysicalMemoryAddress, value: Word) -> anyhow::Result<()>;
+    fn read(&self, address: u32) -> anyhow::Result<Word>;
+    fn write(&mut self, address: u32, value: Word) -> anyhow::Result<()>;
 }
