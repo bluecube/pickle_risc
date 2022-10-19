@@ -53,4 +53,15 @@ mod tests {
 
         assert_eq!(sign_extend_field(input, field_bits), unsigned);
     }
+
+    #[proptest]
+    fn test_field_u8(n: u16) {
+        assert_eq!(field!(n, u8), (n & 0xff) as u8);
+    }
+
+    #[proptest]
+    fn test_field_u3(n: u16) {
+        use ux::*;
+        assert_eq!(field!(n, u3), u3::new((n & 0x7) as u8));
+    }
 }
