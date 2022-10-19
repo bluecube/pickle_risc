@@ -16,6 +16,9 @@ pub struct CpuState {
     int_cause: Word,
     mmu_addr: Word,
 
+    current_instruction: Word,
+    next_instruction: Word,
+
     page_table: [PageTableRecord; 1 << PageTableIndex::BITS],
 
     physical_memory: IntervalMap<u32, Box<dyn MemoryMapping>>,
@@ -111,6 +114,7 @@ impl CpuState {
 
     pub fn step(&mut self, opcode: Word) -> anyhow::Result<()> {
         include!(concat!(env!("OUT_DIR"), "/instruction_handler.rs"));
+        Ok(())
     }
 }
 

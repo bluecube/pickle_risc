@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -8,7 +9,8 @@ use indexmap::IndexMap;
 #[derive(Deserialize, Debug)]
 pub struct InstructionSet {
     pub instructions: IndexMap<String, Instruction>,
-    pub invalid_instruction_microcode: Option<Vec<Vec<String>>>
+    pub invalid_instruction_microcode: Option<Vec<Vec<String>>>,
+    pub substitutions: HashMap<String, Vec<String>>
 }
 
 impl InstructionSet {

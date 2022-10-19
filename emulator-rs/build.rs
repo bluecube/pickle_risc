@@ -4,7 +4,10 @@ use std::io::Write;
 use std::path::Path;
 use std::iter::repeat;
 use std::ops::Range;
+use std::collections::HashMap;
 
+use either;
+use thiserror::Error;
 use itertools::Itertools;
 use anyhow;
 use instruction_set::{InstructionSet, Instruction};
@@ -45,6 +48,7 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
             } else {
                 &definition.invalid_instruction_microcode
             },
+            &definition.substitutions,
             &mut target
         )?;
     }
@@ -79,6 +83,7 @@ fn generate_opcode_match_arm(
     mnemonic: Option<&str>,
     opcodes: Range<usize>,
     microcode: &Option<Vec<Vec<String>>>,
+    substitutions: &HashMap<String, Vec<String>>,
     target: &mut File
 ) -> anyhow::Result<()> {
     if opcodes.len() == 1 {
@@ -89,7 +94,7 @@ fn generate_opcode_match_arm(
     writeln!(target, "        // {}", mnemonic.unwrap_or("invalid instruction"))?;
     if let Some(microcode) = microcode {
         for (i, microcode_step) in microcode.iter().enumerate() {
-            generate_microcode_step(i, microcode_step, target)?;
+            generate_microcode_step(i, microcode_step, substitutions, target)?;
         }
     } else {
         writeln!(target, "        todo!(); // Missing microcode!")?;
@@ -99,17 +104,24 @@ fn generate_opcode_match_arm(
     Ok(())
 }
 
-fn generate_microcode_step(step: usize, microcode: &Vec<String>, target: &mut File) -> anyhow::Result<()> {
+fn generate_microcode_step(
+    step: usize,
+    microcode: &Vec<String>,
+    substitutions: &HashMap<String, Vec<String>>,
+    target: &mut File
+) -> anyhow::Result<()> {
     const INDENT: &str = "        ";
 
     writeln!(target, "{}{{ // Microcode step {}", INDENT, step)?;
     writeln!(target, "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;", INDENT)?;
 
-    let mut microinstructions: Vec<(String, usize)> = microcode.iter()
-        .map(|microinstruction| translate_microinstruction(microinstruction))
-        .collect();
-
-    microinstructions.sort_by(|(_, priority1), (_, priority2)| priority1.cmp(priority2));
+    let mut microinstructions: Vec<(String, usize)> = Vec::new();
+    for microinstruction in microcode {
+        for expanded in substitute_microinstruction(microinstruction, substitutions)? {
+            microinstructions.push(translate_microinstruction(expanded)?);
+        }
+    }
+    microinstructions.sort_by(|(_, phase1), (_, phase2)| phase1.cmp(phase2));
 
     for (code, _) in microinstructions {
         writeln!(target, "{}    {}", INDENT, code)?;
@@ -121,9 +133,21 @@ fn generate_microcode_step(step: usize, microcode: &Vec<String>, target: &mut Fi
     Ok(())
 }
 
-/// Parse a microinstruction, returns rust code to emulate it, and its priority
+fn substitute_microinstruction<'a>(microinstruction: &'a str, substitutions: &'a HashMap<String, Vec<String>>) -> Result<impl Iterator<Item = &'a str>, CodegenError> {
+    if microinstruction.starts_with("$") {
+        if let Some(subst) = substitutions.get(&microinstruction[1..]) {
+            Ok(either::Left(subst.into_iter().map(|x| x.as_str())))
+        } else {
+            Err(CodegenError::BadSubstitution(microinstruction.to_owned()))
+        }
+    } else {
+        Ok(either::Right(std::iter::once(microinstruction)))
+    }
+}
+
+/// Parse a microinstruction, returns rust code to emulate it, and its phase
 /// (to produce microinstructions that produce value before the ones that consume them)
-fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
+fn translate_microinstruction(microinstruction: &str) -> Result<(String, usize), CodegenError> {
     let (code, priority) = match microinstruction {
         "pc->left" => ("let left_bus = self.pc;", 0),
         "pc->addr_base" => ("let addr_base_bus = self.pc;", 0),
@@ -150,15 +174,26 @@ fn translate_microinstruction(microinstruction: &str) ->(String, usize) {
         "one->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(1);", 2),
 
         "mem_address->pc" => ("self.pc = mem_address;", 3),
-        "read_mem_data" => ("let mem_data = self.read_memory_virt(VirtualMemoryAddress(mem_address, segment))?;", 3),
-        "write_mem_data" => ("self.write_memory_virt(VirtualMemoryAddress(mem_address, segment), left_bus)?;", 3),
+        "read_mem_data" => ("let mem_data = self.read_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment)?;", 3),
+        "write_mem_data" => ("self.write_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment, left_bus)?;", 3),
 
-        "mem_data->instruction" => ("self.next_opcode = mem_data;", 4),
+        "mem_data->instruction" => ("self.next_instruction = mem_data;", 4),
         "mem_data->result" => ("let result_bus = mem_data;", 4),
 
         "result->f1" => ("self.set_gpr(field!(opcode, Gpr), result_bus);", 5),
         "result->f6" => ("self.set_cr(field!(opcode >> 9, ControlRegister), result_bus);", 5),
-        _ => ("todo!();", 9999)
+
+        "end_instruction" => ("self.current_instruction = self.next_instruction;", 0),
+
+        _ => return Err(CodegenError::UnknownMicroinstruction(microinstruction.to_owned()))
     };
-    (format!("{} // {}", code, microinstruction), priority)
+    Ok((format!("{} // {}", code, microinstruction), priority))
+}
+
+#[derive(Debug, Error)]
+enum CodegenError {
+    #[error("Bad substitution: {0}")]
+    BadSubstitution(String),
+    #[error("Unknown microinstruction: {0}")]
+    UnknownMicroinstruction(String),
 }
