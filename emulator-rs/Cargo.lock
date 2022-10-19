@@ -569,7 +569,10 @@ checksum = "6ceab39d59e4c9499d4e5a8ee0e2735b891bb7308ac83dfb4e80cad195c9f6f3"
 [[package]]
 name = "ux"
 version = "0.1.3"
-source = "git+https://github.com/bluecube/uX.git?branch=pr-bits#c8f78f90d9b11a3b8d4983f2e0fbb3848e6586c2"
+source = "git+https://github.com/bluecube/uX.git?branch=cube#d0dd7a688eea38af9029a3f8e6d3ab860db886c4"
+dependencies = [
+ "proptest",
+]
 
 [[package]]
 name = "version_check"
