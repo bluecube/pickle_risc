@@ -1,13 +1,13 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
 use thiserror::Error;
 use serde::Deserialize;
+use indexmap::IndexMap;
 
 #[derive(Deserialize, Debug)]
 pub struct InstructionSet {
-    pub instructions: BTreeMap<String, Instruction>,
+    pub instructions: IndexMap<String, Instruction>,
     pub invalid_instruction_microcode: Option<Vec<Vec<String>>>
 }
 
@@ -21,7 +21,7 @@ impl InstructionSet {
 #[derive(Deserialize, Debug)]
 pub struct Instruction {
     #[serde(default)]
-    pub args: BTreeMap<String, InstructionEncodingArgType>,
+    pub args: IndexMap<String, InstructionEncodingArgType>,
     pub encoding: Vec<InstructionEncodingPiece>,
     pub microcode: Option<Vec<Vec<String>>>
 }
