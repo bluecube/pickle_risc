@@ -7,8 +7,6 @@ use num_enum::{TryFromPrimitive, IntoPrimitive};
 use thiserror::Error;
 #[cfg(test)] use test_strategy::Arbitrary;
 
-use crate::util::*;
-
 pub type Word = u16;
 
 pub type Gpr = u3;
@@ -168,13 +166,14 @@ impl From<Word> for PageTableRecord {
 #[derive(Error,Debug)]
 pub enum EmulatorError {
     #[error("Attempting to access non-mapped physical memory at {address} (pc = {pc})")]
-    NonMappedPhysicalMemory { address: PhysicalMemoryAddress, pc: Word }
+    NonMappedPhysicalMemory { address: PhysicalMemoryAddress, pc: Word },
+    #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc})")]
+    MissingMicrocode {mnemonic: &'static str , pc: Word }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proptest::prelude::*;
     use test_strategy::proptest;
     use more_asserts::*;
 

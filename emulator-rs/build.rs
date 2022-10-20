@@ -30,7 +30,6 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
     let definition = InstructionSet::load(definition_path)?;
     let mut target = File::create(target_path)?;
 
-    writeln!(target, "#[allow(unreachable_code)]")?;
     writeln!(target, "match opcode >> {} {{", instruction_bits - opcode_bits)?;
     let opcode_table = make_opcode_table(&definition, opcode_bits, instruction_bits)?;
     for (count, (first_opcode, instruction)) in opcode_table
@@ -86,18 +85,24 @@ fn generate_opcode_match_arm(
     substitutions: &HashMap<String, Vec<String>>,
     target: &mut File
 ) -> anyhow::Result<()> {
+    let printable_mnemonic = mnemonic.unwrap_or("invalid instruction");
+
     if opcodes.len() == 1 {
         writeln!(target, "    {:#04x} => {{", opcodes.start)?;
     } else {
         writeln!(target, "    {:#04x}..={:#04x} => {{", opcodes.start, opcodes.end - 1)?;
     }
-    writeln!(target, "        // {}", mnemonic.unwrap_or("invalid instruction"))?;
+    writeln!(target, "        // {}", printable_mnemonic)?;
     if let Some(microcode) = microcode {
         for (i, microcode_step) in microcode.iter().enumerate() {
             generate_microcode_step(i, microcode_step, substitutions, target)?;
         }
     } else {
-        writeln!(target, "        todo!(); // Missing microcode!")?;
+        writeln!(
+            target,
+            "        return Err(EmulatorError::MissingMicrocode {{ mnemonic: {:?}, pc: self.pc }}.into());",
+            printable_mnemonic
+        )?;
     }
     writeln!(target, "    }}")?;
 
