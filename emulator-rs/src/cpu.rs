@@ -119,6 +119,7 @@ impl CpuState {
 }
 
 pub trait MemoryMapping: std::fmt::Debug {
+    fn size(&self) -> u32;
     fn read(&self, address: u32) -> anyhow::Result<Word>;
     fn write(&mut self, address: u32, value: Word) -> anyhow::Result<()>;
 }

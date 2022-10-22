@@ -168,7 +168,9 @@ pub enum EmulatorError {
     #[error("Attempting to access non-mapped physical memory at {address} (pc = {pc})")]
     NonMappedPhysicalMemory { address: PhysicalMemoryAddress, pc: Word },
     #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc})")]
-    MissingMicrocode {mnemonic: &'static str , pc: Word }
+    MissingMicrocode {mnemonic: &'static str , pc: Word },
+    #[error("Error when accessing memory")]
+    MemoryAccessError { pc: Word },
 }
 
 #[cfg(test)]
