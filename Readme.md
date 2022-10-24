@@ -24,7 +24,7 @@
     - There is a [design document](design.md) that contains some (incomplete) information
 - SW
     - MWP [assembler](assembler/) is done
-    - Started working on [emulator](emulator/)
+    - Started working on [emulator](emulator-rs/)
     - [Lisp](notes/lisp.md) interpreter is planned as a shell
         - Probably loosely based on [Make a Lisp](https://github.com/kanaka/mal/blob/master/process/guide.md)
         - Compiler as a stretch goal
