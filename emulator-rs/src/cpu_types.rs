@@ -75,25 +75,24 @@ impl PhysicalMemoryAddress {
     const BITS: u32 = 14 + PageOffset::BITS;
 }
 
-impl From<&PhysicalMemoryAddress> for u32 {
+impl From<&PhysicalMemoryAddress> for u24 {
     fn from(v: &PhysicalMemoryAddress) -> Self {
         Self::from(v.frame_number) << PageOffset::BITS | Self::from(v.offset)
     }
 }
 
-impl TryFrom<u32> for PhysicalMemoryAddress {
-    type Error = <u14 as TryFrom<u32>>::Error;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(PhysicalMemoryAddress {
-            frame_number: (v >> PageOffset::BITS).try_into()?,
-            offset: (v & u32::from(PageOffset::MAX)).try_into().unwrap()
-        })
+impl From<u24> for PhysicalMemoryAddress {
+    fn from(v: u24) -> Self {
+        PhysicalMemoryAddress {
+            frame_number: (v >> PageOffset::BITS).try_into().unwrap(),
+            offset: (v & u24::from(PageOffset::MAX)).try_into().unwrap()
+        }
     }
 }
 
 impl fmt::Display for PhysicalMemoryAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{:#09x}", u32::from(self))
+        write!(f, "{:#09x}", u32::from(u24::from(self)))
     }
 }
 
@@ -198,35 +197,19 @@ mod tests {
 
     #[test]
     fn test_physical_memory_address_from_word_example() {
-        let a = PhysicalMemoryAddress::try_from(0b10101010101010__1100110011).unwrap();
+        let a = PhysicalMemoryAddress::from(u24::new(0b10101010101010__1100110011));
         assert_eq!(u16::from(a.frame_number), 0b10101010101010);
         assert_eq!(u16::from(a.offset), 0b1100110011);
     }
 
     #[proptest]
     fn test_physical_memory_address_roundtrip1(a: PhysicalMemoryAddress) {
-        assert_eq!(PhysicalMemoryAddress::try_from(u32::from(&a)).unwrap(), a);
+        assert_eq!(PhysicalMemoryAddress::from(u24::from(&a)), a);
     }
 
     #[proptest]
-    fn test_physical_memory_address_bits(a: PhysicalMemoryAddress) {
-        assert_le!(u32::from(&a).next_power_of_two(), 1 << PhysicalMemoryAddress::BITS);
-    }
-
-    #[proptest]
-    fn test_physical_memory_address_roundtrip2(
-        #[strategy(0u32 .. 1u32 << PhysicalMemoryAddress::BITS)]
-        a: u32
-    ) {
-        assert_eq!(u32::from(&PhysicalMemoryAddress::try_from(a).unwrap()), a);
-    }
-
-    #[proptest]
-    fn test_physical_memory_address_out_of_range(
-        #[strategy((1u32 << PhysicalMemoryAddress::BITS ..= u32::MAX))]
-        a: u32
-    ) {
-        PhysicalMemoryAddress::try_from(a).unwrap_err();
+    fn test_physical_memory_address_roundtrip2(a: u24) {
+        assert_eq!(u24::from(&PhysicalMemoryAddress::from(a)), a);
     }
 
     #[test]

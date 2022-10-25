@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use iset::IntervalMap;
+use ux::*; // Non-standard integer types
 
 use crate::util::*;
 use crate::cpu_types::*;
@@ -64,7 +65,7 @@ impl CpuState {
     }
 
     fn read_memory_phys(&self, address: &PhysicalMemoryAddress) -> anyhow::Result<Word> {
-        let a = address.into();
+        let a = u32::from(u24::from(address));
         let (mapping_range, mapping) = self.physical_memory
             .overlap(a)
             .at_most_one()
@@ -75,7 +76,7 @@ impl CpuState {
     }
 
     fn write_memory_phys(&mut self, address: &PhysicalMemoryAddress, value: Word) -> anyhow::Result<()> {
-        let a = address.into();
+        let a = u32::from(u24::from(address));
         let (mapping_range, mapping) = self.physical_memory
             .overlap_mut(a)
             .at_most_one()
