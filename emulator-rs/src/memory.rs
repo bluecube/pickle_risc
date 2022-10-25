@@ -41,7 +41,6 @@ impl MemoryMapping for Ram {
 #[derive(Debug, Clone)]
 pub struct Rom {
     data: Box<[Word]>,
-    offset: u32,
 }
 
 impl Rom {
@@ -56,6 +55,9 @@ impl Rom {
         if u8segments.is_empty() {
             Err(LoadingRomError::Empty { file: file.map(|x| x.into()) })?;
         }
+        else if u8segments[0].offset != 0 {
+            Err(LoadingRomError::Offset { file: file.map(|x| x.into()) })?;
+        }
 
         let start_offset_bytes = u8segments[0].offset;
         let end_offset_bytes = u8segments.last().unwrap().end();
@@ -64,7 +66,6 @@ impl Rom {
         assert_eq!(start_offset_bytes % 2, 0);
         assert_eq!(size_bytes % 2, 0);
 
-        let start_offset = start_offset_bytes / 2;
         let size = usize::try_from(size_bytes / 2).unwrap();
 
         let mut data = Vec::with_capacity(size);
@@ -89,7 +90,6 @@ impl Rom {
 
         Ok(Rom {
             data: data.into_boxed_slice(),
-            offset: start_offset,
         })
     }
 }
@@ -166,6 +166,8 @@ enum LoadingRomError {
     Overlapping { file: Option<PathBuf>, offset: u32, size: u32 },
     #[error("No data found in {file:?}")]
     Empty { file: Option<PathBuf> },
+    #[error("File {file:?} does not start at offset 0")]
+    Offset { file: Option<PathBuf> },
 }
 
 #[cfg(test)]
@@ -243,32 +245,53 @@ mod tests {
 
     #[proptest]
     fn test_rom_from_segments_one(
-        #[strategy(0u32..0xffffffu32)]
-        offset: u32,
         #[strategy(1usize..256usize)]
         length: usize,
     ) {
         let rom = Rom::from_segments(
-            &vec![U8Segment { offset: offset * 2, data: vec![0x00; length * 2] }],
+            &vec![U8Segment { offset: 0, data: vec![0x00; length * 2] }],
             None
         ).unwrap();
-        assert_eq!(rom.offset, offset);
         assert_eq!(rom.data.len(), length);
     }
 
     #[test]
     fn test_rom_from_segments_empty() {
-        let err = Rom::from_segments(&vec![], None).unwrap_err();
-        assert!(matches!(
-            err.downcast_ref::<LoadingRomError>().unwrap(),
-            LoadingRomError::Empty { file: None }
-        ));
+        match Rom::from_segments(&vec![], None) {
+            Err(e) => {
+                assert!(matches!(
+                    e.downcast_ref::<LoadingRomError>().unwrap(),
+                    LoadingRomError::Empty { file: None }
+                ));
+            },
+            _ => panic!("Did not result in an error")
+        }
+    }
+
+    #[proptest]
+    fn test_rom_from_segments_offset(
+        #[strategy(1u32..)]
+        offset: u32,
+        #[strategy(1usize..256usize)]
+        length: usize,
+    ) {
+        let rom = Rom::from_segments(
+            &vec![U8Segment { offset, data: vec![0x00; length * 2] }],
+            None
+        );
+        match rom {
+            Err(e) => {
+                assert!(matches!(
+                    e.downcast_ref::<LoadingRomError>().unwrap(),
+                    LoadingRomError::Offset { file: None }
+                ));
+            },
+            _ => panic!("Did not result in an error")
+        }
     }
 
     #[proptest]
     fn test_rom_from_segments_three(
-        #[strategy(0u32..0xfffffu32)]
-        offset1: u32,
         #[strategy(1usize..256usize)]
         length1: usize,
         #[strategy(1usize..256usize)]
@@ -278,19 +301,18 @@ mod tests {
         #[strategy(1usize..256usize)]
         length3: usize,
     ) {
-        let offset2 = offset1 + u32::try_from(length1).unwrap();
+        let offset2 = u32::try_from(length1).unwrap();
         let offset3 = offset2 + u32::try_from(length2 + gap).unwrap();
 
         let rom = Rom::from_segments(
             &vec![
-                U8Segment { offset: offset1 * 2u32, data: vec![0x01; length1 * 2] },
+                U8Segment { offset: 0, data: vec![0x01; length1 * 2] },
                 U8Segment { offset: offset2 * 2u32, data: vec![0x02; length2 * 2] },
                 U8Segment { offset: offset3 * 2u32, data: vec![0x03; length3 * 2] },
             ],
             None
         ).unwrap();
 
-        assert_eq!(rom.offset, offset1);
         assert_eq!(rom.data.len(), length1 + length2 + gap + length3);
 
         println!("{:?}", rom.data);
