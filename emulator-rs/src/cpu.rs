@@ -41,11 +41,11 @@ impl CpuState {
     }
 
     pub fn get_cr(&self, index: ControlRegister) -> Word {
-        todo!();
+        todo!("get value of control register {:?}", index);
     }
 
     pub fn set_cr(&mut self, index: ControlRegister, value: Word) {
-        todo!();
+        todo!("set value of control register {:?} to {}", index, value);
     }
 
     fn read_memory_virt(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment) -> anyhow::Result<Word> {
