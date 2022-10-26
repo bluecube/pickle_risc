@@ -1,16 +1,16 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 use std::iter::repeat;
 use std::ops::Range;
-use std::collections::HashMap;
+use std::path::Path;
 
-use either;
-use thiserror::Error;
-use itertools::Itertools;
 use anyhow;
-use instruction_set::{InstructionSet, Instruction};
+use either;
+use instruction_set::{Instruction, InstructionSet};
+use itertools::Itertools;
+use thiserror::Error;
 
 fn main() {
     generate_instruction_handler().unwrap();
@@ -24,20 +24,29 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
     let target_path = Path::new(&out_dir).join("instruction_handler.rs");
     let definition_path = Path::new("..").join("instruction_set.json5");
 
-    println!("cargo:warning=Output goes to {}", target_path.to_str().unwrap());
-    println!("cargo:rerun-if-changed={}", definition_path.to_str().unwrap());
+    println!(
+        "cargo:warning=Output goes to {}",
+        target_path.to_str().unwrap()
+    );
+    println!(
+        "cargo:rerun-if-changed={}",
+        definition_path.to_str().unwrap()
+    );
 
     let definition = InstructionSet::load(definition_path)?;
     let mut target = File::create(target_path)?;
 
-    writeln!(target, "match opcode >> {} {{", instruction_bits - opcode_bits)?;
+    writeln!(
+        target,
+        "match opcode >> {} {{",
+        instruction_bits - opcode_bits
+    )?;
     let opcode_table = make_opcode_table(&definition, opcode_bits, instruction_bits)?;
     for (count, (first_opcode, instruction)) in opcode_table
         .iter()
         .enumerate()
         .dedup_by_with_count(|x, y| x.1.map(|x| x.0) == y.1.map(|x| x.0))
     {
-
         generate_opcode_match_arm(
             instruction.map(|x| x.0),
             first_opcode..(first_opcode + count),
@@ -48,7 +57,7 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
                 &definition.invalid_instruction_microcode
             },
             &definition.substitutions,
-            &mut target
+            &mut target,
         )?;
     }
     writeln!(target, "    _ => unreachable!(),")?;
@@ -57,8 +66,13 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn make_opcode_table(definition: &InstructionSet, opcode_bits: usize, instruction_bits: usize) -> anyhow::Result<Vec<Option<(&str, &Instruction)>>> {
-    let mut table: Vec<Option<(&str, &Instruction)>> = repeat(None).take(1 << opcode_bits).collect();
+fn make_opcode_table(
+    definition: &InstructionSet,
+    opcode_bits: usize,
+    instruction_bits: usize,
+) -> anyhow::Result<Vec<Option<(&str, &Instruction)>>> {
+    let mut table: Vec<Option<(&str, &Instruction)>> =
+        repeat(None).take(1 << opcode_bits).collect();
 
     for (mnemonic, instruction_def) in &definition.instructions {
         let encoding = instruction_def.encoding(&mnemonic, instruction_bits)?;
@@ -73,7 +87,11 @@ fn make_opcode_table(definition: &InstructionSet, opcode_bits: usize, instructio
 /// Converts a str with 0, 1 and other into all numbers that match this bit string
 fn expand_encoding(s: &str) -> impl Iterator<Item = usize> {
     s.chars()
-        .map(|c| match c { '0' => 0..=0, '1' => 1..=1, _ => 0..=1, })
+        .map(|c| match c {
+            '0' => 0..=0,
+            '1' => 1..=1,
+            _ => 0..=1,
+        })
         .multi_cartesian_product()
         .map(|x| x.iter().fold(0, |acc, digit| (acc << 1) + digit))
 }
@@ -83,14 +101,19 @@ fn generate_opcode_match_arm(
     opcodes: Range<usize>,
     microcode: &Option<Vec<Vec<String>>>,
     substitutions: &HashMap<String, Vec<String>>,
-    target: &mut File
+    target: &mut File,
 ) -> anyhow::Result<()> {
     let printable_mnemonic = mnemonic.unwrap_or("invalid instruction");
 
     if opcodes.len() == 1 {
         writeln!(target, "    {:#04x} => {{", opcodes.start)?;
     } else {
-        writeln!(target, "    {:#04x}..={:#04x} => {{", opcodes.start, opcodes.end - 1)?;
+        writeln!(
+            target,
+            "    {:#04x}..={:#04x} => {{",
+            opcodes.start,
+            opcodes.end - 1
+        )?;
     }
     writeln!(target, "        // {}", printable_mnemonic)?;
     if let Some(microcode) = microcode {
@@ -113,12 +136,16 @@ fn generate_microcode_step(
     step: usize,
     microcode: &Vec<String>,
     substitutions: &HashMap<String, Vec<String>>,
-    target: &mut File
+    target: &mut File,
 ) -> anyhow::Result<()> {
     const INDENT: &str = "        ";
 
     writeln!(target, "{}{{ // Microcode step {}", INDENT, step)?;
-    writeln!(target, "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;", INDENT)?;
+    writeln!(
+        target,
+        "{}    #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
+        INDENT
+    )?;
 
     let mut microinstructions: Vec<(String, usize)> = Vec::new();
     for microinstruction in microcode {
@@ -138,7 +165,10 @@ fn generate_microcode_step(
     Ok(())
 }
 
-fn substitute_microinstruction<'a>(microinstruction: &'a str, substitutions: &'a HashMap<String, Vec<String>>) -> Result<impl Iterator<Item = &'a str>, CodegenError> {
+fn substitute_microinstruction<'a>(
+    microinstruction: &'a str,
+    substitutions: &'a HashMap<String, Vec<String>>,
+) -> Result<impl Iterator<Item = &'a str>, CodegenError> {
     if microinstruction.starts_with("$") {
         if let Some(subst) = substitutions.get(&microinstruction[1..]) {
             Ok(either::Left(subst.into_iter().map(|x| x.as_str())))

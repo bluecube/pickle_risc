@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use ux::*; // Non-standard integer types
 
-use crate::util::*;
 use crate::cpu_types::*;
+use crate::util::*;
 
 const PAGE_TABLE_SIZE: usize = 1 << PageTableIndex::BITS;
 
@@ -41,7 +41,7 @@ impl CpuState {
 
             current_instruction: 0,
             next_instruction: 0,
-            page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE]
+            page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE],
         };
         // Call reset to make sure we are in a valid startup state
         ret.reset();
@@ -53,6 +53,7 @@ impl CpuState {
         self.pc = 0;
         self.current_instruction = 0;
         self.context_id = u6::new(0); // TODO: Is this necessary?
+
         // TODO: Disable MMU and interrupts
     }
 
@@ -78,11 +79,22 @@ impl CpuState {
         todo!("set value of control register {:?} to {}", index, value);
     }
 
-    fn read_memory<M: PhysicaMemory>(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, memory: &M) -> anyhow::Result<Word> {
+    fn read_memory<M: PhysicaMemory>(
+        &mut self,
+        address: &VirtualMemoryAddress,
+        segment: &VirtualMemorySegment,
+        memory: &M,
+    ) -> anyhow::Result<Word> {
         self.memory_operation(address, segment, false, |a| memory.read(a))
     }
 
-    fn write_memory<M: PhysicaMemory>(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, memory: &mut M, value: Word) -> anyhow::Result<()> {
+    fn write_memory<M: PhysicaMemory>(
+        &mut self,
+        address: &VirtualMemoryAddress,
+        segment: &VirtualMemorySegment,
+        memory: &mut M,
+        value: Word,
+    ) -> anyhow::Result<()> {
         self.memory_operation(address, segment, true, |a| memory.write(a, value))
     }
 
@@ -94,11 +106,17 @@ impl CpuState {
         address: &VirtualMemoryAddress,
         segment: &VirtualMemorySegment,
         write: bool,
-        fun: F
+        fun: F,
     ) -> anyhow::Result<R> {
         if let Some(physical_address) = self.virtual_to_physical(address, segment, write) {
             let address: u24 = (&physical_address).into();
-            fun(address).ok_or(EmulatorError::NonMappedPhysicalMemory { address: physical_address, pc: self.pc }.into())
+            fun(address).ok_or(
+                EmulatorError::NonMappedPhysicalMemory {
+                    address: physical_address,
+                    pc: self.pc,
+                }
+                .into(),
+            )
         } else {
             self.page_fault()?;
             Ok(R::default())
@@ -109,12 +127,17 @@ impl CpuState {
         todo!()
     }
 
-    fn virtual_to_physical(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, write: bool) -> Option<PhysicalMemoryAddress> {
+    fn virtual_to_physical(
+        &self,
+        address: &VirtualMemoryAddress,
+        segment: &VirtualMemorySegment,
+        write: bool,
+    ) -> Option<PhysicalMemoryAddress> {
         // TODO: Handle disabled paging!
         let page_table_index = PageTableIndex {
             context_id: self.context_id,
             segment: *segment,
-            page_number: address.page_number
+            page_number: address.page_number,
         };
 
         let page = self.page_table[usize::from(&page_table_index)];
@@ -124,12 +147,10 @@ impl CpuState {
         } else if !write && !page.readable {
             None
         } else {
-            Some(
-                PhysicalMemoryAddress {
-                    frame_number: page.frame_number,
-                    offset: address.offset
-                }
-            )
+            Some(PhysicalMemoryAddress {
+                frame_number: page.frame_number,
+                offset: address.offset,
+            })
         }
     }
 

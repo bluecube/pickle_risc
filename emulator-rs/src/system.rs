@@ -1,8 +1,8 @@
-use ux::*; // Non-standard integer types
 use std::path::Path;
+use ux::*; // Non-standard integer types
 
-use crate::cpu_types::Word;
 use crate::cpu::{CpuState, PhysicaMemory};
+use crate::cpu_types::Word;
 use crate::memory::{Ram, Rom};
 
 /// Represents the state of the whole computer, including memories and peripherials.
@@ -54,7 +54,7 @@ impl PhysicaMemory for SystemState {
             let device_address = address & u24::new(0x0fffff);
             match device_id {
                 0 if device_address <= self.rom.max_address() => self.rom.read(device_address),
-                _ => None
+                _ => None,
             }
         }
     }
@@ -73,4 +73,3 @@ impl PhysicaMemory for SystemState {
         }
     }
 }
-

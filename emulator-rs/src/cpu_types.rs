@@ -2,16 +2,17 @@
 
 use std::fmt;
 
-use ux::*; // Non-standard integer types
-use num_enum::{TryFromPrimitive, IntoPrimitive};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+#[cfg(test)]
+use test_strategy::Arbitrary;
 use thiserror::Error;
-#[cfg(test)] use test_strategy::Arbitrary;
+use ux::*; // Non-standard integer types
 
 pub type Word = u16;
 
 pub type Gpr = u3;
 
-#[derive(Copy, Clone, Debug,  PartialEq, Eq, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
 #[repr(u16)]
 pub enum ControlRegister {
     AluStatus = 0,
@@ -28,7 +29,7 @@ pub enum ControlRegister {
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct VirtualMemoryAddress {
     pub page_number: u6,
-    pub offset: PageOffset
+    pub offset: PageOffset,
 }
 
 impl From<&VirtualMemoryAddress> for Word {
@@ -41,7 +42,7 @@ impl From<Word> for VirtualMemoryAddress {
     fn from(v: Word) -> Self {
         VirtualMemoryAddress {
             page_number: (v >> PageOffset::BITS).try_into().unwrap(),
-            offset: (v & Word::from(PageOffset::MAX)).try_into().unwrap()
+            offset: (v & Word::from(PageOffset::MAX)).try_into().unwrap(),
         }
     }
 }
@@ -52,7 +53,7 @@ impl fmt::Display for VirtualMemoryAddress {
     }
 }
 
-#[derive(Copy, Clone, Debug,  PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[cfg_attr(test, derive(Arbitrary))]
 #[repr(u16)]
 pub enum VirtualMemorySegment {
@@ -68,7 +69,7 @@ pub type PageOffset = u10;
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct PhysicalMemoryAddress {
     pub frame_number: u14,
-    pub offset: PageOffset
+    pub offset: PageOffset,
 }
 
 impl PhysicalMemoryAddress {
@@ -85,7 +86,7 @@ impl From<u24> for PhysicalMemoryAddress {
     fn from(v: u24) -> Self {
         PhysicalMemoryAddress {
             frame_number: (v >> PageOffset::BITS).try_into().unwrap(),
-            offset: (v & u24::from(PageOffset::MAX)).try_into().unwrap()
+            offset: (v & u24::from(PageOffset::MAX)).try_into().unwrap(),
         }
     }
 }
@@ -110,9 +111,9 @@ impl PageTableIndex {
 
 impl From<&PageTableIndex> for Word {
     fn from(v: &PageTableIndex) -> Self {
-        (Word::from(v.context_id) << (PageNumber::BITS + 1)) |
-            (Word::from(v.segment) << PageNumber::BITS) |
-            Word::from(v.page_number)
+        (Word::from(v.context_id) << (PageNumber::BITS + 1))
+            | (Word::from(v.segment) << PageNumber::BITS)
+            | Word::from(v.page_number)
     }
 }
 
@@ -128,7 +129,7 @@ impl TryFrom<Word> for PageTableIndex {
         Ok(PageTableIndex {
             context_id: (v >> (PageNumber::BITS + 1)).try_into()?,
             segment: ((v >> PageNumber::BITS) & 1).try_into().unwrap(),
-            page_number: (v & Word::from(PageNumber::MAX)).try_into().unwrap()
+            page_number: (v & Word::from(PageNumber::MAX)).try_into().unwrap(),
         })
     }
 }
@@ -138,15 +139,13 @@ impl TryFrom<Word> for PageTableIndex {
 pub struct PageTableRecord {
     pub readable: bool,
     pub writable: bool,
-    pub frame_number: u14
+    pub frame_number: u14,
 }
 
 impl From<&PageTableRecord> for Word {
     /// Converting PageTableRecord into the actual usize used for indexing the table
     fn from(v: &PageTableRecord) -> Self {
-        ((v.readable as Word) << 15) |
-            ((v.writable as Word) << 14) |
-            Word::from(v.frame_number)
+        ((v.readable as Word) << 15) | ((v.writable as Word) << 14) | Word::from(v.frame_number)
     }
 }
 
@@ -157,17 +156,20 @@ impl From<Word> for PageTableRecord {
         PageTableRecord {
             readable: (v >> 15) & 1 != 0,
             writable: (v >> 14) & 1 != 0,
-            frame_number: (v & Word::from(u14::MAX)).try_into().unwrap()
+            frame_number: (v & Word::from(u14::MAX)).try_into().unwrap(),
         }
     }
 }
 
-#[derive(Error,Debug)]
+#[derive(Error, Debug)]
 pub enum EmulatorError {
     #[error("Attempting to access non-mapped physical memory at {address} (pc = {pc})")]
-    NonMappedPhysicalMemory { address: PhysicalMemoryAddress, pc: Word },
+    NonMappedPhysicalMemory {
+        address: PhysicalMemoryAddress,
+        pc: Word,
+    },
     #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc})")]
-    MissingMicrocode {mnemonic: &'static str , pc: Word },
+    MissingMicrocode { mnemonic: &'static str, pc: Word },
     #[error("Error when accessing memory")]
     MemoryAccessError { pc: Word },
 }
@@ -175,8 +177,8 @@ pub enum EmulatorError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_strategy::proptest;
     use more_asserts::*;
+    use test_strategy::proptest;
 
     #[test]
     fn test_virtual_memory_address_from_word_example() {
@@ -231,17 +233,13 @@ mod tests {
     }
 
     #[proptest]
-    fn test_page_table_index_roundtrip2(
-        #[strategy(0u16 .. 1u16 << PageTableIndex::BITS)]
-        a: u16
-    ) {
+    fn test_page_table_index_roundtrip2(#[strategy(0u16 .. 1u16 << PageTableIndex::BITS)] a: u16) {
         assert_eq!(u16::from(&PageTableIndex::try_from(a).unwrap()), a);
     }
 
     #[proptest]
     fn test_page_table_index_out_of_range(
-        #[strategy((1u16 << PageTableIndex::BITS ..= u16::MAX))]
-        i: u16
+        #[strategy((1u16 << PageTableIndex::BITS ..= u16::MAX))] i: u16,
     ) {
         PageTableIndex::try_from(i).unwrap_err();
     }

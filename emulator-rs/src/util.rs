@@ -44,7 +44,7 @@ mod tests {
             (-1i16 << (field_bits - 1))..=(((1u16 << (field_bits - 1)) - 1) as i16),
             (0u16..((1u16 << (16 - field_bits)) - 1))
         )))]
-        data: (u16, i16, u16)
+        data: (u16, i16, u16),
     ) {
         let (field_bits, field_value, padding) = data;
         let mask = (1u16 << field_bits) - 1;
