@@ -133,7 +133,7 @@ impl TryFrom<Word> for PageTableIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct PageTableRecord {
     pub readable: bool,

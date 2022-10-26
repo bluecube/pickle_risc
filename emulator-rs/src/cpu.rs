@@ -1,9 +1,10 @@
 use itertools::Itertools;
-use iset::IntervalMap;
 use ux::*; // Non-standard integer types
 
 use crate::util::*;
 use crate::cpu_types::*;
+
+const PAGE_TABLE_SIZE: usize = 1 << PageTableIndex::BITS;
 
 #[derive(Debug)]
 pub struct CpuState {
@@ -20,12 +21,41 @@ pub struct CpuState {
     current_instruction: Word,
     next_instruction: Word,
 
-    page_table: [PageTableRecord; 1 << PageTableIndex::BITS],
-
-    physical_memory: IntervalMap<u32, Box<dyn MemoryMapping>>,
+    page_table: [PageTableRecord; PAGE_TABLE_SIZE],
 }
 
 impl CpuState {
+    pub fn new() -> Self {
+        // This doesn't need to be a valid initial state!
+        // (although likely it is)
+        let mut ret = CpuState {
+            gpr: [0; 7],
+
+            pc: 0,
+
+            alu_flags: 0,
+            context_id: u6::new(0),
+            int_c: 0,
+            int_cause: 0,
+            mmu_addr: 0,
+
+            current_instruction: 0,
+            next_instruction: 0,
+            page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE]
+        };
+        // Call reset to make sure we are in a valid startup state
+        ret.reset();
+        ret
+    }
+
+    /// Reset the bare minimum of state to reboot the computer.
+    pub fn reset(&mut self) {
+        self.pc = 0;
+        self.current_instruction = 0;
+        self.context_id = u6::new(0); // TODO: Is this necessary?
+        // TODO: Disable MMU and interrupts
+    }
+
     pub fn get_gpr(&self, index: Gpr) -> Word {
         if index == Gpr::new(0) {
             0
@@ -48,45 +78,39 @@ impl CpuState {
         todo!("set value of control register {:?} to {}", index, value);
     }
 
-    fn read_memory_virt(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment) -> anyhow::Result<Word> {
-        if let Some(physical_address) = self.map_memory(address, segment, false) {
-            self.read_memory_phys(&physical_address)
+    fn read_memory<M: PhysicaMemory>(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, memory: &M) -> anyhow::Result<Word> {
+        self.memory_operation(address, segment, false, |a| memory.read(a))
+    }
+
+    fn write_memory<M: PhysicaMemory>(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, memory: &mut M, value: Word) -> anyhow::Result<()> {
+        self.memory_operation(address, segment, true, |a| memory.write(a, value))
+    }
+
+    /// Helper that combines common operations when accessing memory
+    /// `fun` contains the actual memory operation, it is given the effective address as u24.
+    /// `fun` might return None if the (physical) memory is not mapped for this address.
+    fn memory_operation<R: Default, F: FnOnce(u24) -> Option<R>>(
+        &mut self,
+        address: &VirtualMemoryAddress,
+        segment: &VirtualMemorySegment,
+        write: bool,
+        fun: F
+    ) -> anyhow::Result<R> {
+        if let Some(physical_address) = self.virtual_to_physical(address, segment, write) {
+            let address: u24 = (&physical_address).into();
+            fun(address).ok_or(EmulatorError::NonMappedPhysicalMemory { address: physical_address, pc: self.pc }.into())
         } else {
-            todo!("Interrupt");
+            self.page_fault()?;
+            Ok(R::default())
         }
     }
 
-    fn write_memory_virt(&mut self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, value: Word) -> anyhow::Result<()> {
-        if let Some(physical_address) = self.map_memory(address, segment, true) {
-            self.write_memory_phys(&physical_address, value)
-        } else {
-            todo!("Interrupt");
-        }
+    fn page_fault(&mut self) -> anyhow::Result<()> {
+        todo!()
     }
 
-    fn read_memory_phys(&self, address: &PhysicalMemoryAddress) -> anyhow::Result<Word> {
-        let a = u32::from(u24::from(address));
-        let (mapping_range, mapping) = self.physical_memory
-            .overlap(a)
-            .at_most_one()
-            .expect("Memory mappings should not overlap")
-            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address: *address, pc: self.pc })?;
-
-        mapping.read(a - mapping_range.start)
-    }
-
-    fn write_memory_phys(&mut self, address: &PhysicalMemoryAddress, value: Word) -> anyhow::Result<()> {
-        let a = u32::from(u24::from(address));
-        let (mapping_range, mapping) = self.physical_memory
-            .overlap_mut(a)
-            .at_most_one()
-            .expect("Memory mappings should not overlap")
-            .ok_or_else(|| EmulatorError::NonMappedPhysicalMemory{ address: *address, pc: self.pc })?;
-
-        mapping.write(a - mapping_range.start, value)
-    }
-
-    fn map_memory(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, write: bool) -> Option<PhysicalMemoryAddress> {
+    fn virtual_to_physical(&self, address: &VirtualMemoryAddress, segment: &VirtualMemorySegment, write: bool) -> Option<PhysicalMemoryAddress> {
+        // TODO: Handle disabled paging!
         let page_table_index = PageTableIndex {
             context_id: self.context_id,
             segment: *segment,
@@ -113,14 +137,18 @@ impl CpuState {
         self.page_table[usize::from(page_table_index)] = record;
     }
 
-    pub fn step(&mut self, opcode: Word) -> anyhow::Result<()> {
+    pub fn step<M: PhysicaMemory>(&mut self, memory: &M) -> anyhow::Result<()> {
+        let opcode = self.current_instruction;
         include!(concat!(env!("OUT_DIR"), "/instruction_handler.rs"));
         Ok(())
     }
 }
 
-pub trait MemoryMapping: std::fmt::Debug {
-    fn size(&self) -> u32;
-    fn read(&self, address: u32) -> anyhow::Result<Word>;
-    fn write(&mut self, address: u32, value: Word) -> anyhow::Result<()>;
+/// Represents a chunk of physical memory of 16bit values, accessable by 24bit address
+/// Read and write might panic if address is > max_address().
+/// Read and write can return None if the access is not mapped for some reason (eg. writing ROM)
+pub trait PhysicaMemory {
+    fn max_address(&self) -> u24;
+    fn read(&self, address: u24) -> Option<Word>;
+    fn write(&mut self, address: u24, value: Word) -> Option<()>;
 }

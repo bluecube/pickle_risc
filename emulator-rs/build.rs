@@ -179,8 +179,8 @@ fn translate_microinstruction(microinstruction: &str) -> Result<(String, usize),
         "one->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(1);", 2),
 
         "mem_address->pc" => ("self.pc = mem_address;", 3),
-        "read_mem_data" => ("let mem_data = self.read_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment)?;", 3),
-        "write_mem_data" => ("self.write_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment, left_bus)?;", 3),
+        "read_mem_data" => ("let mem_data = self.read_memory(&VirtualMemoryAddress::from(mem_address), &segment, memory)?;", 3),
+        "write_mem_data" => ("self.write_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment, memory, left_bus)?;", 3),
 
         "mem_data->instruction" => ("self.next_instruction = mem_data;", 4),
         "mem_data->result" => ("let result_bus = mem_data;", 4),

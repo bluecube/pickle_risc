@@ -1,41 +1,40 @@
 use thiserror::Error;
 use itertools::{Itertools, chain, repeat_n};
+use ux::*; // Non-standard integer types
 
 use crate::cpu_types::*;
-use crate::cpu::MemoryMapping;
+use crate::cpu::PhysicaMemory;
 
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Ram {
     data: Box<[Word]>
 }
 
 impl Ram {
-    fn new(size: u32) -> Ram {
+    pub fn new(size: u32) -> Ram {
         Ram {
             data: vec![0; size.try_into().unwrap()].into_boxed_slice()
         }
     }
 }
 
-impl MemoryMapping for Ram {
-    fn size(&self) -> u32 {
-        return self.data.len().try_into().unwrap()
+impl PhysicaMemory for Ram {
+    fn max_address(&self) -> u24 {
+        (self.data.len() - 1).try_into().unwrap()
+    }
+    fn read(&self, address: u24) -> Option<Word> {
+        Some(self.data.as_ref()[usize::try_from(address).unwrap()])
     }
 
-    fn read(&self, address: u32) -> anyhow::Result<Word> {
-        Ok(self.data.as_ref()[usize::try_from(address).unwrap()])
-    }
-
-    fn write(&mut self, address: u32, value: Word) -> anyhow::Result<()> {
+    fn write(&mut self, address: u24, value: Word) -> Option<()> {
         self.data.as_mut()[usize::try_from(address).unwrap()] = value;
-        Ok(())
+        Some(())
     }
 }
 
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Rom {
     data: Box<[Word]>,
 }
@@ -91,20 +90,19 @@ impl Rom {
     }
 }
 
-/*impl MemoryMapping for Rom {
-    fn size(&self) -> u32 {
-        return self.data.len()
+impl PhysicaMemory for Rom {
+    fn max_address(&self) -> u24 {
+        (self.data.len() - 1).try_into().unwrap()
     }
 
-    fn read(&self, address: u32) -> anyhow::Result<Word> {
-        Ok(self.data.as_ref()[address])
+    fn read(&self, address: u24) -> Option<Word> {
+        Some(self.data.as_ref()[usize::try_from(address).unwrap()])
     }
 
-    fn write(&mut self, address: u32, value: Word) -> anyhow::Result<()> {
-        self.data.as_mut()[address] = value;
-        Ok(())
+    fn write(&mut self, _address: u24, _value: Word) -> Option<()> {
+        None
     }
-}*/
+}
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 struct U8Segment {

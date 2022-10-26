@@ -171,12 +171,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iset"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83e6ab4995cb7dd596e9013e90e3f7d65008dbda350778204ce76663cece4f06"
-
-[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -302,7 +296,6 @@ dependencies = [
  "either",
  "ihex",
  "instruction_set",
- "iset",
  "itertools",
  "more-asserts",
  "num_enum",
