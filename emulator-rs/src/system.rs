@@ -10,7 +10,11 @@ use crate::memory::{Ram, Rom};
 /// Potentially a dynamic one could be implemented, but right now I don't see why :)
 pub struct SystemState {
     pub cpu: CpuState,
+    pub devices: SystemDevices,
+}
 
+/// All devices that are mapped in memory
+pub struct SystemDevices {
     pub ram: Ram,
     pub rom: Rom,
 }
@@ -19,8 +23,10 @@ impl SystemState {
     pub fn new<P: AsRef<Path>>(rom_ihex_path: P) -> anyhow::Result<SystemState> {
         Ok(SystemState {
             cpu: CpuState::new(),
-            ram: Ram::new(1 * 1024 * 1024), // 1MW to start
-            rom: Rom::from_ihex(rom_ihex_path)?,
+            devices: SystemDevices {
+                ram: Ram::new(1 * 1024 * 1024), // 1MW to start
+                rom: Rom::from_ihex(rom_ihex_path)?,
+            },
         })
     }
 
@@ -29,11 +35,13 @@ impl SystemState {
     }
 
     pub fn step(&mut self) -> anyhow::Result<()> {
-        todo!();
+        self.cpu.step(&self.devices)?;
+        self.devices.step()?;
+        Ok(())
     }
 }
 
-impl PhysicaMemory for SystemState {
+impl PhysicaMemory for SystemDevices {
     // Memory is mapped as follows:
     // 0x000000 - 0x7fffff - RAM
     // 0x800000 - 0x8fffff - ROM ( = device 0)
@@ -71,5 +79,12 @@ impl PhysicaMemory for SystemState {
                 _ => None
             }*/
         }
+    }
+}
+
+impl SystemDevices {
+    pub fn step(&mut self) -> anyhow::Result<()> {
+        // No devices need stepping at the moment
+        Ok(())
     }
 }
