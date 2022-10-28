@@ -6,8 +6,8 @@ mod util;
 
 use ux::*; // Non-standard integer types
 
-use crate::system::SystemState;
 use crate::cpu::CpuState;
+use crate::system::SystemState;
 use clap::Parser;
 
 use std::path::PathBuf;
@@ -34,8 +34,12 @@ fn main() -> anyhow::Result<()> {
 fn print_cpu_state(state: &CpuState) {
     for i in 0..8 {
         let v = state.get_gpr(u3::new(i));
-        print!("r{}: {}({:06x})", i, v, v);
+        print!("r{}: {}({:#06x})", i, v, v);
     }
     println!();
-    println!("pc: {}", state.get_pc());
+    println!(
+        "{:#06x}: {:06x}",
+        state.get_pc(),
+        state.get_next_instruction()
+    );
 }

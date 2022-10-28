@@ -64,6 +64,15 @@ impl CpuState {
         // TODO: Disable MMU and interrupts
     }
 
+    pub fn get_next_instruction(&self) -> Word {
+        // TODO: This should return the instruction disassembled!
+        self.next_instruction
+    }
+
+    pub fn get_pc(&self) -> Word {
+        self.pc
+    }
+
     pub fn get_gpr(&self, index: Gpr) -> Word {
         if index == Gpr::new(0) {
             0
