@@ -13,6 +13,7 @@ pub struct CpuState {
     pc: Word,
 
     alu_flags: Word,
+    cpu_status: CpuStatus,
     context_id: ContextId,
     int_c: Word,
     int_cause: Word,
@@ -34,6 +35,7 @@ impl CpuState {
             pc: 0,
 
             alu_flags: 0,
+            cpu_status: CpuStatus::default(),
             context_id: u6::new(0),
             int_c: 0,
             int_cause: 0,
@@ -51,8 +53,13 @@ impl CpuState {
     /// Reset the bare minimum of state to reboot the computer.
     pub fn reset(&mut self) {
         self.pc = 0;
-        self.current_instruction = 0;
+        self.cpu_status = CpuStatus {
+            interrupt_enabled: false,
+            kernel_mode: false,
+            mmu_enabled: false,
+        };
         self.context_id = u6::new(0); // TODO: Is this necessary?
+        self.current_instruction = 0;
 
         // TODO: Disable MMU and interrupts
     }
@@ -133,22 +140,31 @@ impl CpuState {
         segment: &VirtualMemorySegment,
         write: bool,
     ) -> Option<PhysicalMemoryAddress> {
-        // TODO: Handle disabled paging!
-        let page_table_index = PageTableIndex {
-            context_id: self.context_id,
-            segment: *segment,
-            page_number: address.page_number,
-        };
+        if self.cpu_status.mmu_enabled {
+            let page_table_index = PageTableIndex {
+                context_id: self.context_id,
+                segment: *segment,
+                page_number: address.page_number,
+            };
 
-        let page = self.page_table[usize::from(&page_table_index)];
+            let page = self.page_table[usize::from(&page_table_index)];
 
-        if write && !page.writable {
-            None
-        } else if !write && !page.readable {
-            None
+            if write && !page.writable {
+                None
+            } else if !write && !page.readable {
+                None
+            } else {
+                Some(PhysicalMemoryAddress {
+                    frame_number: page.frame_number,
+                    offset: address.offset,
+                })
+            }
         } else {
             Some(PhysicalMemoryAddress {
-                frame_number: page.frame_number,
+                frame_number: match segment {
+                    VirtualMemorySegment::Data => u14::new(0),
+                    VirtualMemorySegment::Program => u14::new(1 << 13),
+                },
                 offset: address.offset,
             })
         }

@@ -25,6 +25,47 @@ pub enum ControlRegister {
     MMUData = 7,
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub struct CpuStatus {
+    pub interrupt_enabled: bool,
+    pub kernel_mode: bool,
+    pub mmu_enabled: bool,
+}
+
+impl CpuStatus {
+    const MASK: Word = 0x0007;
+    const BITS: Word = Self::MASK.count_ones() as u16;
+}
+
+impl From<&CpuStatus> for Word {
+    fn from(v: &CpuStatus) -> Self {
+        Self::from(
+            (v.interrupt_enabled as Word) << 0
+                | (v.kernel_mode as Word) << 1
+                | (v.mmu_enabled as Word) << 2,
+        )
+    }
+}
+
+impl TryFrom<Word> for CpuStatus {
+    type Error = EmulatorError;
+    fn try_from(v: Word) -> Result<Self, Self::Error> {
+        if v & !Self::MASK != 0 {
+            Err(EmulatorError::ReservedBitNonzero {
+                t: "CpuStatus".into(),
+                value: v,
+            })
+        } else {
+            Ok(CpuStatus {
+                interrupt_enabled: (v >> 0) & 1 != 0,
+                kernel_mode: (v >> 1) & 1 != 0,
+                mmu_enabled: (v >> 2) & 1 != 0,
+            })
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct VirtualMemoryAddress {
@@ -163,15 +204,17 @@ impl From<Word> for PageTableRecord {
 
 #[derive(Error, Debug)]
 pub enum EmulatorError {
-    #[error("Attempting to access non-mapped physical memory at {address} (pc = {pc})")]
+    #[error("Attempting to access non-mapped physical memory at {address} (pc = {pc:#06x})")]
     NonMappedPhysicalMemory {
         address: PhysicalMemoryAddress,
         pc: Word,
     },
-    #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc})")]
+    #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc:#06x})")]
     MissingMicrocode { mnemonic: &'static str, pc: Word },
     #[error("Error when accessing memory")]
     MemoryAccessError { pc: Word },
+    #[error("Reserved bit position written as nonzero when writing {t} (value: {value:#06x})")]
+    ReservedBitNonzero { t: String, value: Word },
 }
 
 #[cfg(test)]
@@ -179,6 +222,34 @@ mod tests {
     use super::*;
     use more_asserts::*;
     use test_strategy::proptest;
+
+    #[proptest]
+    fn test_cpu_status_roundtrip1(s: CpuStatus) {
+        assert_eq!(CpuStatus::try_from(Word::from(&s)).unwrap(), s);
+    }
+
+    #[proptest]
+    fn test_cpu_status_mask(s: CpuStatus) {
+        assert_eq!(Word::from(&s) & !CpuStatus::MASK, 0);
+    }
+
+    #[proptest]
+    fn test_cpu_status_roundtrip2(#[strategy(0u16 .. 1u16 << CpuStatus::BITS)] s: Word) {
+        assert!(
+            s & !CpuStatus::MASK == 0,
+            "This test is fragile w.r.t. the gaps in bitmask, fix it if this assertion fails"
+        );
+        assert_eq!(Word::from(&CpuStatus::try_from(s).unwrap()), s);
+    }
+
+    #[proptest]
+    fn test_cpu_status_out_of_range(#[strategy((1u16 << CpuStatus::BITS ..= u16::MAX))] s: u16) {
+        assert!(
+            s & !CpuStatus::MASK != 0,
+            "This test is fragile w.r.t. the gaps in bitmask, fix it if this assertion fails"
+        );
+        CpuStatus::try_from(s).unwrap_err();
+    }
 
     #[test]
     fn test_virtual_memory_address_from_word_example() {
