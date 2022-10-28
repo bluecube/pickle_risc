@@ -22,7 +22,7 @@ fn generate_instruction_handler() -> anyhow::Result<()> {
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let target_path = Path::new(&out_dir).join("instruction_handler.rs");
-    let definition_path = Path::new("..").join("instruction_set.json5");
+    let definition_path = Path::new("..").join("..").join("instruction_set.json5");
 
     println!(
         "cargo:warning=Output goes to {}",
