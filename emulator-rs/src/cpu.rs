@@ -124,7 +124,7 @@ impl CpuState {
     }
 
     fn page_fault(&mut self) -> anyhow::Result<()> {
-        todo!()
+        todo!("Page fault")
     }
 
     fn virtual_to_physical(
