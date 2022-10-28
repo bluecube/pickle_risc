@@ -12,6 +12,7 @@ ux = { git = "https://github.com/bluecube/uX.git", branch = "cube", features = [
 num_enum = "0.5.7"
 more-asserts = "0.3.1"
 ihex = "3.0.0"
+clap = { version = "4.0.18", features = ["derive"] }
 
 [dev-dependencies]
 test-strategy = "0.2.1"
