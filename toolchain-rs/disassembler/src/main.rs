@@ -17,11 +17,11 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     let img = load_ihex(cli.image_path)?;
-    for (address, v) in img.into_iter().enumerate() {
+    for (address, v) in img.iter().enumerate() {
         print!("{:#06x}: ", address);
         match Instruction::try_from(*v) {
             Ok(instruction) => println!("{}", instruction),
-            Err(_) => println!("<bad instruction>")
+            Err(_) => println!("<bad instruction>"),
         }
     }
     Ok(())

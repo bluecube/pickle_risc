@@ -18,7 +18,7 @@ impl std::fmt::Display for Gpr {
 impl TryFrom<u16> for Gpr {
     type Error = <u3 as TryFrom<u16>>::Error;
     fn try_from(v: u16) -> Result<Self, Self::Error> {
-        v.try_into().map(|x| Gpr(x))
+        v.try_into().map(Gpr)
     }
 }
 

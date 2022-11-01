@@ -6,7 +6,6 @@ use std::iter::repeat;
 use std::ops::Range;
 use std::path::Path;
 
-use anyhow;
 use instruction_set::{
     Instruction, InstructionEncodingArgType, InstructionEncodingPiece, InstructionSet,
     INSTRUCTION_BITS, OPCODE_BITS,
@@ -22,10 +21,10 @@ fn generate_code() -> anyhow::Result<()> {
     let target_path = Path::new(&out_dir).join("instruction_def.rs");
     let definition_path = Path::new("..").join("..").join("instruction_set.json5");
 
-    // println!(
-    //     "cargo:warning=Output goes to {}",
-    //     target_path.to_str().unwrap()
-    // );
+    println!(
+        "cargo:warning=Output goes to {}",
+        target_path.to_str().unwrap()
+    );
     println!(
         "cargo:rerun-if-changed={}",
         definition_path.to_str().unwrap()
@@ -161,7 +160,7 @@ fn generate_opcode_line(
     if with_params && !instruction_def.args.is_empty() {
         write!(target, " {{ ")?;
         for (arg, arg_type) in &instruction_def.args {
-            write!(target, "{}: {}, ", arg, arg_type_to_rust(&arg_type))?;
+            write!(target, "{}: {}, ", arg, arg_type_to_rust(arg_type))?;
         }
         write!(target, "}}")?;
     }
@@ -202,9 +201,9 @@ fn make_opcode_table(
         repeat(None).take(1 << OPCODE_BITS).collect();
 
     for (mnemonic, instruction_def) in &definition.instructions {
-        let encoding = instruction_def.encoding(&mnemonic)?;
+        let encoding = instruction_def.encoding(mnemonic)?;
         for opcode in expand_encoding(&encoding[..OPCODE_BITS]) {
-            table[opcode] = Some((&mnemonic, &instruction_def));
+            table[opcode] = Some((mnemonic, instruction_def));
         }
     }
 
@@ -284,24 +283,21 @@ fn generate_instruction_match_arm(
         writeln!(target, " {{",)?;
         for (arg_name, arg_type) in &instruction_def.args {
             write!(target, "                {}: ", arg_name)?;
-            match arg_type {
-                InstructionEncodingArgType::Immediate {
-                    signed: true,
-                    bits: _,
-                } => write!(
-                    target,
-                    "sign_extend_field(v >> {}, {})",
-                    INSTRUCTION_BITS - arg_offsets[arg_name],
-                    instruction_def.args[arg_name].bits(),
-                )?,
-                _ => write!(
-                    target,
-                    "field(v >> {}, {})",
-                    INSTRUCTION_BITS - arg_offsets[arg_name],
-                    instruction_def.args[arg_name].bits(),
-                )?,
+            if let InstructionEncodingArgType::Immediate {
+                signed: true,
+                bits: _,
+            } = arg_type
+            {
+                write!(target, "sign_extend_")?;
             }
-            writeln!(target, ",")?;
+            write!(target, "field(")?;
+            let shift = INSTRUCTION_BITS - arg_offsets[arg_name];
+            if shift == 0 {
+                write!(target, "v")?;
+            } else {
+                write!(target, "v >> {}", shift)?;
+            }
+            writeln!(target, ", {}),", instruction_def.args[arg_name].bits())?;
         }
         write!(target, "            }}")?;
     }

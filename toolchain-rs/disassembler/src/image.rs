@@ -47,10 +47,12 @@ fn convert_u8_segments(
             Err(LoadingRomError::Overlapping {
                 file: file.map(|x| x.into()),
                 offset: current_segment.offset,
-                size: prev_segment.end() - current_segment.offset
+                size: prev_segment.end() - current_segment.offset,
             })?;
         }
-        let gap_bytes: usize = (current_segment.offset - prev_segment.end()).try_into().unwrap();
+        let gap_bytes: usize = (current_segment.offset - prev_segment.end())
+            .try_into()
+            .unwrap();
         assert_eq!(gap_bytes % 2, 0);
         data.extend(repeat_n(0u16, gap_bytes / 2));
         data.extend(current_segment.iter_u16());
@@ -73,7 +75,7 @@ impl U8Segment {
     }
 
     /// Iterates over elements of this segment as big endian u16 (Pickle risc memory layout)
-    fn iter_u16<'a>(&'a self) -> impl Iterator<Item = u16> + 'a {
+    fn iter_u16(&self) -> impl Iterator<Item = u16> + '_ {
         assert!(self.data.len() % 2 == 0);
         self.data
             .iter()
@@ -87,7 +89,7 @@ impl U8Segment {
 fn load_ihex_segments(file_str: &str, file: Option<&Path>) -> anyhow::Result<Vec<U8Segment>> {
     let mut ret: Vec<U8Segment> = Vec::new();
     let mut address_base: u32 = 0;
-    for record in ihex::Reader::new(&file_str) {
+    for record in ihex::Reader::new(file_str) {
         match record? {
             ihex::Record::Data { offset: _, value } if value.is_empty() => {} // skip over empty records
             ihex::Record::Data { offset, value } => {
