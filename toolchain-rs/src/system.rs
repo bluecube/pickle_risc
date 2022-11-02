@@ -2,7 +2,7 @@ use std::path::Path;
 use ux::*; // Non-standard integer types
 
 use crate::cpu::{CpuState, PhysicaMemory};
-use crate::cpu_types::{Word, EmulatorError};
+use crate::cpu_types::{EmulatorError, Word};
 use crate::memory::{Ram, Rom};
 
 /// Represents the state of the whole computer, including memories and peripherials.

@@ -347,7 +347,11 @@ fn generate_microcode_match_arm(
     }
     writeln!(target, "    ({}, _) => {{", opcode)?;
     if let Some(microcode) = microcode {
-        writeln!(target, "        unreachable!(\"The instruction should only have {} steps\");", microcode.len())?;
+        writeln!(
+            target,
+            "        unreachable!(\"The instruction should only have {} steps\");",
+            microcode.len()
+        )?;
     } else {
         writeln!(target, "        todo!(\"Missing microcode\");")?;
     }
@@ -365,7 +369,7 @@ fn generate_microcode_step(
     writeln!(target, "    ({}, {}) => {{", opcode, step)?;
     writeln!(
         target,
-        "        #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
+        "        #[allow(unused_mut,unused_variables,unused_assignments)] let mut segment = VirtualMemorySegment::Data;",
     )?;
 
     microcode

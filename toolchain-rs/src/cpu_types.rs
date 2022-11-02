@@ -19,8 +19,8 @@ pub struct CpuStatus {
 }
 
 impl CpuStatus {
-    const MASK: Word = 0x0007;
-    const BITS: Word = Self::MASK.count_ones() as u16;
+    pub const MASK: Word = 0x0007;
+    pub const BITS: Word = Self::MASK.count_ones() as u16;
 }
 
 impl From<&CpuStatus> for Word {
