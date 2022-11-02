@@ -18,23 +18,21 @@ fn main() {
 
 fn generate_code() -> anyhow::Result<()> {
     let out_dir = env::var_os("OUT_DIR").unwrap();
-    let target_path = Path::new(&out_dir).join("instruction_def.rs");
-    let definition_path = Path::new("..").join("..").join("instruction_set.json5");
+    let instruction_target_path = Path::new(&out_dir).join("instruction_def.rs");
+    let microcode_target_path = Path::new(&out_dir).join("microcode_def.rs");
+    let definition_path = Path::new("..").join("instruction_set.json5");
 
-    println!(
-        "cargo:warning=Output goes to {}",
-        target_path.to_str().unwrap()
-    );
-    println!(
-        "cargo:rerun-if-changed={}",
-        definition_path.to_str().unwrap()
-    );
+    //println!("cargo:warning={}", instruction_target_path.to_str().unwrap());
+    //println!("cargo:warning={}", microcode_target_path.to_str().unwrap());
+    println!("cargo:rerun-if-changed={}", definition_path.to_str().unwrap());
 
     let definition = InstructionSet::load(definition_path)?;
-    let mut target = File::create(target_path)?;
+    let mut instruction_target = File::create(instruction_target_path)?;
+    let mut microcode_target = File::create(microcode_target_path)?;
 
-    generate_instruction(&definition, &mut target)?;
-    generate_opcode(&definition, &mut target)?;
+    generate_instruction(&definition, &mut instruction_target)?;
+    generate_opcode(&definition, &mut instruction_target)?;
+    generate_microcode_match(&definition, &mut microcode_target)?;
 
     Ok(())
 }
@@ -93,8 +91,9 @@ fn generate_opcode(definition: &InstructionSet, target: &mut File) -> anyhow::Re
     )?;
     writeln!(
         target,
-        "        match v >> {} {{",
-        INSTRUCTION_BITS - OPCODE_BITS
+        "        match (v >> {}) & {} {{",
+        INSTRUCTION_BITS - OPCODE_BITS,
+        (1 << OPCODE_BITS) - 1,
     )?;
     let opcode_table = make_opcode_table(definition)?;
     for (count, (first_opcode, instruction)) in opcode_table
@@ -104,7 +103,7 @@ fn generate_opcode(definition: &InstructionSet, target: &mut File) -> anyhow::Re
     {
         generate_opcode_match_arm(instruction, first_opcode..(first_opcode + count), target)?;
     }
-    writeln!(target, "            _ => unreachable!(),")?;
+    writeln!(target, "            {:#04x} ..= u16::MAX => unreachable!(),", 1 << OPCODE_BITS)?;
     writeln!(target, "        }}")?;
     writeln!(target, "    }}")?;
     writeln!(target, "}}")?;
@@ -229,16 +228,15 @@ fn generate_opcode_match_arm(
 ) -> anyhow::Result<()> {
     write!(target, "            ")?;
     if opcodes.len() == 1 {
-        writeln!(target, "{:#04x} =>", opcodes.start)?;
+        write!(target, "{:#04x} => ", opcodes.start)?;
     } else {
-        writeln!(
+        write!(
             target,
-            "{:#04x}..={:#04x} =>",
+            "{:#04x} ..= {:#04x} => ",
             opcodes.start,
             opcodes.end - 1
         )?;
     }
-    write!(target, "                ")?;
     match instruction {
         Some((mnemonic, _)) => {
             write!(target, "Ok(Opcode::{}", mnemonic_to_cammel_case(mnemonic))?;
@@ -304,4 +302,113 @@ fn generate_instruction_match_arm(
     writeln!(target, ",")?;
 
     Ok(())
+}
+
+fn generate_microcode_match(definition: &InstructionSet, target: &mut File) -> anyhow::Result<()> {
+    writeln!(target, "match Opcode::try_from(self.current_instruction) {{")?;
+    for (mnemonic, instruction_def) in &definition.instructions {
+        writeln!(target, "    Ok(Opcode::{}) => {{", mnemonic_to_cammel_case(mnemonic))?;
+        generate_microcode_match_arm_content(instruction_def.microcode.as_ref(), &definition.substitutions, target)?;
+        writeln!(target, "    }},")?;
+    }
+    writeln!(target, "    Err(_) => {{")?;
+        generate_microcode_match_arm_content(definition.invalid_instruction_microcode.as_ref(), &definition.substitutions, target)?;
+    writeln!(target, "    }},")?;
+    writeln!(target, "}}")?;
+    Ok(())
+}
+
+fn generate_microcode_match_arm_content(microcode: Option<&Vec<Vec<String>>>, substitutions: &HashMap<String, Vec<String>>, target: &mut File) -> anyhow::Result<()> {
+    if let Some(microcode) = microcode {
+        for (i, microcode_step) in microcode.iter().enumerate() {
+            generate_microcode_step(i, microcode_step, substitutions, target)?;
+        }
+    } else {
+        writeln!(target, "        todo!(\"Missing microcode\");")?;
+    }
+    Ok(())
+}
+
+fn generate_microcode_step(
+    step: usize,
+    microcode: &Vec<String>,
+    substitutions: &HashMap<String, Vec<String>>,
+    target: &mut File,
+) -> anyhow::Result<()> {
+    writeln!(target, "        {{ // Microcode step {}", step)?;
+    writeln!(
+        target,
+        "            #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
+    )?;
+
+    microcode.iter()
+        .flat_map(|microinstruction| substitute_microinstruction(microinstruction, substitutions))
+        .map(|microinstruction| translate_microinstruction(microinstruction))
+        .sorted_by_key(|(_code, phase)| phase.clone())
+        .try_for_each(|(code, _phase)| writeln!(target, "            {}", code))?;
+
+    writeln!(target, "        }}")?;
+
+    // TODO: Conditionals in microcode
+    Ok(())
+}
+
+fn substitute_microinstruction<'a>(
+    microinstruction: &'a str,
+    substitutions: &'a HashMap<String, Vec<String>>,
+) -> impl Iterator<Item = &'a str> {
+    if microinstruction.starts_with("$") {
+        if let Some(subst) = substitutions.get(&microinstruction[1..]) {
+            either::Left(subst.into_iter().map(|x| x.as_str()))
+        } else {
+            panic!("Bad substitution: {:?}", microinstruction);
+        }
+    } else {
+        either::Right(std::iter::once(microinstruction))
+    }
+}
+
+/// Parse a microinstruction, returns rust code to emulate it, and its phase
+/// (to produce microinstructions that produce value before the ones that consume them)
+fn translate_microinstruction(microinstruction: &str) -> (String, usize) {
+    let (code, priority) = match microinstruction {
+        "pc->left" => ("let left_bus = self.pc;", 0),
+        "pc->addr_base" => ("let addr_base_bus = self.pc;", 0),
+        "zero->left" => ("let left_bus = 0;", 0),
+        "f2->left" => ("let left_bus = self.get_gpr(field(opcode, 3));", 0),
+        "f3->left" => ("let left_bus = self.get_gpr(field(opcode >> 3, 3));", 0),
+        "f4->right" => ("let right_bus = self.get_gpr(field(opcode >> 6, 3));", 0),
+        "f5->right" => ("let right_bus = self.get_gpr(field(opcode >> 10, 3));", 0),
+        "f6->right" => ("let right_bus = self.get_cr(field(opcode >> 9, 3));", 0),
+        "f7->right" => ("let right_bus: Word = sign_extend_field(opcode >> 3, 8);", 0),
+
+        "right->addr_base" => ("let addr_base_bus = right_bus;", 1),
+        "left->mem_data" => ("let mem_data = left_bus;", 1),
+
+        "alu_add->result" => ("let result_bus = left_bus.wrapping_add(right_bus);", 1),
+        "alu_and->result" => ("let result_bus = left_bus & right_bus;", 1),
+        "alu_or->result" => ("let result_bus = left_bus | right_bus;", 1),
+        "alu_xor->result" => ("let result_bus = left_bus ^ right_bus;", 1),
+        "alu_sub->result" => ("let result_bus = left_bus.wrapping_sub(right_bus);", 1),
+        "alu_upsample->result" => ("let result_bus = (left_bus & 0xff) | (right_bus & 0xff) << 8;", 1),
+
+        "f8->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(sign_extend_field(opcode >> 3, 7));", 2),
+        "zero->addr_offset" => ("let mem_address = addr_base_bus;", 2),
+        "one->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(1);", 2),
+
+        "mem_address->pc" => ("self.pc = mem_address;", 3),
+        "read_mem_data" => ("let mem_data = self.read_memory(&VirtualMemoryAddress::from(mem_address), &segment, memory)?;", 3),
+        "write_mem_data" => ("self.write_memory_virt(&VirtualMemoryAddress::from(mem_address), &segment, memory, left_bus)?;", 3),
+
+        "mem_data->instruction" => ("self.next_instruction = mem_data;", 4),
+        "mem_data->result" => ("let result_bus = mem_data;", 4),
+
+        "result->f1" => ("self.set_gpr(field(opcode, 3), result_bus);", 5),
+        "result->f6" => ("self.set_cr(field(opcode >> 9, 3), result_bus);", 5),
+
+        "end_instruction" => ("self.current_instruction = self.next_instruction;", 0),
+
+        _ => todo!("Unknown microinstruction: {:?}", microinstruction)
+    };
+    (format!("{} // {}", code, microinstruction), priority)
 }

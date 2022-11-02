@@ -6,24 +6,9 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 #[cfg(test)]
 use test_strategy::Arbitrary;
 use thiserror::Error;
-use ux::*; // Non-standard integer types
+use ux::*;
 
-pub type Word = u16;
-
-pub type Gpr = u3;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
-#[repr(u16)]
-pub enum ControlRegister {
-    AluStatus = 0,
-    CpuStatus = 1,
-    ContextID = 2,
-    IntCause = 3,
-    IntBase = 4,
-    IntPc = 5,
-    MMUAddr = 6,
-    MMUData = 7,
-}
+pub use crate::instruction::{Word, Gpr, ControlRegister};
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(test, derive(Arbitrary))]

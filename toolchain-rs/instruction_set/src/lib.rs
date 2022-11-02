@@ -6,6 +6,9 @@ use thiserror::Error;
 use serde::Deserialize;
 use indexmap::IndexMap;
 
+pub const INSTRUCTION_BITS: usize = 16;
+pub const OPCODE_BITS: usize = 7; // TODO: This could be extracted from the definition
+
 #[derive(Deserialize, Debug)]
 pub struct InstructionSet {
     pub instructions: IndexMap<String, Instruction>,
@@ -24,15 +27,16 @@ impl InstructionSet {
 pub struct Instruction {
     #[serde(default)]
     pub args: IndexMap<String, InstructionEncodingArgType>,
-    pub encoding: Vec<InstructionEncodingPiece>,
+    #[serde(rename="encoding")]
+    pub encoding_pieces: Vec<InstructionEncodingPiece>,
     pub microcode: Option<Vec<Vec<String>>>
 }
 
 impl Instruction {
-    pub fn encoding(&self, mnemonic: &str, instruction_bits: usize) -> Result<String, InstructionDefinitionError> {
+    pub fn encoding(&self, mnemonic: &str) -> Result<String, InstructionDefinitionError> {
         let mut encoding = String::new();
 
-        for encoding_piece in &self.encoding {
+        for encoding_piece in &self.encoding_pieces {
             match encoding_piece {
                 InstructionEncodingPiece::Literal(bits) => encoding.push_str(&bits),
                 InstructionEncodingPiece::Ignored(count) => for _ in 0..*count { encoding.push('x') },
@@ -49,7 +53,7 @@ impl Instruction {
             }
         }
 
-        if encoding.len() != instruction_bits {
+        if encoding.len() != INSTRUCTION_BITS {
             Err(InstructionDefinitionError::WrongEncodingLength {
                 mnemonic: mnemonic.into(),
                 bits: encoding.len()

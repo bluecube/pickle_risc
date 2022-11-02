@@ -1,9 +1,5 @@
-mod image;
-mod instruction;
-mod util;
-
-use crate::image::load_ihex;
-use crate::instruction::Instruction;
+use pickle_toolchain::image::load_ihex;
+use pickle_toolchain::instruction::Instruction;
 use clap::Parser;
 use std::path::PathBuf;
 

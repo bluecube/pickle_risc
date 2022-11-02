@@ -247,7 +247,7 @@ mod tests {
 
     #[proptest]
     fn test_rom_from_segments_one(#[strategy(1usize..256usize)] length: usize) {
-        let rom = convert_u8_segments(
+        let data = convert_u8_segments(
             &vec![U8Segment {
                 offset: 0,
                 data: vec![0x00; length * 2],
@@ -255,7 +255,7 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(rom.data.len(), length);
+        assert_eq!(data.len(), length);
     }
 
     #[test]
@@ -306,7 +306,7 @@ mod tests {
         let offset2 = u32::try_from(length1).unwrap();
         let offset3 = offset2 + u32::try_from(length2 + gap).unwrap();
 
-        let rom = convert_u8_segments(
+        let data = convert_u8_segments(
             &vec![
                 U8Segment {
                     offset: 0,
@@ -325,18 +325,18 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(rom.data.len(), length1 + length2 + gap + length3);
+        assert_eq!(data.len(), length1 + length2 + gap + length3);
 
-        println!("{:?}", rom.data);
+        println!("{:?}", data);
 
-        assert!(rom.data[..length1].iter().all(|x| *x == 0x0101));
-        assert!(rom.data[length1..length1 + length2]
+        assert!(data[..length1].iter().all(|x| *x == 0x0101));
+        assert!(data[length1..length1 + length2]
             .iter()
             .all(|x| *x == 0x0202));
-        assert!(rom.data[length1 + length2..length1 + length2 + gap]
+        assert!(data[length1 + length2..length1 + length2 + gap]
             .iter()
             .all(|x| *x == 0));
-        assert!(rom.data[length1 + length2 + gap..]
+        assert!(data[length1 + length2 + gap..]
             .iter()
             .all(|x| *x == 0x0303));
     }

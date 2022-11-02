@@ -1,13 +1,6 @@
-mod cpu;
-mod cpu_types;
-mod memory;
-mod system;
-mod util;
-
-use ux::*; // Non-standard integer types
-
-use crate::cpu::CpuState;
-use crate::system::SystemState;
+use pickle_toolchain::cpu::CpuState;
+use pickle_toolchain::system::SystemState;
+use pickle_toolchain::cpu_types::*;
 use clap::Parser;
 
 use std::path::PathBuf;
@@ -33,7 +26,7 @@ fn main() -> anyhow::Result<()> {
 
 fn print_cpu_state(state: &CpuState) {
     for i in 0..8 {
-        let v = state.get_gpr(u3::new(i));
+        let v = state.get_gpr(Gpr::new(i));
         print!("r{}: {}({:#06x})", i, v, v);
     }
     println!();

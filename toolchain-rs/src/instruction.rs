@@ -22,6 +22,19 @@ impl TryFrom<u16> for Gpr {
     }
 }
 
+impl From<Gpr> for usize {
+    fn from(r: Gpr) -> Self {
+        r.0.try_into().unwrap()
+    }
+}
+
+impl Gpr {
+    /// Create a new GPR index, panics if out of range
+    pub fn new(i: usize) -> Gpr {
+        Gpr(i.try_into().unwrap())
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
 #[repr(u16)]
 pub enum ControlRegister {
@@ -48,3 +61,5 @@ pub enum InvalidInstructionError {
 }
 
 include!(concat!(env!("OUT_DIR"), "/instruction_def.rs"));
+
+// TODO: Tests!

@@ -2,6 +2,7 @@ use itertools::Itertools;
 use ux::*; // Non-standard integer types
 
 use crate::cpu_types::*;
+use crate::instruction::Opcode;
 use crate::util::*;
 
 const PAGE_TABLE_SIZE: usize = 1 << PageTableIndex::BITS;
@@ -74,16 +75,18 @@ impl CpuState {
     }
 
     pub fn get_gpr(&self, index: Gpr) -> Word {
-        if index == Gpr::new(0) {
+        let i: usize = index.into();
+        if i == 0 {
             0
         } else {
-            self.gpr[usize::try_from(index).unwrap() - 1]
+            self.gpr[i - 1]
         }
     }
 
     pub fn set_gpr(&mut self, index: Gpr, value: Word) {
-        if index > Gpr::new(0) {
-            self.gpr[usize::try_from(index).unwrap() - 1] = value
+        let i: usize = index.into();
+        if i > 0 {
+            self.gpr[i - 1] = value
         }
     }
 
@@ -185,7 +188,7 @@ impl CpuState {
 
     pub fn step<M: PhysicaMemory>(&mut self, memory: &M) -> anyhow::Result<()> {
         let opcode = self.current_instruction;
-        include!(concat!(env!("OUT_DIR"), "/instruction_handler.rs"));
+        include!(concat!(env!("OUT_DIR"), "/microcode_def.rs"));
         Ok(())
     }
 }

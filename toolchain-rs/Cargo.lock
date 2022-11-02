@@ -134,23 +134,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "disassembler"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "ihex",
- "instruction_set",
- "itertools",
- "more-asserts",
- "num_enum",
- "proptest",
- "test-strategy",
- "thiserror",
- "ux",
-]
-
-[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -326,9 +309,9 @@ checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 
 [[package]]
 name = "os_str_bytes"
-version = "6.3.1"
+version = "6.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3baf96e39c5359d2eb0dd6ccb42c62b91d9678aa68160d261b9e0ccbf9e9dea9"
+checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 
 [[package]]
 name = "pest"
@@ -372,6 +355,24 @@ dependencies = [
  "once_cell",
  "pest",
  "sha1",
+]
+
+[[package]]
+name = "pickle-toolchain"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "either",
+ "ihex",
+ "instruction_set",
+ "itertools",
+ "more-asserts",
+ "num_enum",
+ "proptest",
+ "test-strategy",
+ "thiserror",
+ "ux",
 ]
 
 [[package]]
