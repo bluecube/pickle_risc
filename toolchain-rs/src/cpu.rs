@@ -130,13 +130,13 @@ impl CpuState {
     ) -> anyhow::Result<R> {
         if let Some(physical_address) = self.virtual_to_physical(address, segment, write) {
             let address: u24 = (&physical_address).into();
-            fun(address).ok_or_else(||
+            fun(address).ok_or_else(|| {
                 EmulatorError::NonMappedPhysicalMemory {
                     address: physical_address,
                     pc: self.pc,
                 }
-                .into(),
-            )
+                .into()
+            })
         } else {
             self.page_fault()?;
             Ok(R::default())

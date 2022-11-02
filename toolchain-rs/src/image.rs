@@ -336,8 +336,6 @@ mod tests {
         assert!(data[length1 + length2..length1 + length2 + gap]
             .iter()
             .all(|x| *x == 0));
-        assert!(data[length1 + length2 + gap..]
-            .iter()
-            .all(|x| *x == 0x0303));
+        assert!(data[length1 + length2 + gap..].iter().all(|x| *x == 0x0303));
     }
 }

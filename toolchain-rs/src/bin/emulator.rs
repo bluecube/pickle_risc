@@ -1,7 +1,7 @@
-use pickle_toolchain::cpu::CpuState;
-use pickle_toolchain::system::SystemState;
-use pickle_toolchain::cpu_types::*;
 use clap::Parser;
+use pickle_toolchain::cpu::CpuState;
+use pickle_toolchain::cpu_types::*;
+use pickle_toolchain::system::SystemState;
 
 use std::path::PathBuf;
 

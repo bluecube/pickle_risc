@@ -24,7 +24,10 @@ fn generate_code() -> anyhow::Result<()> {
 
     //println!("cargo:warning={}", instruction_target_path.to_str().unwrap());
     //println!("cargo:warning={}", microcode_target_path.to_str().unwrap());
-    println!("cargo:rerun-if-changed={}", definition_path.to_str().unwrap());
+    println!(
+        "cargo:rerun-if-changed={}",
+        definition_path.to_str().unwrap()
+    );
 
     let definition = InstructionSet::load(definition_path)?;
     let mut instruction_target = File::create(instruction_target_path)?;
@@ -103,7 +106,11 @@ fn generate_opcode(definition: &InstructionSet, target: &mut File) -> anyhow::Re
     {
         generate_opcode_match_arm(instruction, first_opcode..(first_opcode + count), target)?;
     }
-    writeln!(target, "            {:#04x} ..= u16::MAX => unreachable!(),", 1 << OPCODE_BITS)?;
+    writeln!(
+        target,
+        "            {:#04x} ..= u16::MAX => unreachable!(),",
+        1 << OPCODE_BITS
+    )?;
     writeln!(target, "        }}")?;
     writeln!(target, "    }}")?;
     writeln!(target, "}}")?;
@@ -305,20 +312,39 @@ fn generate_instruction_match_arm(
 }
 
 fn generate_microcode_match(definition: &InstructionSet, target: &mut File) -> anyhow::Result<()> {
-    writeln!(target, "match Opcode::try_from(self.current_instruction) {{")?;
+    writeln!(
+        target,
+        "match Opcode::try_from(self.current_instruction) {{"
+    )?;
     for (mnemonic, instruction_def) in &definition.instructions {
-        writeln!(target, "    Ok(Opcode::{}) => {{", mnemonic_to_cammel_case(mnemonic))?;
-        generate_microcode_match_arm_content(instruction_def.microcode.as_ref(), &definition.substitutions, target)?;
+        writeln!(
+            target,
+            "    Ok(Opcode::{}) => {{",
+            mnemonic_to_cammel_case(mnemonic)
+        )?;
+        generate_microcode_match_arm_content(
+            instruction_def.microcode.as_ref(),
+            &definition.substitutions,
+            target,
+        )?;
         writeln!(target, "    }},")?;
     }
     writeln!(target, "    Err(_) => {{")?;
-        generate_microcode_match_arm_content(definition.invalid_instruction_microcode.as_ref(), &definition.substitutions, target)?;
+    generate_microcode_match_arm_content(
+        definition.invalid_instruction_microcode.as_ref(),
+        &definition.substitutions,
+        target,
+    )?;
     writeln!(target, "    }},")?;
     writeln!(target, "}}")?;
     Ok(())
 }
 
-fn generate_microcode_match_arm_content(microcode: Option<&Vec<Vec<String>>>, substitutions: &HashMap<String, Vec<String>>, target: &mut File) -> anyhow::Result<()> {
+fn generate_microcode_match_arm_content(
+    microcode: Option<&Vec<Vec<String>>>,
+    substitutions: &HashMap<String, Vec<String>>,
+    target: &mut File,
+) -> anyhow::Result<()> {
     if let Some(microcode) = microcode {
         for (i, microcode_step) in microcode.iter().enumerate() {
             generate_microcode_step(i, microcode_step, substitutions, target)?;
@@ -341,7 +367,8 @@ fn generate_microcode_step(
         "            #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
     )?;
 
-    microcode.iter()
+    microcode
+        .iter()
         .flat_map(|microinstruction| substitute_microinstruction(microinstruction, substitutions))
         .map(translate_microinstruction)
         .sorted_by_key(|(_code, phase)| *phase)

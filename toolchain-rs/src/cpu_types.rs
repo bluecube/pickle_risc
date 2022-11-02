@@ -8,7 +8,7 @@ use test_strategy::Arbitrary;
 use thiserror::Error;
 use ux::*;
 
-pub use crate::instruction::{Word, Gpr, ControlRegister};
+pub use crate::instruction::{ControlRegister, Gpr, Word};
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(test, derive(Arbitrary))]
@@ -25,9 +25,7 @@ impl CpuStatus {
 
 impl From<&CpuStatus> for Word {
     fn from(v: &CpuStatus) -> Self {
-        (v.interrupt_enabled as Word)
-            | (v.kernel_mode as Word) << 1
-            | (v.mmu_enabled as Word) << 2
+        (v.interrupt_enabled as Word) | (v.kernel_mode as Word) << 1 | (v.mmu_enabled as Word) << 2
     }
 }
 

@@ -1,6 +1,6 @@
+use clap::Parser;
 use pickle_toolchain::image::load_ihex;
 use pickle_toolchain::instruction::Instruction;
-use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
