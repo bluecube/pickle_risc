@@ -63,11 +63,8 @@ impl CpuState {
             kernel_mode: false,
             mmu_enabled: false,
         };
-        self.context_id = u6::new(0); // TODO: Is this necessary?
         self.step = u2::default();
         self.current_instruction = 0;
-
-        // TODO: Disable MMU and interrupts
     }
 
     pub fn get_next_instruction(&self) -> Word {

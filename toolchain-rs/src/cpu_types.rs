@@ -186,10 +186,6 @@ pub enum EmulatorError {
         address: PhysicalMemoryAddress,
         pc: Word,
     },
-    #[error("Instruction `{mnemonic} has no microcode defined (TODO) (pc = {pc:#06x})")]
-    MissingMicrocode { mnemonic: &'static str, pc: Word },
-    #[error("Error when accessing memory")]
-    MemoryAccessError { pc: Word },
     #[error("Reserved bit position written as nonzero when writing {t} (value: {value:#06x})")]
     ReservedBitNonzero { t: String, value: Word },
     #[error("Break instruction encountered")]
