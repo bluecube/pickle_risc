@@ -108,7 +108,7 @@ fn generate_opcode(definition: &InstructionSet, target: &mut File) -> anyhow::Re
     }
     writeln!(
         target,
-        "            {:#04x} ..= u16::MAX => unreachable!(),",
+        "            {:#04x} ..= u16::MAX => unreachable!(\"Opcode should be limited by the bitmask\"),",
         1 << OPCODE_BITS
     )?;
     writeln!(target, "        }}")?;
@@ -314,57 +314,58 @@ fn generate_instruction_match_arm(
 fn generate_microcode_match(definition: &InstructionSet, target: &mut File) -> anyhow::Result<()> {
     writeln!(
         target,
-        "match Opcode::try_from(self.current_instruction) {{"
+        "match (Opcode::try_from(self.current_instruction), u8::from(self.step)) {{"
     )?;
     for (mnemonic, instruction_def) in &definition.instructions {
-        writeln!(
-            target,
-            "    Ok(Opcode::{}) => {{",
-            mnemonic_to_cammel_case(mnemonic)
-        )?;
-        generate_microcode_match_arm_content(
+        generate_microcode_match_arm(
+            format!("Ok(Opcode::{})", mnemonic_to_cammel_case(mnemonic)).as_ref(),
             instruction_def.microcode.as_ref(),
             &definition.substitutions,
             target,
         )?;
-        writeln!(target, "    }},")?;
     }
-    writeln!(target, "    Err(_) => {{")?;
-    generate_microcode_match_arm_content(
+    generate_microcode_match_arm(
+        "Err(_)",
         definition.invalid_instruction_microcode.as_ref(),
         &definition.substitutions,
         target,
     )?;
-    writeln!(target, "    }},")?;
     writeln!(target, "}}")?;
     Ok(())
 }
 
-fn generate_microcode_match_arm_content(
+fn generate_microcode_match_arm(
+    opcode: &str,
     microcode: Option<&Vec<Vec<String>>>,
     substitutions: &HashMap<String, Vec<String>>,
     target: &mut File,
 ) -> anyhow::Result<()> {
     if let Some(microcode) = microcode {
         for (i, microcode_step) in microcode.iter().enumerate() {
-            generate_microcode_step(i, microcode_step, substitutions, target)?;
+            generate_microcode_step(opcode, i, microcode_step, substitutions, target)?;
         }
+    }
+    writeln!(target, "    ({}, _) => {{", opcode)?;
+    if let Some(microcode) = microcode {
+        writeln!(target, "        unreachable!(\"The instruction should only have {} steps\");", microcode.len())?;
     } else {
         writeln!(target, "        todo!(\"Missing microcode\");")?;
     }
+    writeln!(target, "    }},")?;
     Ok(())
 }
 
 fn generate_microcode_step(
+    opcode: &str,
     step: usize,
     microcode: &[String],
     substitutions: &HashMap<String, Vec<String>>,
     target: &mut File,
 ) -> anyhow::Result<()> {
-    writeln!(target, "        {{ // Microcode step {}", step)?;
+    writeln!(target, "    ({}, {}) => {{", opcode, step)?;
     writeln!(
         target,
-        "            #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
+        "        #[allow(unused_mut,unused_variables)] let mut segment = VirtualMemorySegment::Data;",
     )?;
 
     microcode
@@ -372,11 +373,11 @@ fn generate_microcode_step(
         .flat_map(|microinstruction| substitute_microinstruction(microinstruction, substitutions))
         .map(translate_microinstruction)
         .sorted_by_key(|(_code, phase)| *phase)
-        .try_for_each(|(code, _phase)| writeln!(target, "            {}", code))?;
-
-    writeln!(target, "        }}")?;
+        .try_for_each(|(code, _phase)| writeln!(target, "        {}", code))?;
 
     // TODO: Conditionals in microcode
+    writeln!(target, "    }},")?;
+
     Ok(())
 }
 
@@ -433,7 +434,7 @@ fn translate_microinstruction(microinstruction: &str) -> (String, usize) {
         "result->f1" => ("self.set_gpr(field(opcode, 3), result_bus);", 5),
         "result->f6" => ("self.set_cr(field(opcode >> 9, 3), result_bus);", 5),
 
-        "end_instruction" => ("self.current_instruction = self.next_instruction;", 0),
+        "end_instruction" => ("self.end_instruction();", 999),
 
         _ => todo!("Unknown microinstruction: {:?}", microinstruction)
     };

@@ -19,6 +19,8 @@ pub struct CpuState {
     int_cause: Word,
     mmu_addr: Word,
 
+    // Microinstruction step
+    step: u2,
     current_instruction: Word,
     next_instruction: Word,
 
@@ -43,6 +45,7 @@ impl CpuState {
             int_cause: 0,
             mmu_addr: 0,
 
+            step: u2::new(0),
             current_instruction: 0,
             next_instruction: 0,
             page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE],
@@ -61,6 +64,7 @@ impl CpuState {
             mmu_enabled: false,
         };
         self.context_id = u6::new(0); // TODO: Is this necessary?
+        self.step = u2::default();
         self.current_instruction = 0;
 
         // TODO: Disable MMU and interrupts
@@ -73,6 +77,10 @@ impl CpuState {
 
     pub fn get_pc(&self) -> Word {
         self.pc
+    }
+
+    pub fn get_step(&self) -> u2 {
+        self.step
     }
 
     pub fn get_gpr(&self, index: Gpr) -> Word {
@@ -183,6 +191,11 @@ impl CpuState {
 
     fn write_memory_mapping(&mut self, page_table_index: &PageTableIndex, record: PageTableRecord) {
         self.page_table[usize::from(page_table_index)] = record;
+    }
+
+    fn end_instruction(&mut self) {
+        self.current_instruction = self.next_instruction;
+        self.step = u2::default();
     }
 
     pub fn step<M: PhysicaMemory>(&mut self, memory: &M) -> anyhow::Result<()> {
