@@ -12,9 +12,19 @@ pub struct Ram {
 }
 
 impl Ram {
-    pub fn new(size: u32) -> Ram {
+    /// Construct new zero filled memory
+    pub fn new(size: u32) -> Self {
         Ram {
             data: vec![0; size.try_into().unwrap()].into_boxed_slice(),
+        }
+    }
+
+    /// Construct new memory with random content
+    pub fn with_rng(size: u32, rng: &mut impl rand::Rng) -> Self {
+        let mut vec = Vec::with_capacity(size.try_into().unwrap());
+        vec.extend((0..size).map(|_| rng.gen::<Word>()));
+        Ram {
+            data: vec.into_boxed_slice(),
         }
     }
 }

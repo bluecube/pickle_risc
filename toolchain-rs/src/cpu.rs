@@ -1,3 +1,4 @@
+use rand::Rng;
 use ux::*; // Non-standard integer types
 
 use crate::cpu_types::*;
@@ -29,7 +30,7 @@ pub struct CpuState {
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_without_default))]
 impl CpuState {
-    /// Construct new CPU state in a reset state
+    /// Construct new CPU state in a reset state, with everything zero filled.
     pub fn new() -> Self {
         // This doesn't need to be a valid initial state!
         // (although likely it is)
@@ -50,6 +51,35 @@ impl CpuState {
             next_instruction: 0,
             page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE],
         };
+        // Call reset to make sure we are in a valid startup state
+        ret.reset();
+        ret
+    }
+
+    /// Construct new CPU in a reset state, but otherwise completely random
+    pub fn with_rng(rng: &mut impl rand::Rng) -> Self {
+        let mut ret = CpuState {
+            gpr: rng.gen(),
+
+            pc: rng.gen(),
+
+            alu_flags: rng.gen(),
+            cpu_status: (rng.gen::<Word>() & CpuStatus::MASK).try_into().unwrap(),
+            context_id: u6::new(rng.gen_range(0u8..=u6::MAX.into())),
+            int_c: rng.gen(),
+            int_cause: rng.gen(),
+            mmu_addr: rng.gen(),
+
+            step: u2::new(rng.gen_range(0u8..=u2::MAX.into())),
+            current_instruction: rng.gen(),
+            next_instruction: rng.gen(),
+            page_table: [PageTableRecord::default(); PAGE_TABLE_SIZE],
+        };
+
+        for i in 0..PAGE_TABLE_SIZE {
+            ret.page_table[i] = rng.gen::<Word>().into();
+        }
+
         // Call reset to make sure we are in a valid startup state
         ret.reset();
         ret

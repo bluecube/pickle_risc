@@ -10,12 +10,21 @@ use std::path::PathBuf;
 struct Cli {
     /// Path to intel hex image of the boot rom
     boot_rom_path: PathBuf,
+
+    /// Initialize the system with random state
+    #[arg(short, long)]
+    randomize: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let mut system = SystemState::new(cli.boot_rom_path)?;
+    let mut system = if cli.randomize {
+        let mut rng = rand::thread_rng();
+        SystemState::with_rng(cli.boot_rom_path, &mut rng)
+    } else {
+        SystemState::new(cli.boot_rom_path)
+    }?;
 
     loop {
         print_cpu_state(&system.cpu);

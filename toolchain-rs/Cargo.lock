@@ -370,6 +370,7 @@ dependencies = [
  "more-asserts",
  "num_enum",
  "proptest",
+ "rand",
  "test-strategy",
  "thiserror",
  "ux",

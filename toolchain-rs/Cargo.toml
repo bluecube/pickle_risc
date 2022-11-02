@@ -14,6 +14,7 @@ more-asserts = "0.3.1"
 ihex = "3.0.0"
 
 clap = { version = "4.0.18", features = ["derive"] }
+rand = "0.8.5"
 
 [dev-dependencies]
 test-strategy = "0.2.1"

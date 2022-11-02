@@ -30,6 +30,19 @@ impl SystemState {
         })
     }
 
+    pub fn with_rng<P: AsRef<Path>>(
+        rom_ihex_path: P,
+        rng: &mut impl rand::Rng,
+    ) -> anyhow::Result<SystemState> {
+        Ok(SystemState {
+            cpu: CpuState::with_rng(rng),
+            devices: SystemDevices {
+                ram: Ram::with_rng(1024 * 1024, rng), // 1MW to start
+                rom: Rom::from_ihex(rom_ihex_path)?,
+            },
+        })
+    }
+
     pub fn reset(&mut self) {
         self.cpu.reset();
     }
