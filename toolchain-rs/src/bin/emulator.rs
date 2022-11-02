@@ -41,10 +41,10 @@ fn print_cpu_state(state: &CpuState) {
 
     let instruction = state.get_next_instruction();
     print!(
-        "{:#06x}/{}: {:06x}",
+        "{:#06x}/{}: {:04x}",
         state.get_pc(),
+        state.get_step(),
         instruction,
-        state.get_step()
     );
     if let Ok(instruction) = Instruction::try_from(instruction) {
         print!(" {}", instruction);
