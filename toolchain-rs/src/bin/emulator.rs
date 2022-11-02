@@ -19,7 +19,16 @@ fn main() -> anyhow::Result<()> {
 
     loop {
         print_cpu_state(&system.cpu);
-        system.step()?;
+        match system.step() {
+            Ok(()) => (),
+            Err(EmulatorError::Break) => {
+                println!("Break");
+                return Ok(());
+            }
+            Err(e) => {
+                return Err(e.into());
+            }
+        }
     }
 }
 

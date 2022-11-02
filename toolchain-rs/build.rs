@@ -435,7 +435,8 @@ fn translate_microinstruction(microinstruction: &str) -> (String, usize) {
         "result->f1" => ("self.set_gpr(field(opcode, 3), result_bus);", 5),
         "result->f6" => ("self.set_cr(field(opcode >> 9, 3), result_bus);", 5),
 
-        "end_instruction" => ("self.end_instruction();", 999),
+        "end_instruction" => ("self.end_instruction();", 6),
+        "break" => ("Err(EmulatorError::Break)?;", 7),
 
         _ => todo!("Unknown microinstruction: {:?}", microinstruction)
     };

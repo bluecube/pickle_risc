@@ -192,6 +192,8 @@ pub enum EmulatorError {
     MemoryAccessError { pc: Word },
     #[error("Reserved bit position written as nonzero when writing {t} (value: {value:#06x})")]
     ReservedBitNonzero { t: String, value: Word },
+    #[error("Break instruction encountered")]
+    Break,
 }
 
 #[cfg(test)]

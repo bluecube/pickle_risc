@@ -112,7 +112,7 @@ impl CpuState {
         address: &VirtualMemoryAddress,
         segment: &VirtualMemorySegment,
         memory: &M,
-    ) -> anyhow::Result<Word> {
+    ) -> Result<Word, EmulatorError> {
         self.memory_operation(address, segment, false, |a| memory.read(a))
     }
 
@@ -122,7 +122,7 @@ impl CpuState {
         segment: &VirtualMemorySegment,
         memory: &mut M,
         value: Word,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), EmulatorError> {
         self.memory_operation(address, segment, true, |a| memory.write(a, value))
     }
 
@@ -135,7 +135,7 @@ impl CpuState {
         segment: &VirtualMemorySegment,
         write: bool,
         fun: F,
-    ) -> anyhow::Result<R> {
+    ) -> Result<R, EmulatorError> {
         if let Some(physical_address) = self.virtual_to_physical(address, segment, write) {
             let address: u24 = (&physical_address).into();
             fun(address).ok_or_else(|| {
@@ -146,12 +146,12 @@ impl CpuState {
                 .into()
             })
         } else {
-            self.page_fault()?;
+            self.page_fault();
             Ok(R::default())
         }
     }
 
-    fn page_fault(&mut self) -> anyhow::Result<()> {
+    fn page_fault(&mut self) {
         todo!("Page fault")
     }
 
@@ -198,7 +198,7 @@ impl CpuState {
         self.step = u2::default();
     }
 
-    pub fn step<M: PhysicaMemory>(&mut self, memory: &M) -> anyhow::Result<()> {
+    pub fn step<M: PhysicaMemory>(&mut self, memory: &M) -> Result<(), EmulatorError> {
         let opcode = self.current_instruction;
         include!(concat!(env!("OUT_DIR"), "/microcode_def.rs"));
         Ok(())

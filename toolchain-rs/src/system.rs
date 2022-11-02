@@ -2,7 +2,7 @@ use std::path::Path;
 use ux::*; // Non-standard integer types
 
 use crate::cpu::{CpuState, PhysicaMemory};
-use crate::cpu_types::Word;
+use crate::cpu_types::{Word, EmulatorError};
 use crate::memory::{Ram, Rom};
 
 /// Represents the state of the whole computer, including memories and peripherials.
@@ -34,7 +34,7 @@ impl SystemState {
         self.cpu.reset();
     }
 
-    pub fn step(&mut self) -> anyhow::Result<()> {
+    pub fn step(&mut self) -> Result<(), EmulatorError> {
         self.cpu.step(&self.devices)?;
         self.devices.step()?;
         Ok(())
@@ -83,7 +83,7 @@ impl PhysicaMemory for SystemDevices {
 }
 
 impl SystemDevices {
-    pub fn step(&mut self) -> anyhow::Result<()> {
+    pub fn step(&mut self) -> Result<(), EmulatorError> {
         // No devices need stepping at the moment
         Ok(())
     }
