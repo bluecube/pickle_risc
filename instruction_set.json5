@@ -61,7 +61,7 @@ instructions: {
         encoding: ["00", "010", "immediate", "r"],
         pseudocode: "r |= immediate",
         microcode: [
-            ["f2->left", "f5->right", "alu_or->result", "result->f1", "$next_instruction", "end_instruction"]
+            ["f2->left", "f7->right", "alu_or->result", "result->f1", "$next_instruction", "end_instruction"]
         ]
     },
     "xori": {
@@ -70,7 +70,7 @@ instructions: {
         encoding: ["00", "011", "immediate", "r"],
         pseudocode: "r ^= immediate",
         microcode: [
-            ["f2->left", "f5->right", "alu_xor->result", "result->f1", "$next_instruction", "end_instruction"]
+            ["f2->left", "f7->right", "alu_xor->result", "result->f1", "$next_instruction", "end_instruction"]
         ]
     },
     "cmpi": {
@@ -79,7 +79,7 @@ instructions: {
         encoding: ["00", "100", "immediate", "r"],
         pseudocode: "ignore_value(r - immediate)",
         microcode: [
-            ["f2->left", "f5->right", "alu_sub->result", "$next_instruction", "end_instruction"]
+            ["f2->left", "f7->right", "alu_sub->result", "$next_instruction", "end_instruction"]
         ]
     },
     "ldi": {
@@ -88,7 +88,7 @@ instructions: {
         encoding: ["00", "101", "immediate", "r"],
         pseudocode: "r = immediate",
         microcode: [
-            ["zero->left", "f5->right", "alu_or->result", "result->f1", "$next_instruction", "end_instruction"]
+            ["zero->left", "f7->right", "alu_or->result", "result->f1", "$next_instruction", "end_instruction"]
         ]
     },
     "ldui": {
@@ -97,7 +97,7 @@ instructions: {
         encoding: ["00", "110", "immediate", "r"],
         pseudocode: "r = immediate << 8",
         microcode: [
-            ["zero->left", "f5->right", "alu_upsample->result", "result->f1", "$next_instruction", "end_instruction"]
+            ["zero->left", "f7->right", "alu_upsample->result", "result->f1", "$next_instruction", "end_instruction"]
         ]
     },
     "addipc": {
@@ -106,7 +106,7 @@ instructions: {
         encoding: ["00", "111", "immediate", "rd"],
         pseudocode: "r = Pc + immediate",
         microcode: [
-            ["pc->left", "f5->right", "alu_add->result", "result->f1", "$next_instruction", "end_instruction"]
+            ["pc->left", "f7->right", "alu_add->result", "result->f1", "$next_instruction", "end_instruction"]
         ]
     },
 
