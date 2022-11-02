@@ -58,7 +58,7 @@ impl PhysicaMemory for SystemDevices {
         if address <= self.ram.max_address() {
             self.ram.read(address)
         } else {
-            let device_id = u32::from(address >> 20);
+            let device_id = (u32::from(address) >> 22) & 0x1;
             let device_address = address & u24::new(0x0fffff);
             match device_id {
                 0 if device_address <= self.rom.max_address() => self.rom.read(device_address),
@@ -72,7 +72,7 @@ impl PhysicaMemory for SystemDevices {
             self.ram.write(address, value)
         } else {
             None
-            /*let device_id = u32::from(address >> 20);
+            /*let device_id = (u32::from(address) >> 22) & 0x1;
             let device_address = address & u24::new(0x0fffff);
             match device_id {
                 0 if device_address <= self.rom.max_address() => self.rom.write(device_address, value),

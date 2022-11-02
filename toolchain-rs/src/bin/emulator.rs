@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
 fn print_cpu_state(state: &CpuState) {
     for i in 0..8 {
         let v = state.get_gpr(Gpr::new(i));
-        print!("r{}: {}({:#06x})", i, v, v);
+        print!("r{}: {}({:#06x}) ", i, v, v);
     }
     println!();
 
