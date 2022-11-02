@@ -423,6 +423,7 @@ fn translate_microinstruction(microinstruction: &str) -> (String, usize) {
         "f8->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(sign_extend_field(opcode >> 3, 7));", 2),
         "zero->addr_offset" => ("let mem_address = addr_base_bus;", 2),
         "one->addr_offset" => ("let mem_address = addr_base_bus.wrapping_add(1);", 2),
+        "program_segment" => ("segment = VirtualMemorySegment::Program;", 2),
 
         "mem_address->pc" => ("self.pc = mem_address;", 3),
         "read_mem_data" => ("let mem_data = self.read_memory(&VirtualMemoryAddress::from(mem_address), &segment, memory)?;", 3),

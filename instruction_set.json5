@@ -333,7 +333,7 @@ instructions: {
 },
 //"invalid_instruction_microcode": [[]] //TODO: microcode
 substitutions: {
-    next_instruction: ["pc->addr_base", "one->addr_offset", "mem_address->pc", "read_mem_data", "mem_data->instruction"],
+    next_instruction: ["pc->addr_base", "one->addr_offset", "mem_address->pc", "program_segment", "read_mem_data", "mem_data->instruction"],
 }
 }
 
