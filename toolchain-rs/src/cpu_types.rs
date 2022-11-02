@@ -25,11 +25,9 @@ impl CpuStatus {
 
 impl From<&CpuStatus> for Word {
     fn from(v: &CpuStatus) -> Self {
-        Self::from(
-            (v.interrupt_enabled as Word) << 0
-                | (v.kernel_mode as Word) << 1
-                | (v.mmu_enabled as Word) << 2,
-        )
+        (v.interrupt_enabled as Word)
+            | (v.kernel_mode as Word) << 1
+            | (v.mmu_enabled as Word) << 2
     }
 }
 
@@ -43,7 +41,7 @@ impl TryFrom<Word> for CpuStatus {
             })
         } else {
             Ok(CpuStatus {
-                interrupt_enabled: (v >> 0) & 1 != 0,
+                interrupt_enabled: v & 1 != 0,
                 kernel_mode: (v >> 1) & 1 != 0,
                 mmu_enabled: (v >> 2) & 1 != 0,
             })
@@ -96,10 +94,6 @@ pub type PageOffset = u10;
 pub struct PhysicalMemoryAddress {
     pub frame_number: u14,
     pub offset: PageOffset,
-}
-
-impl PhysicalMemoryAddress {
-    const BITS: u32 = 14 + PageOffset::BITS;
 }
 
 impl From<&PhysicalMemoryAddress> for u24 {

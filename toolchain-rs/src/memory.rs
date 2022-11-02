@@ -4,7 +4,7 @@ use crate::cpu::PhysicaMemory;
 use crate::cpu_types::*;
 use crate::image::load_ihex;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Clone)]
 pub struct Ram {

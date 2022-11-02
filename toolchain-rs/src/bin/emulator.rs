@@ -20,8 +20,6 @@ fn main() -> anyhow::Result<()> {
         print_cpu_state(&system.cpu);
         system.step()?;
     }
-
-    Ok(())
 }
 
 fn print_cpu_state(state: &CpuState) {

@@ -331,7 +331,7 @@ fn generate_microcode_match_arm_content(microcode: Option<&Vec<Vec<String>>>, su
 
 fn generate_microcode_step(
     step: usize,
-    microcode: &Vec<String>,
+    microcode: &[String],
     substitutions: &HashMap<String, Vec<String>>,
     target: &mut File,
 ) -> anyhow::Result<()> {
@@ -343,8 +343,8 @@ fn generate_microcode_step(
 
     microcode.iter()
         .flat_map(|microinstruction| substitute_microinstruction(microinstruction, substitutions))
-        .map(|microinstruction| translate_microinstruction(microinstruction))
-        .sorted_by_key(|(_code, phase)| phase.clone())
+        .map(translate_microinstruction)
+        .sorted_by_key(|(_code, phase)| *phase)
         .try_for_each(|(code, _phase)| writeln!(target, "            {}", code))?;
 
     writeln!(target, "        }}")?;
@@ -357,9 +357,9 @@ fn substitute_microinstruction<'a>(
     microinstruction: &'a str,
     substitutions: &'a HashMap<String, Vec<String>>,
 ) -> impl Iterator<Item = &'a str> {
-    if microinstruction.starts_with("$") {
-        if let Some(subst) = substitutions.get(&microinstruction[1..]) {
-            either::Left(subst.into_iter().map(|x| x.as_str()))
+    if let Some(susbst_name) = microinstruction.strip_prefix('$') {
+        if let Some(subst) = substitutions.get(susbst_name) {
+            either::Left(subst.iter().map(|x| x.as_str()))
         } else {
             panic!("Bad substitution: {:?}", microinstruction);
         }

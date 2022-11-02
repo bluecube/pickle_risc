@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use ux::*; // Non-standard integer types
 
 use crate::cpu_types::*;
@@ -26,7 +25,9 @@ pub struct CpuState {
     page_table: [PageTableRecord; PAGE_TABLE_SIZE],
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::new_without_default))]
 impl CpuState {
+    /// Construct new CPU state in a reset state
     pub fn new() -> Self {
         // This doesn't need to be a valid initial state!
         // (although likely it is)
@@ -129,7 +130,7 @@ impl CpuState {
     ) -> anyhow::Result<R> {
         if let Some(physical_address) = self.virtual_to_physical(address, segment, write) {
             let address: u24 = (&physical_address).into();
-            fun(address).ok_or(
+            fun(address).ok_or_else(||
                 EmulatorError::NonMappedPhysicalMemory {
                     address: physical_address,
                     pc: self.pc,
@@ -161,9 +162,7 @@ impl CpuState {
 
             let page = self.page_table[usize::from(&page_table_index)];
 
-            if write && !page.writable {
-                None
-            } else if !write && !page.readable {
+            if (write && !page.writable) | (!write && !page.readable) {
                 None
             } else {
                 Some(PhysicalMemoryAddress {

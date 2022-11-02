@@ -24,7 +24,7 @@ impl SystemState {
         Ok(SystemState {
             cpu: CpuState::new(),
             devices: SystemDevices {
-                ram: Ram::new(1 * 1024 * 1024), // 1MW to start
+                ram: Ram::new(1024 * 1024), // 1MW to start
                 rom: Rom::from_ihex(rom_ihex_path)?,
             },
         })
