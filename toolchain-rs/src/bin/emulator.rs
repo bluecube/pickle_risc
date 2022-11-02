@@ -2,6 +2,7 @@ use clap::Parser;
 use pickle_toolchain::cpu::CpuState;
 use pickle_toolchain::cpu_types::*;
 use pickle_toolchain::system::SystemState;
+use pickle_toolchain::instruction::Instruction;
 
 use std::path::PathBuf;
 
@@ -28,9 +29,16 @@ fn print_cpu_state(state: &CpuState) {
         print!("r{}: {}({:#06x})", i, v, v);
     }
     println!();
-    println!(
-        "{:#06x}: {:06x}",
+
+    let instruction = state.get_next_instruction();
+    print!(
+        "{:#06x}/{}: {:06x}",
         state.get_pc(),
-        state.get_next_instruction()
+        instruction,
+        state.get_step()
     );
+    if let Ok(instruction) = Instruction::try_from(instruction) {
+        print!(" {}", instruction);
+    }
+    println!();
 }
