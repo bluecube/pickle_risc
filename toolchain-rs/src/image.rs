@@ -290,7 +290,37 @@ mod tests {
         assert_eq!(*downcast, LoadingRomError::Offset { file: None });
     }
 
-    // TODO: Test overlapping
+    #[proptest]
+    fn test_rom_from_segments_overlap(
+        #[strategy(0usize..256usize)] before: usize,
+        #[strategy(1usize..256usize)] overlap: usize,
+        #[strategy(0usize..256usize)] after: usize,
+    ) {
+        let second_offset: u32 = (before * 2).try_into().unwrap();
+        let data = convert_u8_segments(
+            &vec![
+                U8Segment {
+                    offset: 0,
+                    data: vec![0x00; (before + overlap) * 2],
+                },
+                U8Segment {
+                    offset: second_offset,
+                    data: vec![0x00; (overlap + after) * 2],
+                },
+            ],
+            None,
+        );
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(
+            *downcast,
+            LoadingRomError::Overlapping {
+                file: None,
+                size: (2 * overlap).try_into().unwrap(),
+                offset: second_offset
+            }
+        );
+    }
 
     #[proptest]
     fn test_rom_from_segments_three(
