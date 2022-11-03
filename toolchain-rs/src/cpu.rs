@@ -1,4 +1,3 @@
-use rand::Rng;
 use ux::*; // Non-standard integer types
 
 use crate::cpu_types::*;
@@ -98,7 +97,6 @@ impl CpuState {
     }
 
     pub fn get_next_instruction(&self) -> Word {
-        // TODO: This should return the instruction disassembled!
         self.next_instruction
     }
 

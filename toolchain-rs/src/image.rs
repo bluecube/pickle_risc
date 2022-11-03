@@ -214,8 +214,7 @@ mod tests {
             *downcast,
             LoadingRomError::UnsupportedRecordType {
                 file: None,
-                record: "ExtendedSegmentAddress(4608)".to_owned()
-                    // Fragile wrt. ihex library version (?)
+                record: "ExtendedSegmentAddress(4608)".to_owned() // Fragile wrt. ihex library version (?)
             }
         );
     }
