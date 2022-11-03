@@ -207,42 +207,49 @@ mod tests {
     #[test]
     fn test_load_ihex_unsupported() {
         let ihex = ":020000021200EA";
-        let err = load_ihex_segments(ihex, None).unwrap_err();
-        assert!(matches!(
-            err.downcast_ref::<LoadingRomError>().unwrap(),
+        let data = load_ihex_segments(ihex, None);
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(
+            *downcast,
             LoadingRomError::UnsupportedRecordType {
                 file: None,
-                record: _
+                record: "ExtendedSegmentAddress(4608)".to_owned()
+                    // Fragile wrt. ihex library version (?)
             }
-        ));
+        );
     }
 
     #[test]
     fn test_load_ihex_odd_offset() {
         let ihex = ":040011001122334441";
-        let err = load_ihex_segments(ihex, None).unwrap_err();
-        assert!(matches!(
-            err.downcast_ref::<LoadingRomError>().unwrap(),
+        let data = load_ihex_segments(ihex, None);
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(
+            *downcast,
             LoadingRomError::OddRecord {
                 file: None,
                 offset: 0x0011,
                 size: 4
             }
-        ));
+        );
     }
 
     #[test]
     fn test_load_ihex_odd_length() {
         let ihex = ":05001000112233440041";
-        let err = load_ihex_segments(ihex, None).unwrap_err();
-        assert!(matches!(
-            err.downcast_ref::<LoadingRomError>().unwrap(),
+        let data = load_ihex_segments(ihex, None);
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(
+            *downcast,
             LoadingRomError::OddRecord {
                 file: None,
                 offset: 0x0010,
                 size: 5
             }
-        ));
+        );
     }
 
     #[proptest]
@@ -260,15 +267,10 @@ mod tests {
 
     #[test]
     fn test_rom_from_segments_empty() {
-        match convert_u8_segments(&vec![], None) {
-            Err(e) => {
-                assert!(matches!(
-                    e.downcast_ref::<LoadingRomError>().unwrap(),
-                    LoadingRomError::Empty { file: None }
-                ));
-            }
-            _ => panic!("Did not result in an error"),
-        }
+        let data = convert_u8_segments(&vec![], None);
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(*downcast, LoadingRomError::Empty { file: None });
     }
 
     #[proptest]
@@ -276,22 +278,16 @@ mod tests {
         #[strategy(1u32..)] offset: u32,
         #[strategy(1usize..256usize)] length: usize,
     ) {
-        let rom = convert_u8_segments(
+        let data = convert_u8_segments(
             &vec![U8Segment {
                 offset,
                 data: vec![0x00; length * 2],
             }],
             None,
         );
-        match rom {
-            Err(e) => {
-                assert!(matches!(
-                    e.downcast_ref::<LoadingRomError>().unwrap(),
-                    LoadingRomError::Offset { file: None }
-                ));
-            }
-            _ => panic!("Did not result in an error"),
-        }
+        let e = data.unwrap_err();
+        let downcast = e.downcast_ref::<LoadingRomError>().unwrap();
+        assert_eq!(*downcast, LoadingRomError::Offset { file: None });
     }
 
     // TODO: Test overlapping
