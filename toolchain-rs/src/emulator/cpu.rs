@@ -1,6 +1,6 @@
 use ux::*; // Non-standard integer types
 
-use crate::cpu_types::*;
+use crate::emulator::cpu_types::*;
 use crate::instruction::Opcode;
 use crate::util::*;
 

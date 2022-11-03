@@ -1,8 +1,8 @@
 use clap::Parser;
-use pickle_toolchain::cpu::CpuState;
-use pickle_toolchain::cpu_types::*;
-use pickle_toolchain::instruction::Instruction;
-use pickle_toolchain::system::SystemState;
+use pickle_toolchain::{
+    emulator::{cpu::CpuState, cpu_types::*, system::SystemState},
+    instruction::Instruction,
+};
 
 use std::path::PathBuf;
 

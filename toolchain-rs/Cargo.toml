@@ -3,6 +3,14 @@ name = "pickle-toolchain"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "emulator"
+path = "emulator/main.rs"
+
+[[bin]]
+name = "disassembler"
+path = "disassembler/main.rs"
+
 [dependencies]
 itertools = "0.10.5"
 anyhow = "1.0.65"

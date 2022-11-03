@@ -1,7 +1,6 @@
 use ux::*; // Non-standard integer types
 
-use crate::cpu::PhysicaMemory;
-use crate::cpu_types::*;
+use crate::emulator::{cpu::PhysicaMemory, cpu_types::*};
 use crate::image::load_ihex;
 
 use std::path::Path;

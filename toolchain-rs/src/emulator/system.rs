@@ -1,9 +1,11 @@
 use std::path::Path;
 use ux::*; // Non-standard integer types
 
-use crate::cpu::{CpuState, PhysicaMemory};
-use crate::cpu_types::{EmulatorError, Word};
-use crate::memory::{Ram, Rom};
+use crate::emulator::{
+    cpu::{CpuState, PhysicaMemory},
+    cpu_types::{EmulatorError, Word},
+    memory::{Ram, Rom},
+};
 
 /// Represents the state of the whole computer, including memories and peripherials.
 /// This is a fixed implementation, that is supposed to closely match the planned hardware.
