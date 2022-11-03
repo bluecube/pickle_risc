@@ -54,7 +54,7 @@ impl std::fmt::Display for ControlRegister {
     }
 }
 
-#[derive(Copy, Clone, Debug, Error)]
+#[derive(Copy, Clone, Debug, Error, PartialEq, Eq)]
 pub enum InvalidInstructionError {
     #[error("Invalid instruction {0:#06x}")]
     InvalidOpcode(u16),
@@ -62,4 +62,63 @@ pub enum InvalidInstructionError {
 
 include!(concat!(env!("OUT_DIR"), "/instruction_def.rs"));
 
-// TODO: Tests!
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_instruction_from_word_example1() {
+        assert_eq!(
+            Instruction::try_from(0u16).unwrap(),
+            Instruction::Addi {
+                r: Gpr::new(0),
+                immediate: 0i8
+            }
+        )
+    }
+
+    #[test]
+    fn test_instruction_from_word_example2() {
+        assert_eq!(
+            Instruction::try_from(0xffffu16).unwrap(),
+            Instruction::Break
+        )
+    }
+
+    #[test]
+    fn test_instruction_from_word_invalid_opcode_example() {
+        assert_eq!(
+            Instruction::try_from(0xe000u16).unwrap_err(),
+            InvalidInstructionError::InvalidOpcode(0xe000)
+        );
+    }
+
+    #[test]
+    fn test_instruction_display_example1() {
+        assert_eq!(
+            format!(
+                "{}",
+                Instruction::Ld {
+                    rd: Gpr::new(3),
+                    address: Gpr::new(4),
+                    offset: i7::new(-14)
+                }
+            ),
+            "ld r3, r4, -14"
+        )
+    }
+
+    #[test]
+    fn test_instruction_display_example2() {
+        assert_eq!(
+            format!(
+                "{}",
+                Instruction::Stcr {
+                    cr: ControlRegister::CpuStatus,
+                    rs: Gpr::new(7)
+                }
+            ),
+            "stcr CpuStatus, r7"
+        )
+    }
+}
