@@ -5,11 +5,15 @@ edition = "2021"
 
 [[bin]]
 name = "emulator"
-path = "emulator/main.rs"
+path = "src/emulator/main.rs"
+
+[[bin]]
+name = "assembler"
+path = "src/assembler/main.rs"
 
 [[bin]]
 name = "disassembler"
-path = "disassembler/main.rs"
+path = "src/disassembler/main.rs"
 
 [dependencies]
 itertools = "0.10.5"
@@ -23,6 +27,7 @@ ihex = "3.0.0"
 
 clap = { version = "4.0.18", features = ["derive"] }
 rand = "0.8.5"
+logos = "0.12.1"
 
 [dev-dependencies]
 test-strategy = "0.2.1"
