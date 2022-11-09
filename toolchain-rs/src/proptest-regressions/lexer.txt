@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 1bd1704f5df360e8bb66983193254519dc899406c7c7ff4109cb7e898636516b # shrinks to input = _TestNumArgs { value_s: (0, "00") }
+cc 1bb7813f918f6e405db37cc63d350644e34ec094ba2759af8cd36e407094a90f # shrinks to input = _TestStringInvalidUnicodeEscapeSyntax4Args { input: "\"\\u{}\"" }
