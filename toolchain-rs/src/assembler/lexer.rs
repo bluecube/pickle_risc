@@ -62,12 +62,13 @@ pub enum Token<'a> {
     BitAnd,
     #[token("|")]
     BitOr,
-
-    #[regex(r"[\n;]", priority = 2)]
+    #[token(";")]
+    Semicolon,
+    #[regex(r"(#[^\n]*)?\n", priority = 2)]
     Eol,
 
     #[error]
-    #[regex(r"[[:space:]]+|#[^\n]*\n", logos::skip)]
+    #[regex(r"[\t\v\f\r ]", logos::skip)]
     Error,
 }
 
@@ -343,22 +344,43 @@ mod tests {
     }
 
     #[test]
-    fn test_eol() {
+    fn test_eol_semicolon() {
         assert_tokens!(
             "abc\ndef;ghi",
             Identifier("abc"),
             Eol,
             Identifier("def"),
-            Eol,
+            Semicolon,
             Identifier("ghi")
         );
     }
 
+    #[test]
+    fn test_eol_comment() {
+        assert_tokens!(
+            "abc#comment\ndef",
+            Identifier("abc"),
+            Eol,
+            Identifier("def")
+        );
+    }
+
+    #[test]
+    fn test_multiple_eol_with_whitespace_and_comments() {
+        assert_tokens!(
+            "abc\n   	\n#comment\n  #comment\ndef",
+            Identifier("abc"),
+            Eol,
+            Eol,
+            Eol,
+            Eol,
+            Identifier("def")
+        );
+    }
+
     #[proptest]
-    fn test_comment(
-        #[strategy(r"abc #[^\n]*\ndef")] input: String,
-    ) {
-        assert_tokens!(&input, Identifier("abc"), Identifier("def"));
+    fn test_comment(#[strategy(r"abc #[^\n]*\ndef")] input: String) {
+        assert_tokens!(&input, Identifier("abc"), Eol, Identifier("def"));
     }
 
     fn tokenize(s: &str) -> Vec<Token> {
