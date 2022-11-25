@@ -24,10 +24,12 @@ ux = { git = "https://github.com/bluecube/uX.git", branch = "cube", features = [
 num_enum = "0.5.7"
 more-asserts = "0.3.1"
 ihex = "3.0.0"
-
 clap = { version = "4.0.18", features = ["derive"] }
 rand = "0.8.5"
 logos = "0.12.1"
+strum = { version = "0.24.1", features = ["derive"] }
+codespan-reporting = "0.11.1"
+id-arena = "2.2.1"
 
 [dev-dependencies]
 test-strategy = "0.2.1"

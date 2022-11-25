@@ -1,4 +1,4 @@
-pub use logos::Logos;
+pub use logos::{Logos, Span};
 
 use std::borrow::Cow;
 

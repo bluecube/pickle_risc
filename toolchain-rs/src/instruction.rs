@@ -1,4 +1,7 @@
 use num_enum::TryFromPrimitive;
+use strum::EnumString;
+#[cfg(test)]
+use test_strategy::Arbitrary;
 use thiserror::Error;
 use ux::*; // Non-standard integer types
 
@@ -35,7 +38,8 @@ impl Gpr {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive, EnumString)]
+#[cfg_attr(test, derive(Arbitrary))]
 #[repr(u16)]
 pub enum ControlRegister {
     AluStatus = 0,
@@ -65,6 +69,7 @@ include!(concat!(env!("OUT_DIR"), "/instruction_def.rs"));
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_strategy::proptest;
 
     #[test]
     fn test_instruction_from_word_example1() {
@@ -120,5 +125,26 @@ mod tests {
             ),
             "stcr CpuStatus, r7"
         )
+    }
+
+    #[proptest]
+    fn test_control_register_str_roundtrip(cr: ControlRegister) {
+        use std::str::FromStr;
+        let string = format!("{cr:?}");
+        let converted = ControlRegister::from_str(&string).unwrap();
+        assert_eq!(cr, converted);
+    }
+
+    #[test]
+    fn test_control_register_bad_str() {
+        use std::str::FromStr;
+        ControlRegister::from_str("xxxxxxxxx").unwrap_err();
+    }
+
+    #[test]
+    fn test_control_register_bad_str_lowercase() {
+        use std::str::FromStr;
+        let string = format!("{:?}", ControlRegister::CpuStatus).to_ascii_lowercase();
+        ControlRegister::from_str(&string).unwrap_err();
     }
 }

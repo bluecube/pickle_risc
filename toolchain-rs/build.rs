@@ -20,10 +20,15 @@ fn generate_code() -> anyhow::Result<()> {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let instruction_target_path = Path::new(&out_dir).join("instruction_def.rs");
     let microcode_target_path = Path::new(&out_dir).join("microcode_def.rs");
+    let parse_asm_match_target_path = Path::new(&out_dir).join("parse_asm_match.rs");
     let definition_path = Path::new("..").join("instruction_set.json5");
 
     //println!("cargo:warning={}", instruction_target_path.to_str().unwrap());
     //println!("cargo:warning={}", microcode_target_path.to_str().unwrap());
+    println!(
+        "cargo:warning={}",
+        parse_asm_match_target_path.to_str().unwrap()
+    );
     println!(
         "cargo:rerun-if-changed={}",
         definition_path.to_str().unwrap()
@@ -32,10 +37,12 @@ fn generate_code() -> anyhow::Result<()> {
     let definition = InstructionSet::load(definition_path)?;
     let mut instruction_target = File::create(instruction_target_path)?;
     let mut microcode_target = File::create(microcode_target_path)?;
+    let mut parse_asm_match_target = File::create(parse_asm_match_target_path)?;
 
     generate_instruction(&definition, &mut instruction_target)?;
     generate_opcode(&definition, &mut instruction_target)?;
     generate_microcode_match(&definition, &mut microcode_target)?;
+    generate_parse_asm_match(&definition, &mut parse_asm_match_target)?;
 
     Ok(())
 }
@@ -445,4 +452,56 @@ fn translate_microinstruction(microinstruction: &str) -> (String, usize) {
         _ => todo!("Unknown microinstruction: {:?}", microinstruction)
     };
     (format!("{} // {}", code, microinstruction), priority)
+}
+
+fn generate_parse_asm_match(definition: &InstructionSet, target: &mut File) -> anyhow::Result<()> {
+    writeln!(target, "match mnemonic {{")?;
+    for (mnemonic, instruction_def) in &definition.instructions {
+        generate_opcode_parse_match_arm(mnemonic, instruction_def, target)?;
+    }
+    writeln!(target, "    _ => None,")?;
+    writeln!(target, "}}")?;
+
+    Ok(())
+}
+
+fn generate_opcode_parse_match_arm(
+    mnemonic: &str,
+    instruction_def: &Instruction,
+    target: &mut File,
+) -> anyhow::Result<()> {
+    writeln!(target, "    {mnemonic:?} => {{")?;
+    let mut first = true;
+    for (arg_name, arg_type) in &instruction_def.args {
+        if !first {
+            writeln!(target, "        one_token(tokens, Token::Comma)?;")?;
+        }
+        first = false;
+        write!(target, "        let {arg_name} = ")?;
+        match arg_type {
+            InstructionEncodingArgType::Gpr => write!(target, "gpr(tokens)")?,
+            InstructionEncodingArgType::ControlRegister => write!(target, "cr(tokens)")?,
+            InstructionEncodingArgType::Immediate { signed: _, bits: _ } => {
+                write!(target, "immediate(state, tokens)")?
+            }
+        }
+        writeln!(target, "?;")?;
+    }
+
+    let mnemonic_cammel_case = mnemonic_to_cammel_case(mnemonic);
+    if instruction_def.args.is_empty() {
+        writeln!(target, "        Some(Instruction::{mnemonic_cammel_case})")?;
+    } else {
+        writeln!(
+            target,
+            "        Some(Instruction::{mnemonic_cammel_case} {{"
+        )?;
+        for (arg_name, _) in &instruction_def.args {
+            writeln!(target, "            {arg_name},")?;
+        }
+        writeln!(target, "        }})")?;
+    }
+    writeln!(target, "    }},")?;
+
+    Ok(())
 }
