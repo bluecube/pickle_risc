@@ -48,20 +48,26 @@ pub enum Token<'a> {
     Asterisk,
     #[token("/")]
     Slash,
+    #[token("%")]
+    Percent,
     #[token("<<")]
     Shl,
     #[token(">>")]
     Shr,
-    #[token("**")]
-    Pow,
     #[token("&&")]
     LogicalAnd,
     #[token("||")]
     LogicalOr,
+    #[token("!")]
+    Not,
     #[token("&")]
     BitAnd,
     #[token("|")]
     BitOr,
+    #[token("^")]
+    BitXor,
+    #[token("~")]
+    BitNot,
     #[token(";")]
     Semicolon,
     #[regex(r"(#[^\n]*)?\n", priority = 2)]
@@ -336,11 +342,6 @@ mod tests {
     #[test]
     fn test_addition_example() {
         assert_tokens!("123 + 456", Number(123), Plus, Number(456));
-    }
-
-    #[test]
-    fn test_asterisks() {
-        assert_tokens!("*****", Pow, Pow, Asterisk);
     }
 
     #[test]

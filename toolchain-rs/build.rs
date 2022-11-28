@@ -481,8 +481,10 @@ fn generate_opcode_parse_match_arm(
         match arg_type {
             InstructionEncodingArgType::Gpr => write!(target, "gpr(tokens)")?,
             InstructionEncodingArgType::ControlRegister => write!(target, "cr(tokens)")?,
-            InstructionEncodingArgType::Immediate { signed: _, bits: _ } => {
-                write!(target, "immediate(state, tokens)")?
+            InstructionEncodingArgType::Immediate { signed, bits } => {
+                let signed_char = if *signed { 'i' } else { 'u' };
+                let intermediate_bis = ((bits + 7) / 8).next_power_of_two() * 8;
+                write!(target, "immediate::<{signed_char}{intermediate_bis}, {signed_char}{bits}>(state, tokens)")?
             }
         }
         writeln!(target, "?;")?;

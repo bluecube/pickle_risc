@@ -8,6 +8,8 @@ pub(super) type SectionId = id_arena::Id<Section>;
 
 const SCOPE_PATH_SEP: char = ':';
 
+pub(super) type Value = i32;
+
 #[derive(Clone, Debug)]
 pub struct ParseState {
     first_pass: bool,
@@ -36,7 +38,7 @@ impl ParseState {
     pub(super) fn define_symbol(
         &mut self,
         sym_name: &str,
-        value: Word,
+        value: Value,
         scope_id: Option<ScopeId>,
     ) -> Result<(), String> {
         if sym_name.find(SCOPE_PATH_SEP).is_some() {
@@ -79,7 +81,7 @@ impl ParseState {
         Ok(())
     }
 
-    pub(super) fn lookup_symbol(&self, symbol: &str) -> Option<Word> {
+    pub(super) fn get_symbol_value(&self, symbol: &str) -> Option<Value> {
         /*if let Some(rest) = symbol.strip_prefix(SCOPE_PATH_SEP) {
             assert_eq!(self.active_scopes.first().unwrap(), ROOT_SCOPE_INDEX);
             self.scopes_arena[ROOT_SCOPE_INDEX].lookup_symbol_recursive(rest)
@@ -126,7 +128,7 @@ pub(super) struct Scope(HashMap<String, Symbol>);
 #[derive(Clone, Debug)]
 struct Symbol {
     /// Value of the symbol (typically offset in a section)
-    value: Word,
+    value: Value,
     /// Index into section arena, specifying the section where this symbol is defined
     section: SectionId,
     /// Index into scope arena, if there is a scope attached to this symbol
