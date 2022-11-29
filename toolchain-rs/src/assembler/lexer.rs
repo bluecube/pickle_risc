@@ -50,6 +50,8 @@ pub enum Token<'a> {
     Le,
     #[token(">=")]
     Ge,
+    #[token("=")]
+    Assign,
     #[token("+")]
     Plus,
     #[token("-")]

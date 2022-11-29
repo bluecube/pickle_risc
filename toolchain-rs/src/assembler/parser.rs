@@ -16,13 +16,23 @@ fn label<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResul
     match tokens.peek() {
         Some((Token::LBrace, _)) => {
             let scope_id = scope_start(state, tokens)?;
-            state.define_symbol(id, state.current_pc.into(), Some(scope_id))?;
+            state.define_symbol(id, state.current_pc.into(), true /* sectioned */, Some(scope_id))?;
             scope_rest(state, tokens, false)?;
         }
         _ => {
-            state.define_symbol(id, state.current_pc.into(), None)?;
+            state.define_symbol(id, state.current_pc.into(), true /* sectioned */, None)?;
         }
     }
+
+    Ok(())
+}
+
+fn assignment<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+    let (id, _) = identifier(tokens)?;
+    one_token(tokens, Token::Assign)?;
+
+    let value = expr::expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
+    state.define_symbol(id, value, false /* sectioned */, None /* attached scope */)?;
 
     Ok(())
 }

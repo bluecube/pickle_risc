@@ -39,6 +39,7 @@ impl ParseState {
         &mut self,
         sym_name: &str,
         value: Value,
+        sectioned: bool,
         scope_id: Option<ScopeId>,
     ) -> Result<(), String> {
         if sym_name.find(SCOPE_PATH_SEP).is_some() {
@@ -46,6 +47,7 @@ impl ParseState {
         }
         let active_scope = &mut self.scopes[*self.active_scopes.last().unwrap()].0;
         let previous_def = active_scope.get(sym_name);
+        let current_section = if sectioned { Some(self.current_section) } else { None };
         if self.first_pass {
             if let Some(_) = previous_def {
                 Err(format!("Redefinition of symbol {:?}", sym_name))?;
@@ -54,7 +56,7 @@ impl ParseState {
                     sym_name.into(),
                     Symbol {
                         value,
-                        section: self.current_section,
+                        section: current_section,
                         scope: scope_id,
                     },
                 );
@@ -62,7 +64,7 @@ impl ParseState {
         } else {
             if let Some(prev) = previous_def {
                 if (prev.value != value)
-                    | (prev.section != self.current_section)
+                    | (prev.section != current_section)
                     | (prev.scope != scope_id)
                 {
                     Err(format!(
