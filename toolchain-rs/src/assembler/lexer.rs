@@ -1,6 +1,16 @@
-pub use logos::{Logos, Span};
+use logos::{Logos, SpannedIter};
+use itertools::{Itertools, MultiPeek};
+
+pub use logos::Span;
 
 use std::borrow::Cow;
+
+pub type TokensIter<'a> = MultiPeek<SpannedIter<'a, Token<'a>>>;
+
+/// Convert a string slice to a iterator of tokens with slice and with ability to peek
+pub fn tokenize_str<'a>(s: &'a str) -> TokensIter<'a> {
+    Token::lexer(s).spanned().multipeek()
+}
 
 #[derive(Logos, Debug, PartialEq, Eq)]
 pub enum Token<'a> {

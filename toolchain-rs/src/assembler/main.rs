@@ -2,7 +2,7 @@ use clap::Parser;
 
 use std::path::PathBuf;
 
-use pickle_toolchain::assembler::lexer::{Logos, Token};
+use pickle_toolchain::assembler::lexer::tokenize_str;
 
 #[derive(Parser, Debug)]
 struct Cli {
@@ -19,8 +19,7 @@ fn main() -> anyhow::Result<()> {
 
     for path in cli.input_files {
         let file_str = std::fs::read_to_string(&path)?;
-        let lexer = Token::lexer(&file_str);
-        for (tok, span) in lexer.spanned() {
+        for (tok, span) in tokenize_str(&file_str) {
             println!("{:?} ({:?})", tok, span);
         }
     }

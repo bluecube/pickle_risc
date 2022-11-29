@@ -1,11 +1,7 @@
-use crate::assembler::lexer::{Span, Token};
+use crate::assembler::lexer::{Span, Token, TokensIter};
 use crate::assembler::state::{ParseState, ScopeId, Value};
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
-use itertools::MultiPeek;
-use logos::SpannedIter;
-
-type TokensIter<'a> = MultiPeek<SpannedIter<'a, Token<'a>>>;
 type ParserResult<V> = Result<V, String>; // TODO: use codespan
 
 pub fn top<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
@@ -152,45 +148,43 @@ fn one_token<'a>(tokens: &mut TokensIter<'a>, expected: Token) -> ParserResult<(
 
 /// This is a simple precedence climbing expression pareser/evaluator.
 /// To make it easier to test, it plugs into the assembler state only through one function
-/// `get_value`, that returns symbol value given its name, or None if the symbol is not defined.
+/// `get_symbol`, that returns symbol value given its name, or None if the symbol is not defined.
 mod expr {
     use super::{one_token, ParserResult, Token, TokensIter};
     use crate::assembler::state::Value;
 
     pub fn expression<'a>(
         tokens: &mut TokensIter<'a>,
-        get_value: &impl Fn(&str) -> Option<Value>,
+        get_symbol: &impl Fn(&str) -> Option<Value>,
     ) -> ParserResult<Value> {
-        let v = value(tokens, get_value)?;
-        main(v, 0, tokens, get_value)
+        let v = value(tokens, get_symbol)?;
+        main(v, 0, tokens, get_symbol)
     }
 
     /// Parse and evaluate a single value that has lower precedence than all binary operators.
     /// Handles atoms (number / identifier), parenthesised expressions and unary operators.
     fn value<'a>(
         tokens: &mut TokensIter<'a>,
-        get_value: &impl Fn(&str) -> Option<Value>,
+        get_symbol: &impl Fn(&str) -> Option<Value>,
     ) -> ParserResult<Value> {
         match tokens.next() {
             Some((Token::Number(n), _)) => Ok(n),
             Some((Token::Identifier(ident), _span)) => {
-                get_value(ident).ok_or_else(|| "Undefined identifier".to_owned())
+                get_symbol(ident).ok_or_else(|| "Undefined identifier".to_owned())
             }
             Some((Token::LParen, _)) => {
-                let v = expression(tokens, get_value)?;
+                let v = expression(tokens, get_symbol)?;
                 one_token(tokens, Token::RParen)?;
                 Ok(v)
             }
             // Unary operators:
-            Some((Token::Plus, _)) => value(tokens, get_value),
-            Some((Token::Minus, _)) => value(tokens, get_value)?
-                .checked_neg()
-                .ok_or_else(|| "Value out of range".to_owned()),
+            Some((Token::Plus, _)) => value(tokens, get_symbol),
+            Some((Token::Minus, _)) => Ok(-value(tokens, get_symbol)?), // Token value is always positive, this cannot overflow
             Some((Token::Not, _)) => {
-                let v = value(tokens, get_value)?;
-                Ok(if v == 0 { 1 } else { 0 })
+                let v = value(tokens, get_symbol)?;
+                Ok((v == 0).into())
             }
-            Some((Token::BitNot, _)) => Ok(!value(tokens, get_value)?),
+            Some((Token::BitNot, _)) => Ok(!value(tokens, get_symbol)?),
 
             Some(_) => Err("Unepected token".to_owned()),
             _ => Err("Unepected EOF".to_owned()),
@@ -201,7 +195,7 @@ mod expr {
         lhs: Value,
         min_precedence: u32,
         tokens: &mut TokensIter<'a>,
-        get_value: &impl Fn(&str) -> Option<Value>,
+        get_symbol: &impl Fn(&str) -> Option<Value>,
     ) -> ParserResult<Value> {
         tokens.reset_peek();
         let mut lhs = lhs;
@@ -215,7 +209,7 @@ mod expr {
             };
             let Some((op, span)) = tokens.next() else { unreachable!(); };
 
-            let mut rhs = value(tokens, get_value)?;
+            let mut rhs = value(tokens, get_symbol)?;
             loop {
                 let Some(_) = tokens.peek()
                     .and_then(|(t, _span)| binary_operator_precedence(t))
@@ -228,7 +222,7 @@ mod expr {
                 else {
                     break;
                 };
-                rhs = main(rhs, op_precedence + 1, tokens, get_value)?;
+                rhs = main(rhs, op_precedence + 1, tokens, get_symbol)?;
                 tokens.reset_peek();
             }
 
@@ -262,7 +256,7 @@ mod expr {
         span: core::ops::Range<usize>,
     ) -> ParserResult<Value> {
         fn from_bool(b: bool) -> Option<Value> {
-            Some(if b { 1 } else { 0 })
+            Some(b.into())
         }
 
         match operator {
@@ -285,6 +279,8 @@ mod expr {
             Token::Gt => from_bool(lhs > rhs),
             Token::Le => from_bool(lhs <= rhs),
             Token::Ge => from_bool(lhs >= rhs),
+            Token::LogicalAnd => from_bool((lhs != 0) & (rhs != 0)),
+            Token::LogicalOr => from_bool((lhs != 0) | (rhs != 0)),
             Token::BitAnd => Some(lhs & rhs),
             Token::BitXor => Some(lhs ^ rhs),
             Token::BitOr => Some(lhs | rhs),
@@ -295,20 +291,63 @@ mod expr {
 
     #[cfg(test)]
     mod tests {
-        use super::super::tests::tokens;
         use super::*;
-
-        use itertools::Itertools;
+        use crate::assembler::lexer::tokenize_str;
+        use test_strategy::proptest;
+        use assert_matches::assert_matches;
+        use test_case::test_case;
 
         fn no_symbols(_: &str) -> Option<Value> {
             None
         }
 
-        /*#[test]
-        fn atom_neg_overflow() {
-            let result = atom(&mut tokens!(Token::Minus, Token::Number(Value::MIN)), no_symbols);
-            result.unwrap_err();
-        }*/
+        /// Tests that parsing the expected input as a value does not fail and
+        /// results in expected output.
+        /// The input is first tokenized, with '+' appended to verify that
+        /// the value doesnt consume more than it should
+        #[test_case("42", 42 ; "number")]
+        #[test_case("2_147_483_647", 2_147_483_647 ; "max_number")]
+        #[test_case("foo", 13 ; "identifier")]
+        #[test_case("(3)", 3 ; "parenthesis")]
+        #[test_case("((4))", 4 ; "nested_parenthesis")]
+        #[test_case("(3 + 2))", 5 ; "parenthesis_expression")]
+        #[test_case("-43", -43 ; "unary_minus")]
+        #[test_case("-2_147_483_647", -2_147_483_647 ; "minus_max_number")]
+        #[test_case("+44", 44 ; "unary_plus")]
+        #[test_case("!42", 0 ; "not_true")]
+        #[test_case("!0", 1 ; "not_false")]
+        #[test_case("!foo", 0 ; "not_foo")]
+        #[test_case("~1", -2 ; "bit_not")]
+        #[test_case("-(18)", -18 ; "minus_parenthesis")]
+        #[test_case("--19", 19 ; "double_unary_minus")]
+        #[test_case("+-~!0", 2 ; "all_unary")]
+        fn value_happy_path(input: &str, expected: Value) {
+            fn get_symbol(s: &str) -> Option<i32> {
+                if s == "foo" {
+                    Some(13)
+                } else {
+                    None
+                }
+            }
+            let input = format!("{input}+");
+            let mut tokens = tokenize_str(&input);
+            let result = value(&mut tokens, &get_symbol).unwrap();
+            assert_eq!(result, expected);
+            assert_matches!(tokens.next(), Some((Token::Plus, _)));
+        }
+
+        #[test_case("" ; "eof")]
+        #[test_case("+" ; "unexpected_token_1")]
+        #[test_case(";" ; "unexpected_token_2")]
+        #[test_case("9999999999999999999999" ; "error_token")]
+        #[test_case("bar" ; "undefined_symbol")]
+        #[test_case("(1" ; "missing_rparen")]
+        #[test_case("()" ; "empty_parentheses")]
+        fn value_error(input: &str) {
+            let mut tokens = tokenize_str(input);
+            let _err = value(&mut tokens, &no_symbols).unwrap_err();
+            // TODO: Check error content
+        }
     }
 }
 
@@ -316,11 +355,4 @@ mod expr {
 mod tests {
     use super::*;
 
-    macro_rules! tokens {
-        ($($tokens:expr),*) => {
-            [$($tokens),*].iter().map(|x| (x, 0..0)).multipeek()
-        }
-    }
-
-    pub(crate) use tokens;
 }
