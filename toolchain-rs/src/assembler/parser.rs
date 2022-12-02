@@ -1,26 +1,36 @@
+use std::borrow::Cow;
+
+use thiserror::Error;
+
 use crate::assembler::lexer::{Span, Token, TokensIter};
-use crate::assembler::state::{ParseState, ScopeId, Value};
+use crate::assembler::state::{ParseState, ScopeId, Symbol, Value};
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
-type ParserResult<V> = Result<V, String>; // TODO: use codespan
+pub type ParserResult<V> = Result<V, ParseError>;
 
 pub fn top<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    scope_rest(state, tokens, /* top_level */ true)
+    scope_content(state, tokens);
+
+    match tokens.next() {
+        Some((_, span)) => Err(ParseError::UnexpectedToken { expected: Cow::Borrowed("`{`, `;`, `\\n`, identifier or end of file"), span }),
+        None => Ok(())
+    }
 }
 
 /// Parses a label or a labeled scope
 fn label<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (id, _) = identifier(tokens)?;
+    let (id, span) = identifier(tokens)?;
     one_token(tokens, Token::Colon)?;
 
     match tokens.peek() {
         Some((Token::LBrace, _)) => {
             let scope_id = scope_start(state, tokens)?;
-            state.define_symbol(id, state.current_pc.into(), true /* sectioned */, Some(scope_id))?;
-            scope_rest(state, tokens, false)?;
+            state.define_symbol(id, state.current_pc_symbol(Some(scope_id), span))?;
+            scope_content(state, tokens)?;
+            scope_end(state, tokens)?;
         }
         _ => {
-            state.define_symbol(id, state.current_pc.into(), true /* sectioned */, None)?;
+            state.define_symbol(id, state.current_pc_symbol(None, span))?;
         }
     }
 
@@ -31,144 +41,188 @@ fn assignment<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> Parser
     let (id, _) = identifier(tokens)?;
     one_token(tokens, Token::Assign)?;
 
-    let value = expr::expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
-    state.define_symbol(id, value, false /* sectioned */, None /* attached scope */)?;
+    let (value, span) = expr::expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
+    state.define_symbol(id, Symbol::Free { value, defined_at: span })?;
 
     Ok(())
 }
 
 fn anonymous_scope<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     scope_start(state, tokens)?;
-    scope_rest(state, tokens, false)
+    scope_content(state, tokens)?;
+    scope_end(state, tokens)?;
+    Ok(())
 }
 
 fn scope_start<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<ScopeId> {
-    one_token(tokens, Token::LBrace)?;
+    let span = one_token(tokens, Token::LBrace)?;
     Ok(state.push_scope())
 }
 
-fn scope_rest<'a>(
+fn scope_content<'a>(
     state: &mut ParseState,
     tokens: &mut TokensIter<'a>,
-    top_level: bool,
 ) -> ParserResult<()> {
     loop {
         tokens.reset_peek();
         match tokens.peek() {
-            None if top_level => return Ok(()), // End of file
-            Some((Token::RBrace, _)) if !top_level => return scope_end(state, tokens),
             Some(&(Token::Identifier(ident), _)) => match tokens.peek() {
                 // Peek second token!
                 Some((Token::Colon, _)) => label(state, tokens)?,
+                Some((Token::Assign, _)) => assignment(state, tokens)?,
                 _ if ident.starts_with('.') => pseudo_instruction(state, tokens)?,
                 _ => instruction(state, tokens)?,
             },
             Some((Token::LBrace, _)) => anonymous_scope(state, tokens)?,
             Some((Token::Eol, _)) | Some((Token::Semicolon, _)) => continue, // Skip empty lines
-            Some((Token::Error, _)) => return Err("Error parsing".to_owned()),
-            _ => return Err("Unexpected token".to_owned()),
+            _ => return Ok(()),
         }
     }
 }
 
 fn scope_end<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    one_token(tokens, Token::RBrace)?;
     state.pop_scope();
+    one_token(tokens, Token::RBrace)?;
     Ok(())
 }
 
 fn instruction<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     use ux::*;
-    let (mnemonic, _span) = identifier(tokens)?;
+    let (mnemonic, span) = identifier(tokens)?;
     let instruction = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
-        .ok_or_else(|| "Unexpected instruction mnemonic".to_owned())?;
+        .ok_or_else(|| ParseError::UnexpectedInstructionMnemonic { span })?;
     todo!();
     Ok(())
 }
 
 fn pseudo_instruction<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (mnemonic, _) = identifier(tokens)?;
+    let (mnemonic, span) = identifier(tokens)?;
     match mnemonic {
         ".db" => todo!(),
         ".dw" => todo!(),
         ".dd" => todo!(),
         ".include" => todo!(),
         ".section" => todo!(),
-        _ => return Err("Unexpected pseudo instruction".into()),
+        _ => return Err(ParseError::UnexpectedInstructionMnemonic { span }),
     }
 
     Ok(())
 }
 
 fn gpr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<Gpr> {
-    let (mnemonic, _) = identifier(tokens)?;
+    let (mnemonic, span) = identifier(tokens)?;
     mnemonic
         .strip_prefix("r")
         .and_then(|suffix| suffix.parse::<u16>().ok())
         .and_then(|n| Gpr::try_from(n).ok())
-        .ok_or_else(|| "Bad format".to_owned())
+        .ok_or_else(|| ParseError::InvalidGprName { span })
 }
 
 fn cr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<ControlRegister> {
-    let (mnemonic, _) = identifier(tokens)?;
+    let (mnemonic, span) = identifier(tokens)?;
     mnemonic
         .parse()
-        .map_err(|_| "Unexpected control register name".to_owned())
+        .map_err(|_| ParseError::InvalidCrName { span })
 }
 
+/// Parse and evaluate an expression as an immediate value input to an instruction
+/// and cast it to the proper type.
+/// Uses a type Intermediate to do one extra conversion, to work around missing
+/// conversions from too large type in uX.
 fn immediate<'a, Intermediate: TryFrom<Value>, T: TryFrom<Intermediate>>(
     state: &mut ParseState,
     tokens: &mut TokensIter<'a>,
 ) -> ParserResult<T> {
-    let value = expr::expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
+    let (value, span) = expr::expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
     value
         .try_into()
         .ok()
         .and_then(|x: Intermediate| x.try_into().ok())
-        .ok_or_else(|| "Value out of range".to_owned())
+        .ok_or_else(|| ParseError::ValueOutOfRange { span })
 }
 
 fn identifier<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<(&'a str, Span)> {
     match tokens.next() {
         Some((Token::Identifier(identifier), span)) => Ok((identifier, span)),
-        _ => Err("Unexpected token".to_owned()),
+        Some((_, span)) => Err(ParseError::UnexpectedToken { expected: Cow::Borrowed("identifier") , span }),
+        None => Err(ParseError::UnexpectedEof { expected: Cow::Borrowed("identifier") })
     }
 }
 
-fn any_token<'a>(tokens: &mut TokensIter<'a>, expected: &[Token]) -> ParserResult<()> {
+fn one_token<'a>(tokens: &mut TokensIter<'a>, expected: Token<'a>) -> ParserResult<Span> {
     match tokens.next() {
-        Some((token, _span)) => {
-            if expected
-                .iter()
-                .position(|expected_token| expected_token == &token)
-                .is_some()
-            {
-                Ok(())
-            } else {
-                Err("Unexpected token".to_owned())
-            }
-        }
-        None => Err("Unexpected EOF".to_owned()),
+        Some((t, span)) if t == expected => Ok(span),
+        Some((_, span)) => Err(ParseError::UnexpectedToken { expected: Cow::Owned(format!("{expected:?}")), span }),
+        None => Err(ParseError::UnexpectedEof { expected: Cow::Owned(format!("{expected:?}")) }),
     }
 }
 
-fn one_token<'a>(tokens: &mut TokensIter<'a>, expected: Token) -> ParserResult<()> {
-    any_token(tokens, std::slice::from_ref(&expected))
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum ParseError {
+    #[error("Unexpected token")]
+    UnexpectedToken {
+        expected: Cow<'static, str>,
+        span: Span
+    },
+    #[error("Unexpected end of file")]
+    UnexpectedEof {
+        expected: Cow<'static, str>,
+    },
+    #[error("Unexpected instruction mnemonic")]
+    UnexpectedInstructionMnemonic {
+        span: Span,
+    },
+    #[error("Invalid general purpose register name format")]
+    InvalidGprName {
+        span: Span,
+    },
+    #[error("Invalid control register name format")]
+    InvalidCrName {
+        span: Span,
+    },
+    #[error("Value out of range")]
+    ValueOutOfRange {
+        span: Span,
+    },
+    #[error("Undefined symbol")]
+    UndefinedSymbol {
+        span: Span,
+    },
+    #[error("Negative shift ammount")]
+    NegativeShiftAmmount {
+        span: Span,
+    },
+    #[error("Redefinition of symbol")]
+    SymbolRedefinition {
+        span: Span,
+        previous_definition: Span,
+    },
+    #[error("Symbol changed value in second pass")]
+    SymbolChangedValue {
+        span: Span,
+    },
+
+    #[error("Other error: {description}")]
+    OtherError {
+        description: String
+    }
 }
 
 /// This is a simple precedence climbing expression pareser/evaluator.
 /// To make it easier to test, it plugs into the assembler state only through one function
 /// `get_symbol`, that returns symbol value given its name, or None if the symbol is not defined.
 mod expr {
-    use super::{one_token, ParserResult, Token, TokensIter};
+    use std::borrow::Cow;
+
+    use super::{one_token, ParseError, ParserResult, Token, TokensIter, Span};
     use crate::assembler::state::Value;
 
     pub fn expression<'a>(
         tokens: &mut TokensIter<'a>,
         get_symbol: &impl Fn(&str) -> Option<Value>,
-    ) -> ParserResult<Value> {
-        let v = value(tokens, get_symbol)?;
-        main(v, 0, tokens, get_symbol)
+    ) -> ParserResult<(Value, Span)> {
+        let (first_value, first_span) = value(tokens, get_symbol)?;
+        main(first_value, first_span, 0, tokens, get_symbol)
     }
 
     /// Parse and evaluate a single value that has lower precedence than all binary operators.
@@ -176,39 +230,52 @@ mod expr {
     fn value<'a>(
         tokens: &mut TokensIter<'a>,
         get_symbol: &impl Fn(&str) -> Option<Value>,
-    ) -> ParserResult<Value> {
+    ) -> ParserResult<(Value, Span)> {
+        static EXPECTED: &str = "`(`, `+`, `-`, `!`, `~`, identifier or number";
         match tokens.next() {
-            Some((Token::Number(n), _)) => Ok(n),
-            Some((Token::Identifier(ident), _span)) => {
-                get_symbol(ident).ok_or_else(|| "Undefined identifier".to_owned())
+            Some((Token::Number(n), span)) => Ok((n, span)),
+            Some((Token::Identifier(ident), span)) => {
+                let v = get_symbol(ident).ok_or_else(|| ParseError::UndefinedSymbol { span: span.clone() })?;
+                Ok((v, span))
             }
-            Some((Token::LParen, _)) => {
-                let v = expression(tokens, get_symbol)?;
-                one_token(tokens, Token::RParen)?;
-                Ok(v)
+            Some((Token::LParen, span1)) => {
+                let (v, _) = expression(tokens, get_symbol)?;
+                let span2 = one_token(tokens, Token::RParen)?;
+                Ok((v, span1.start..span2.end))
             }
             // Unary operators:
-            Some((Token::Plus, _)) => value(tokens, get_symbol),
-            Some((Token::Minus, _)) => Ok(-value(tokens, get_symbol)?), // Token value is always positive, this cannot overflow
-            Some((Token::Not, _)) => {
-                let v = value(tokens, get_symbol)?;
-                Ok((v == 0).into())
+            Some((Token::Plus, span1)) => {
+                let (v, span2) = value(tokens, get_symbol)?;
+                Ok((v, span1.start..span2.end))
             }
-            Some((Token::BitNot, _)) => Ok(!value(tokens, get_symbol)?),
-
-            Some(_) => Err("Unepected token".to_owned()),
-            _ => Err("Unepected EOF".to_owned()),
+            Some((Token::Minus, span1)) => {
+                let (v, span2) = value(tokens, get_symbol)?;
+                // Token value is always positive, this cannot overflow
+                Ok((-v, span1.start..span2.end))
+            },
+            Some((Token::Not, span1)) => {
+                let (v, span2) = value(tokens, get_symbol)?;
+                Ok(((v == 0).into(), span1.start..span2.end))
+            }
+            Some((Token::BitNot, span1)) => {
+                let (v, span2) = value(tokens, get_symbol)?;
+                Ok((!v, span1.start..span2.end))
+            }
+            Some((_, span)) => Err(ParseError::UnexpectedToken { expected: Cow::Borrowed(EXPECTED), span }),
+            None => Err(ParseError::UnexpectedEof { expected: Cow::Borrowed(EXPECTED) }),
         }
     }
 
     fn main<'a>(
         lhs: Value,
+        lhs_span: Span,
         min_precedence: u32,
         tokens: &mut TokensIter<'a>,
         get_symbol: &impl Fn(&str) -> Option<Value>,
-    ) -> ParserResult<Value> {
+    ) -> ParserResult<(Value, Span)> {
         tokens.reset_peek();
         let mut lhs = lhs;
+        let mut lhs_span = lhs_span;
 
         loop {
             let Some(op_precedence) = tokens.peek()
@@ -217,9 +284,9 @@ mod expr {
             else {
                 break;
             };
-            let Some((op, span)) = tokens.next() else { unreachable!(); };
+            let Some((op, op_span)) = tokens.next() else { unreachable!(); };
 
-            let mut rhs = value(tokens, get_symbol)?;
+            let (mut rhs, mut rhs_span) = value(tokens, get_symbol)?;
             loop {
                 let Some(_) = tokens.peek()
                     .and_then(|(t, _span)| binary_operator_precedence(t))
@@ -232,14 +299,14 @@ mod expr {
                 else {
                     break;
                 };
-                rhs = main(rhs, op_precedence + 1, tokens, get_symbol)?;
+                (rhs, rhs_span) = main(rhs, rhs_span, op_precedence + 1, tokens, get_symbol)?;
                 tokens.reset_peek();
             }
 
-            lhs = eval_binary_operator(lhs, rhs, &op, span)?;
+            (lhs, lhs_span) = eval_binary_operator(lhs, lhs_span, rhs, rhs_span, &op)?;
         }
 
-        Ok(lhs)
+        Ok((lhs, lhs_span))
     }
 
     /// Return binary operator precedence for a token, or None if the token doesn't
@@ -261,15 +328,16 @@ mod expr {
 
     fn eval_binary_operator(
         lhs: Value,
+        lhs_span: Span,
         rhs: Value,
+        rhs_span: Span,
         operator: &Token,
-        span: core::ops::Range<usize>,
-    ) -> ParserResult<Value> {
+    ) -> ParserResult<(Value, Span)> {
         fn from_bool(b: bool) -> Option<Value> {
             Some(b.into())
         }
 
-        match operator {
+        let v = match operator {
             Token::Asterisk => lhs.checked_mul(rhs),
             Token::Slash => lhs.checked_div(rhs),
             Token::Percent => lhs.checked_rem(rhs),
@@ -277,11 +345,11 @@ mod expr {
             Token::Minus => lhs.checked_sub(rhs),
             Token::Shl => lhs.checked_shl(
                 rhs.try_into()
-                    .map_err(|_| "Negative shift amount".to_owned())?,
+                    .map_err(|_| ParseError::NegativeShiftAmmount { span: rhs_span.clone() } )?,
             ),
             Token::Shr => lhs.checked_shr(
                 rhs.try_into()
-                    .map_err(|_| "Negative shift amount".to_owned())?,
+                    .map_err(|_| ParseError::NegativeShiftAmmount { span: rhs_span.clone() } )?,
             ),
             Token::Eq => from_bool(lhs == rhs),
             Token::Neq => from_bool(lhs != rhs),
@@ -295,8 +363,14 @@ mod expr {
             Token::BitXor => Some(lhs ^ rhs),
             Token::BitOr => Some(lhs | rhs),
             _ => unreachable!(),
+        };
+
+        let span = lhs_span.start..rhs_span.end;
+
+        match v {
+            Some(v) => Ok((v, span)),
+            None => Err(ParseError::ValueOutOfRange { span })
         }
-        .ok_or_else(|| "Value out of range".to_owned())
     }
 
     #[cfg(test)]
@@ -341,8 +415,9 @@ mod expr {
             }
             let input = format!("{input}+");
             let mut tokens = tokenize_str(&input);
-            let result = value(&mut tokens, &get_symbol).unwrap();
+            let (result, span) = value(&mut tokens, &get_symbol).unwrap();
             assert_eq!(result, expected);
+            assert_eq!(span, 0..input.len());
             assert_matches!(tokens.next(), Some((Token::Plus, _)));
         }
 

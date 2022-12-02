@@ -12,6 +12,13 @@ pub fn tokenize_str<'a>(s: &'a str) -> TokensIter<'a> {
     Token::lexer(s).spanned().multipeek()
 }
 
+#[derive(Debug)]
+struct Tokenized<'a>(Vec<(Token<'a>, Span)>);
+
+impl<'a> Tokenized<'a> {
+    
+}
+
 #[derive(Logos, Debug, PartialEq, Eq)]
 pub enum Token<'a> {
     #[regex(r"[._a-zA-Z][._a-zA-Z0-9]*", |x| x.slice())]
