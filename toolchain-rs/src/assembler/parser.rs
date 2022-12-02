@@ -413,11 +413,12 @@ mod expr {
                     None
                 }
             }
+            let expected_span = 0..input.len();
             let input = format!("{input}+");
             let mut tokens = tokenize_str(&input);
             let (result, span) = value(&mut tokens, &get_symbol).unwrap();
             assert_eq!(result, expected);
-            assert_eq!(span, 0..input.len());
+            assert_eq!(span, expected_span);
             assert_matches!(tokens.next(), Some((Token::Plus, _)));
         }
 
