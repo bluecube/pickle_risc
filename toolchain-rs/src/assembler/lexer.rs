@@ -230,6 +230,7 @@ mod tests {
     use itertools::multizip;
     use proptest::prelude::*;
     use test_strategy::proptest;
+    use test_case::test_case;
 
     macro_rules! assert_tokens(
         ($s:expr, $($tokens:expr),*) => {
@@ -238,24 +239,48 @@ mod tests {
         }
     );
 
-    #[test]
-    fn test_identifier_simple1() {
-        assert_tokens!(r"abcd", Identifier("abcd"));
-    }
-
-    #[test]
-    fn test_identifier_simple2() {
-        assert_tokens!(r".abcd1", Identifier(".abcd1"));
-    }
-
-    #[test]
-    fn test_identifier_numerical() {
-        assert_tokens!(r"_123", Identifier("_123"));
-    }
-
-    #[test]
-    fn test_num_example() {
-        assert_tokens!(r"0x1_23", Number(0x123));
+    #[test_case(r"abcd", &[Token::Identifier("abcd")]; "identifier_simple_1")]
+    #[test_case(r".abcd1", &[Token::Identifier(".abcd1")]; "identifier_simple_2")]
+    #[test_case(r"_123", &[Token::Identifier("_123")]; "identifier_numerical")]
+    #[test_case(r"0x1_23", &[Token::Number(0x123)]; "number")]
+    #[test_case(r"0x", &[Token::Error]; "num_only_prefix")]
+    #[test_case(r"0xefg123", &[Token::Number(0xef), Token::Identifier("g123")]; "num_hex_different_character")]
+    #[test_case(r"0b0123", &[Token::Number(0b01), Token::Number(23)]; "num_bin_different_character")]
+    #[test_case(r"2_147_483_647", &[Token::Number(2_147_483_647)]; "num_max_value")]
+    #[test_case(r"2_147_483_648", &[Token::Error]; "num_max_value_plus_one")]
+    #[test_case(r#""abc""#, &[Token::String(Cow::Borrowed("abc"))]; "string_simple")]
+    #[test_case(r#""\u{1f44d}""#, &[Token::String(Cow::Borrowed("👍"))]; "string_unicode_escape")]
+    #[test_case(r#""\u{1F44D}""#, &[Token::String(Cow::Borrowed("👍"))]; "string_capitalized_unicode_escape")]
+    #[test_case(r#""\\a\"b\nc\rd\te\0f\u{20}""#, &[Token::String(Cow::Borrowed("\\a\"b\nc\rd\te\0f "))]; "string_all_escapes")]
+    #[test_case(r#""\q""#, &[Token::Error]; "string_invalid_escape")]
+    #[test_case(r#""\u{aX}""#, &[Token::Error]; "string_invalid_unicode_escape_syntax1")]
+    #[test_case(r#""\u{20""#, &[Token::Error]; "string_invalid_unicode_escape_syntax2")]
+    #[test_case(r#""\u20""#, &[Token::Error]; "string_invalid_unicode_escape_syntax3")]
+    #[test_case(r#""\u{0x110000}""#, &[Token::Error]; "string_invalid_unicode_escape_value")]
+    #[test_case("\"abc\ndef\"", &[Token::Error, Token::Eol, Token::Identifier("def"), Token::Error]; "string_unescaped_newline")]
+    #[test_case("123 + 456", &[Token::Number(123), Token::Plus, Token::Number(456)]; "test_addition_example")]
+    #[test_case("abc\ndef;ghi", &[
+        Token::Identifier("abc"),
+        Token::Eol,
+        Token::Identifier("def"),
+        Token::Semicolon,
+        Token::Identifier("ghi")
+    ]; "eol_semicolon")]
+    #[test_case("abc#comment\ndef", &[
+        Token::Identifier("abc"),
+        Token::Eol,
+        Token::Identifier("def")
+    ]; "eol_comment")]
+    #[test_case("abc\n   	\n#comment\n  #comment\ndef", &[
+        Token::Identifier("abc"),
+        Token::Eol,
+        Token::Eol,
+        Token::Eol,
+        Token::Eol,
+        Token::Identifier("def")
+    ]; "multiple_eol_with_whitespace_and_comments")]
+    fn tokenizer_good(s: &str, expected: &[Token]) {
+        assert_eq!(tokenize(s), expected);
     }
 
     #[proptest]
@@ -265,69 +290,6 @@ mod tests {
         assert_tokens!(&s, Number(value));
     }
 
-    #[test]
-    fn test_num_only_prefix() {
-        assert_tokens!(r"0x", Error);
-    }
-
-    #[test]
-    fn test_num_hex_different_character() {
-        assert_tokens!(r"0xefg123", Number(0xef), Identifier("g123"));
-    }
-
-    #[test]
-    fn test_num_bin_different_character() {
-        assert_tokens!(r"0b0123", Number(0b01), Number(23));
-    }
-
-    #[test]
-    fn test_num_narrow_overflow() {
-        assert_tokens!(r"2_147_483_648", Error);
-    }
-
-    #[test]
-    fn test_simple_string() {
-        assert_tokens!(r#""abc""#, String(Cow::Borrowed("abc")));
-    }
-
-    #[test]
-    fn test_string_unicode_escape() {
-        assert_tokens!(r#""\u{1f44d}""#, String(Cow::Borrowed("👍")));
-    }
-
-    #[test]
-    fn test_string_capitalized_unicode_escape() {
-        assert_tokens!(r#""\u{1F44D}""#, String(Cow::Borrowed("👍")));
-    }
-
-    #[test]
-    fn test_string_all_escapes() {
-        assert_tokens!(
-            r#""\\a\"b\nc\rd\te\0f\u{20}""#,
-            String(Cow::Borrowed("\\a\"b\nc\rd\te\0f "))
-        );
-    }
-
-    #[test]
-    fn test_string_invalid_escape() {
-        assert_tokens!(r#""\q""#, Error);
-    }
-
-    #[test]
-    fn test_string_invalid_unicode_escape_syntax1() {
-        assert_tokens!(r#""\u{aX}""#, Error);
-    }
-
-    #[test]
-    fn test_string_invalid_unicode_escape_syntax2() {
-        assert_tokens!(r#""\u{20""#, Error);
-    }
-
-    #[test]
-    fn test_string_invalid_unicode_escape_syntax3() {
-        assert_tokens!(r#""\u20""#, Error);
-    }
-
     /// Test unicode escape that contains any string in the braces which
     /// is a valid string character and doesn't end the escape sequence
     #[proptest]
@@ -335,16 +297,6 @@ mod tests {
         #[strategy(r#""\\u[{][^a-zA-Z0-9\\"\x00-\x1F\x7F}]*[}]""#)] input: String,
     ) {
         assert_tokens!(&input, Error);
-    }
-
-    #[test]
-    fn test_string_invalid_unicode_escape_value() {
-        assert_tokens!(r#""\u{0x110000}""#, Error);
-    }
-
-    #[test]
-    fn test_string_unescaped_newline() {
-        assert_tokens!("\"abc\ndef\"", Error, Eol, Identifier("def"), Error);
     }
 
     #[proptest]
@@ -359,46 +311,6 @@ mod tests {
     #[proptest]
     fn test_no_failures(input: String) {
         tokenize(&input);
-    }
-
-    #[test]
-    fn test_addition_example() {
-        assert_tokens!("123 + 456", Number(123), Plus, Number(456));
-    }
-
-    #[test]
-    fn test_eol_semicolon() {
-        assert_tokens!(
-            "abc\ndef;ghi",
-            Identifier("abc"),
-            Eol,
-            Identifier("def"),
-            Semicolon,
-            Identifier("ghi")
-        );
-    }
-
-    #[test]
-    fn test_eol_comment() {
-        assert_tokens!(
-            "abc#comment\ndef",
-            Identifier("abc"),
-            Eol,
-            Identifier("def")
-        );
-    }
-
-    #[test]
-    fn test_multiple_eol_with_whitespace_and_comments() {
-        assert_tokens!(
-            "abc\n   	\n#comment\n  #comment\ndef",
-            Identifier("abc"),
-            Eol,
-            Eol,
-            Eol,
-            Eol,
-            Identifier("def")
-        );
     }
 
     #[proptest]

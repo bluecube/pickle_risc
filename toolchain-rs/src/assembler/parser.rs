@@ -391,7 +391,6 @@ mod expr {
         use crate::assembler::lexer::tokenize_str;
         use assert_matches::assert_matches;
         use test_case::test_case;
-        use test_strategy::proptest;
 
         fn no_symbols(_: &str) -> Option<Value> {
             None
