@@ -55,7 +55,7 @@ fn anonymous_scope<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> P
 }
 
 fn scope_start<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<ScopeId> {
-    let span = one_token(tokens, Token::LBrace)?;
+    let _span = one_token(tokens, Token::LBrace)?;
     Ok(state.push_scope())
 }
 
@@ -273,18 +273,18 @@ mod expr {
         tokens: &mut TokensIter<'a>,
         get_symbol: &impl Fn(&str) -> Option<Value>,
     ) -> ParserResult<(Value, Span)> {
-        tokens.reset_peek();
         let mut lhs = lhs;
         let mut lhs_span = lhs_span;
 
         loop {
+            tokens.reset_peek();
             let Some(op_precedence) = tokens.peek()
                 .and_then(|(t, _span)| binary_operator_precedence(t))
                 .and_then(|precedence| if precedence >= min_precedence { Some(precedence) } else { None })
             else {
                 break;
             };
-            let Some((op, op_span)) = tokens.next() else { unreachable!(); };
+            let Some((op, _op_span)) = tokens.next() else { unreachable!(); };
 
             let (mut rhs, mut rhs_span) = value(tokens, get_symbol)?;
             loop {
@@ -394,7 +394,7 @@ mod expr {
         #[test_case("foo", 13 ; "identifier")]
         #[test_case("(3)", 3 ; "parenthesis")]
         #[test_case("((4))", 4 ; "nested_parenthesis")]
-        #[test_case("(3 + 2))", 5 ; "parenthesis_expression")]
+        #[test_case("(3 + 2)", 5 ; "parenthesis_expression")]
         #[test_case("-43", -43 ; "unary_minus")]
         #[test_case("-2_147_483_647", -2_147_483_647 ; "minus_max_number")]
         #[test_case("+44", 44 ; "unary_plus")]
@@ -433,6 +433,13 @@ mod expr {
             let mut tokens = tokenize_str(input);
             let _err = value(&mut tokens, &no_symbols).unwrap_err();
             // TODO: Check error content
+
+        #[test_case("1+1", 2; "simple")]
+        #[test_case("1+1 2+2", 2; "junk_after")]
+        fn expression_happy_path(input: &str, expected: Value) {
+            let mut tokens = tokenize_str(&input);
+            let (result, span) = expression(&mut tokens, &no_symbols).unwrap();
+            assert_eq!(result, expected);
         }
     }
 }
