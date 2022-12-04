@@ -1,5 +1,5 @@
-use logos::{Logos, SpannedIter};
 use itertools::{Itertools, MultiPeek};
+use logos::{Logos, SpannedIter};
 
 pub use logos::Span;
 
@@ -15,9 +15,7 @@ pub fn tokenize_str<'a>(s: &'a str) -> TokensIter<'a> {
 #[derive(Debug)]
 struct Tokenized<'a>(Vec<(Token<'a>, Span)>);
 
-impl<'a> Tokenized<'a> {
-    
-}
+impl<'a> Tokenized<'a> {}
 
 #[derive(Logos, Debug, PartialEq, Eq)]
 pub enum Token<'a> {
@@ -280,6 +278,11 @@ mod tests {
     #[test]
     fn test_num_bin_different_character() {
         assert_tokens!(r"0b0123", Number(0b01), Number(23));
+    }
+
+    #[test]
+    fn test_num_narrow_overflow() {
+        assert_tokens!(r"2_147_483_648", Error);
     }
 
     #[test]
