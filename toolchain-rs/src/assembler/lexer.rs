@@ -229,8 +229,8 @@ mod tests {
     use super::*;
     use itertools::multizip;
     use proptest::prelude::*;
-    use test_strategy::proptest;
     use test_case::test_case;
+    use test_strategy::proptest;
 
     macro_rules! assert_tokens(
         ($s:expr, $($tokens:expr),*) => {
