@@ -238,14 +238,17 @@ mod tests {
     #[test_case("bar" ; "undefined_symbol")]
     #[test_case("(1" ; "missing_rparen")]
     #[test_case("()" ; "empty_parentheses")]
+    #[test_case(":" ; "unexpected_token")]
     fn value_error(input: &str) {
         let mut tokens = tokenize_str(input);
         let _err = value(&mut tokens, &no_symbols).unwrap_err();
         // TODO: Check error content
     }
 
+    #[test_case("1234", 1234; "trivial")]
     #[test_case("1+1", 2; "simple")]
-    #[test_case("1+1 2+2", 2; "junk_after")]
+    #[test_case("1+1 2+2", 2; "junk_after1")]
+    #[test_case("1+1:", 2; "junk_after2")]
     #[test_case("5*2/3", 3; "left_associativity")]
     #[test_case("5*2+3&0xfe", 12; "increasing_precedence")]
     #[test_case("1|2+3*4", 15; "decreasing_precedence")]
@@ -254,6 +257,7 @@ mod tests {
     #[test_case("2*3 - 4*5 + 6/3", -12; "mul_div_add_sub")]
     #[test_case("1 + 1 == 2 + 0", 1; "equals")]
     #[test_case("-2_147_483_647 - 1", -2_147_483_648; "minimum_value")]
+    #[test_case("0b0100 | 0b1001 ^ 0b1100 & 0b1010", 0b0101; "bitwise_operations")]
     fn expression_happy_path(input: &str, expected: Value) {
         let mut tokens = tokenize_str(&input);
         let (result, _span) = expression(&mut tokens, &no_symbols).unwrap();
@@ -290,10 +294,18 @@ mod tests {
     #[test_case("2 > 2", 0; "gt_2")]
     #[test_case("2 >= 1", 1; "ge_1")]
     #[test_case("2 >= 2", 1; "ge_2")]
-    #[test_case("0b110010 & 0b101010", 0b100010; "and")]
-    #[test_case("0b110010 | 0b101010", 0b111010; "or")]
-    #[test_case("0b110010 ^ 0b101010", 0b011000; "xor")]
-    fn evaluate_binary_operator_happy_path(input: &str, expected: Value) {
+    #[test_case("0b110010 & 0b101010", 0b100010; "bit_and")]
+    #[test_case("0b110010 | 0b101010", 0b111010; "bit_or")]
+    #[test_case("0b110010 ^ 0b101010", 0b011000; "bit_xor")]
+    #[test_case("0 && 0", 0; "and_1")]
+    #[test_case("0 && 100", 0; "and_2")]
+    #[test_case("100 && 0", 0; "and_3")]
+    #[test_case("100 && 100", 1; "and_4")]
+    #[test_case("0 || 0", 0; "or_1")]
+    #[test_case("0 || 100", 1; "or_2")]
+    #[test_case("100 || 0", 1; "or_3")]
+    #[test_case("100 || 100", 1; "or_4")]
+    fn evaluate_binary_operator(input: &str, expected: Value) {
         let mut tokens = tokenize_str(&input);
         let (lhs, lhs_span) =
             assert_matches!(tokens.next(), Some((Token::Number(n), span)) => (n, span));
