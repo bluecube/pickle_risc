@@ -15,7 +15,7 @@ const SCOPE_PATH_SEP: char = ':';
 pub(super) type Value = i32;
 
 #[derive(Clone, Debug)]
-pub struct ParseState {
+pub struct AssemblerState {
     first_pass: bool,
 
     scopes: Arena<Scope>,
@@ -28,9 +28,9 @@ pub struct ParseState {
     current_pc: Word,
 }
 
-impl ParseState {
-    /// Initialize the ParseState at the beginning of first pass
-    pub fn new() -> ParseState {
+impl AssemblerState {
+    /// Initialize the AssemblerState at the beginning of first pass
+    pub fn new() -> AssemblerState {
         Default::default()
     }
 
@@ -99,8 +99,8 @@ impl ParseState {
     }
 }
 
-impl Default for ParseState {
-    fn default() -> ParseState {
+impl Default for AssemblerState {
+    fn default() -> AssemblerState {
         let mut scopes = Arena::new();
         let root_scope = scopes.alloc(Scope(HashMap::new()));
         let mut sections = Arena::new();
@@ -109,7 +109,7 @@ impl Default for ParseState {
             pc: 0,
         });
 
-        ParseState {
+        AssemblerState {
             first_pass: true,
             scopes,
             active_scopes: vec![root_scope],
@@ -139,7 +139,7 @@ pub(super) enum Symbol {
 }
 
 impl Symbol {
-    fn get_value(&self, state: &ParseState) -> Value {
+    fn get_value(&self, state: &AssemblerState) -> Value {
         match self {
             Symbol::Location {
                 section,
