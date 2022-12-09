@@ -10,7 +10,7 @@ use crate::instruction::{ControlRegister, Gpr, Instruction};
 pub type ParserResult<V> = Result<V, ParseError>;
 
 pub fn top<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    scope_content(state, tokens);
+    scope_content(state, tokens)?;
 
     match tokens.next() {
         Some((_, span)) => Err(ParseError::UnexpectedToken {
