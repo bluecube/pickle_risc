@@ -1,10 +1,13 @@
 use std::borrow::Cow;
 
+use mockall_double::double;
 use thiserror::Error;
 
 use crate::assembler::expr_parser::expression;
 use crate::assembler::lexer::{Span, Token, TokensIter};
-use crate::assembler::state::{AssemblerState, ScopeId, Symbol, Value};
+#[double]
+use crate::assembler::state::AssemblerState;
+use crate::assembler::state::{ScopeId, Symbol, Value};
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
 pub type ParserResult<V> = Result<V, ParseError>;
@@ -222,4 +225,27 @@ pub enum ParseError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assembler::lexer::tokenize_str;
+
+    #[test]
+    fn test_assignment_simple() {
+        let mut tokens = tokenize_str("abc = 123");
+        let mut mock = AssemblerState::default();
+        mock.expect_define_symbol()
+            .withf(|sym_name, symbol| {
+                assert_eq!(sym_name, "abc");
+                assert_eq!(
+                    symbol,
+                    &Symbol::Free {
+                        value: 123,
+                        defined_at: 6..9
+                    }
+                );
+                true
+            })
+            .return_const(Ok(()))
+            .times(1);
+
+        assignment(&mut mock, &mut tokens).unwrap();
+    }
 }

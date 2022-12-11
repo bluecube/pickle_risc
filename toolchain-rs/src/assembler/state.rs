@@ -1,4 +1,6 @@
 use id_arena::Arena;
+#[cfg(test)]
+use mockall::automock;
 use std::collections::HashMap;
 
 use crate::assembler::{
@@ -28,6 +30,7 @@ pub struct AssemblerState {
     current_pc: Word,
 }
 
+#[cfg_attr(test, automock)]
 impl AssemblerState {
     /// Initialize the AssemblerState at the beginning of first pass
     pub fn new() -> AssemblerState {
