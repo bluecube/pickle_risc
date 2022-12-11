@@ -57,14 +57,20 @@ fn assignment<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> Pa
     Ok(())
 }
 
-fn anonymous_scope<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn anonymous_scope<'a>(
+    state: &mut AssemblerState,
+    tokens: &mut TokensIter<'a>,
+) -> ParserResult<()> {
     scope_start(state, tokens)?;
     scope_content(state, tokens)?;
     scope_end(state, tokens)?;
     Ok(())
 }
 
-fn scope_start<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<ScopeId> {
+fn scope_start<'a>(
+    state: &mut AssemblerState,
+    tokens: &mut TokensIter<'a>,
+) -> ParserResult<ScopeId> {
     let _span = one_token(tokens, Token::LBrace)?;
     Ok(state.push_scope())
 }
@@ -102,7 +108,10 @@ fn instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> P
     Ok(())
 }
 
-fn pseudo_instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn pseudo_instruction<'a>(
+    state: &mut AssemblerState,
+    tokens: &mut TokensIter<'a>,
+) -> ParserResult<()> {
     let (mnemonic, span) = identifier(tokens)?;
     match mnemonic {
         ".db" => todo!(),
