@@ -199,17 +199,17 @@ mod tests {
     use test_strategy::proptest;
 
     #[proptest]
-    fn test_cpu_status_roundtrip1(s: CpuStatus) {
+    fn cpu_status_roundtrip1(s: CpuStatus) {
         assert_eq!(CpuStatus::try_from(Word::from(&s)).unwrap(), s);
     }
 
     #[proptest]
-    fn test_cpu_status_mask(s: CpuStatus) {
+    fn cpu_status_mask(s: CpuStatus) {
         assert_eq!(Word::from(&s) & !CpuStatus::MASK, 0);
     }
 
     #[proptest]
-    fn test_cpu_status_roundtrip2(#[strategy(0u16 .. 1u16 << CpuStatus::BITS)] s: Word) {
+    fn cpu_status_roundtrip2(#[strategy(0u16 .. 1u16 << CpuStatus::BITS)] s: Word) {
         assert!(
             s & !CpuStatus::MASK == 0,
             "This test is fragile w.r.t. the gaps in bitmask, fix it if this assertion fails"
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[proptest]
-    fn test_cpu_status_out_of_range(#[strategy((1u16 << CpuStatus::BITS ..= u16::MAX))] s: u16) {
+    fn cpu_status_out_of_range(#[strategy((1u16 << CpuStatus::BITS ..= u16::MAX))] s: u16) {
         assert!(
             s & !CpuStatus::MASK != 0,
             "This test is fragile w.r.t. the gaps in bitmask, fix it if this assertion fails"
@@ -227,41 +227,41 @@ mod tests {
     }
 
     #[test]
-    fn test_virtual_memory_address_from_word_example() {
+    fn virtual_memory_address_from_word_example() {
         let a = VirtualMemoryAddress::from(0b101010__1100110011);
         assert_eq!(u16::from(a.page_number), 0b101010);
         assert_eq!(u16::from(a.offset), 0b1100110011);
     }
 
     #[proptest]
-    fn test_virtual_memory_address_roundtrip1(a: VirtualMemoryAddress) {
+    fn virtual_memory_address_roundtrip1(a: VirtualMemoryAddress) {
         assert_eq!(VirtualMemoryAddress::from(Word::from(&a)), a);
     }
 
     #[proptest]
-    fn test_virtual_memory_address_roundtrip2(a: u16) {
+    fn virtual_memory_address_roundtrip2(a: u16) {
         assert_eq!(Word::from(&VirtualMemoryAddress::from(a)), a);
     }
 
     #[test]
-    fn test_physical_memory_address_from_word_example() {
+    fn physical_memory_address_from_word_example() {
         let a = PhysicalMemoryAddress::from(u24::new(0b10101010101010__1100110011));
         assert_eq!(u16::from(a.frame_number), 0b10101010101010);
         assert_eq!(u16::from(a.offset), 0b1100110011);
     }
 
     #[proptest]
-    fn test_physical_memory_address_roundtrip1(a: PhysicalMemoryAddress) {
+    fn physical_memory_address_roundtrip1(a: PhysicalMemoryAddress) {
         assert_eq!(PhysicalMemoryAddress::from(u24::from(&a)), a);
     }
 
     #[proptest]
-    fn test_physical_memory_address_roundtrip2(a: u24) {
+    fn physical_memory_address_roundtrip2(a: u24) {
         assert_eq!(u24::from(&PhysicalMemoryAddress::from(a)), a);
     }
 
     #[test]
-    fn test_page_table_index_from_word_example() {
+    fn page_table_index_from_word_example() {
         let i = PageTableIndex::try_from(0b111000_1_110011).unwrap();
         assert_eq!(u16::from(i.context_id), 0b111000);
         assert_eq!(i.segment, VirtualMemorySegment::Program);
@@ -269,29 +269,29 @@ mod tests {
     }
 
     #[proptest]
-    fn test_page_table_index_roundtrip1(i: PageTableIndex) {
+    fn page_table_index_roundtrip1(i: PageTableIndex) {
         assert_eq!(PageTableIndex::try_from(Word::from(&i)).unwrap(), i);
     }
 
     #[proptest]
-    fn test_page_table_index_bits(i: PageTableIndex) {
+    fn page_table_index_bits(i: PageTableIndex) {
         assert_le!(u16::from(&i).next_power_of_two(), 1 << PageTableIndex::BITS);
     }
 
     #[proptest]
-    fn test_page_table_index_roundtrip2(#[strategy(0u16 .. 1u16 << PageTableIndex::BITS)] a: u16) {
+    fn page_table_index_roundtrip2(#[strategy(0u16 .. 1u16 << PageTableIndex::BITS)] a: u16) {
         assert_eq!(u16::from(&PageTableIndex::try_from(a).unwrap()), a);
     }
 
     #[proptest]
-    fn test_page_table_index_out_of_range(
+    fn page_table_index_out_of_range(
         #[strategy((1u16 << PageTableIndex::BITS ..= u16::MAX))] i: u16,
     ) {
         PageTableIndex::try_from(i).unwrap_err();
     }
 
     #[test]
-    fn test_page_table_record_from_word_example() {
+    fn page_table_record_from_word_example() {
         let r = PageTableRecord::try_from(0b1_0_11001100110011).unwrap();
         assert!(r.readable);
         assert!(!r.writable);
@@ -299,12 +299,12 @@ mod tests {
     }
 
     #[proptest]
-    fn test_page_table_record_roundtrip1(r: PageTableRecord) {
+    fn page_table_record_roundtrip1(r: PageTableRecord) {
         assert_eq!(PageTableRecord::from(Word::from(&r)), r);
     }
 
     #[proptest]
-    fn test_page_table_record_roundtrip2(a: u16) {
+    fn page_table_record_roundtrip2(a: u16) {
         assert_eq!(Word::from(&PageTableRecord::from(a)), a);
     }
 }

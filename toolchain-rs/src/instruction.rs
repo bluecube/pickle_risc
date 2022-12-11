@@ -72,7 +72,7 @@ mod tests {
     use test_strategy::proptest;
 
     #[test]
-    fn test_instruction_from_word_example1() {
+    fn instruction_from_word_example1() {
         assert_eq!(
             Instruction::try_from(0u16).unwrap(),
             Instruction::Addi {
@@ -83,7 +83,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instruction_from_word_example2() {
+    fn instruction_from_word_example2() {
         assert_eq!(
             Instruction::try_from(0xffffu16).unwrap(),
             Instruction::Break
@@ -91,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instruction_from_word_invalid_opcode_example() {
+    fn instruction_from_word_invalid_opcode_example() {
         assert_eq!(
             Instruction::try_from(0xe000u16).unwrap_err(),
             InvalidInstructionError::InvalidOpcode(0xe000)
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instruction_display_example1() {
+    fn instruction_display_example1() {
         assert_eq!(
             format!(
                 "{}",
@@ -114,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instruction_display_example2() {
+    fn instruction_display_example2() {
         assert_eq!(
             format!(
                 "{}",
@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[proptest]
-    fn test_control_register_str_roundtrip(cr: ControlRegister) {
+    fn control_register_str_roundtrip(cr: ControlRegister) {
         use std::str::FromStr;
         let string = format!("{cr:?}");
         let converted = ControlRegister::from_str(&string).unwrap();
@@ -136,13 +136,13 @@ mod tests {
     }
 
     #[test]
-    fn test_control_register_bad_str() {
+    fn control_register_bad_str() {
         use std::str::FromStr;
         ControlRegister::from_str("xxxxxxxxx").unwrap_err();
     }
 
     #[test]
-    fn test_control_register_bad_str_lowercase() {
+    fn control_register_bad_str_lowercase() {
         use std::str::FromStr;
         let string = format!("{:?}", ControlRegister::CpuStatus).to_ascii_lowercase();
         ControlRegister::from_str(&string).unwrap_err();

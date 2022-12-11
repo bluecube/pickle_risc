@@ -4,12 +4,12 @@ use thiserror::Error;
 
 use crate::assembler::expr_parser::expression;
 use crate::assembler::lexer::{Span, Token, TokensIter};
-use crate::assembler::state::{ParseState, ScopeId, Symbol, Value};
+use crate::assembler::state::{AssemblerState, ScopeId, Symbol, Value};
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
 pub type ParserResult<V> = Result<V, ParseError>;
 
-pub fn top<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+pub fn top<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     scope_content(state, tokens)?;
 
     match tokens.next() {
@@ -22,7 +22,7 @@ pub fn top<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserRes
 }
 
 /// Parses a label or a labeled scope
-fn label<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn label<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     let (id, span) = identifier(tokens)?;
     one_token(tokens, Token::Colon)?;
 
@@ -41,7 +41,7 @@ fn label<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResul
     Ok(())
 }
 
-fn assignment<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn assignment<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     let (id, _) = identifier(tokens)?;
     one_token(tokens, Token::Assign)?;
 
@@ -57,19 +57,19 @@ fn assignment<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> Parser
     Ok(())
 }
 
-fn anonymous_scope<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn anonymous_scope<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     scope_start(state, tokens)?;
     scope_content(state, tokens)?;
     scope_end(state, tokens)?;
     Ok(())
 }
 
-fn scope_start<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<ScopeId> {
+fn scope_start<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<ScopeId> {
     let _span = one_token(tokens, Token::LBrace)?;
     Ok(state.push_scope())
 }
 
-fn scope_content<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn scope_content<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     loop {
         tokens.reset_peek();
         match tokens.peek() {
@@ -87,13 +87,13 @@ fn scope_content<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> Par
     }
 }
 
-fn scope_end<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn scope_end<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     state.pop_scope();
     one_token(tokens, Token::RBrace)?;
     Ok(())
 }
 
-fn instruction<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     use ux::*;
     let (mnemonic, span) = identifier(tokens)?;
     let instruction = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
@@ -102,7 +102,7 @@ fn instruction<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> Parse
     Ok(())
 }
 
-fn pseudo_instruction<'a>(state: &mut ParseState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn pseudo_instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
     let (mnemonic, span) = identifier(tokens)?;
     match mnemonic {
         ".db" => todo!(),
@@ -137,7 +137,7 @@ fn cr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<ControlRegister> {
 /// Uses a type Intermediate to do one extra conversion, to work around missing
 /// conversions from too large type in uX.
 fn immediate<'a, Intermediate: TryFrom<Value>, T: TryFrom<Intermediate>>(
-    state: &mut ParseState,
+    state: &mut AssemblerState,
     tokens: &mut TokensIter<'a>,
 ) -> ParserResult<T> {
     let (value, span) = expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;

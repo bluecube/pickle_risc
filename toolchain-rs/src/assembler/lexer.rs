@@ -258,7 +258,7 @@ mod tests {
     #[test_case(r#""\u20""#, &[Token::Error]; "string_invalid_unicode_escape_syntax3")]
     #[test_case(r#""\u{0x110000}""#, &[Token::Error]; "string_invalid_unicode_escape_value")]
     #[test_case("\"abc\ndef\"", &[Token::Error, Token::Eol, Token::Identifier("def"), Token::Error]; "string_unescaped_newline")]
-    #[test_case("123 + 456", &[Token::Number(123), Token::Plus, Token::Number(456)]; "test_addition_example")]
+    #[test_case("123 + 456", &[Token::Number(123), Token::Plus, Token::Number(456)]; "addition_example")]
     #[test_case("abc\ndef;ghi", &[
         Token::Identifier("abc"),
         Token::Eol,
@@ -279,12 +279,12 @@ mod tests {
         Token::Eol,
         Token::Identifier("def")
     ]; "multiple_eol_with_whitespace_and_comments")]
-    fn tokenizer_good(s: &str, expected: &[Token]) {
+    fn tokenize_examples(s: &str, expected: &[Token]) {
         assert_eq!(tokenize(s), expected);
     }
 
     #[proptest]
-    fn test_num(#[strategy(valid_num_token_strategy())] value_s: (i32, String)) {
+    fn num(#[strategy(valid_num_token_strategy())] value_s: (i32, String)) {
         let (value, s) = value_s;
         println!("{s:?}, {value}");
         assert_tokens!(&s, Number(value));
@@ -293,14 +293,14 @@ mod tests {
     /// Test unicode escape that contains any string in the braces which
     /// is a valid string character and doesn't end the escape sequence
     #[proptest]
-    fn test_string_invalid_unicode_escape_syntax4(
+    fn string_invalid_unicode_escape_syntax4(
         #[strategy(r#""\\u[{][^a-zA-Z0-9\\"\x00-\x1F\x7F}]*[}]""#)] input: String,
     ) {
         assert_tokens!(&input, Error);
     }
 
     #[proptest]
-    fn test_string_valid_unicode_escape(c: char) {
+    fn string_valid_unicode_escape(c: char) {
         let input = format!(r#""\u{{{:x}}}""#, u32::from(c));
         let mut expected = std::string::String::new();
         expected.push(c);
@@ -309,12 +309,12 @@ mod tests {
 
     /// Check that no input string crashes when lexing
     #[proptest]
-    fn test_no_failures(input: String) {
+    fn no_failures(input: String) {
         tokenize(&input);
     }
 
     #[proptest]
-    fn test_comment(#[strategy(r"abc #[^\n]*\ndef")] input: String) {
+    fn comment(#[strategy(r"abc #[^\n]*\ndef")] input: String) {
         assert_tokens!(&input, Identifier("abc"), Eol, Identifier("def"));
     }
 
