@@ -130,11 +130,7 @@ fn pseudo_instruction<'a>(
 
 fn gpr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<Gpr> {
     let (mnemonic, span) = identifier(tokens)?;
-    mnemonic
-        .strip_prefix("r")
-        .and_then(|suffix| suffix.parse::<u16>().ok())
-        .and_then(|n| Gpr::try_from(n).ok())
-        .ok_or_else(|| ParseError::InvalidGprName { span })
+    Gpr::from_str(mnemonic).map_err(|_| ParseError::InvalidGprName { span })
 }
 
 fn cr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<ControlRegister> {

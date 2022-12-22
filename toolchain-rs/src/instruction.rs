@@ -1,4 +1,10 @@
 use num_enum::TryFromPrimitive;
+#[cfg(test)]
+use proptest::{
+    arbitrary::{any, Arbitrary},
+    strategy::{BoxedStrategy, Strategy},
+};
+use std::str::FromStr;
 use strum::EnumString;
 #[cfg(test)]
 use test_strategy::Arbitrary;
@@ -25,6 +31,12 @@ impl TryFrom<u16> for Gpr {
     }
 }
 
+impl From<Gpr> for u16 {
+    fn from(r: Gpr) -> u16 {
+        r.0.into()
+    }
+}
+
 impl From<Gpr> for usize {
     fn from(r: Gpr) -> Self {
         r.0.try_into().unwrap()
@@ -35,6 +47,27 @@ impl Gpr {
     /// Create a new GPR index, panics if out of range
     pub fn new(i: usize) -> Gpr {
         Gpr(i.try_into().unwrap())
+    }
+}
+
+impl FromStr for Gpr {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.strip_prefix("r")
+            .and_then(|suffix| suffix.parse::<u16>().ok())
+            .and_then(|n| Gpr::try_from(n).ok())
+            .ok_or(())
+    }
+}
+
+#[cfg(test)]
+impl Arbitrary for Gpr {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Gpr>;
+
+    fn arbitrary_with(_: ()) -> Self::Strategy {
+        any::<u3>().prop_map(|x| Gpr(x)).boxed()
     }
 }
 
@@ -50,6 +83,12 @@ pub enum ControlRegister {
     IntPc = 5,
     MMUAddr = 6,
     MMUData = 7,
+}
+
+impl From<ControlRegister> for u16 {
+    fn from(cr: ControlRegister) -> u16 {
+        cr as u16
+    }
 }
 
 impl std::fmt::Display for ControlRegister {
@@ -69,82 +108,83 @@ include!(concat!(env!("OUT_DIR"), "/instruction_def.rs"));
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
     use test_strategy::proptest;
 
-    #[test]
-    fn instruction_from_word_example1() {
-        assert_eq!(
-            Instruction::try_from(0u16).unwrap(),
-            Instruction::Addi {
-                r: Gpr::new(0),
-                immediate: 0i8
-            }
-        )
+    #[test_case(0x0000, Instruction::Addi { r: Gpr::new(0), immediate: 0i8 }; "addi")]
+    #[test_case(0xffff, Instruction::Break; "brk")]
+    fn instruction_from_word(num: u16, expected: Instruction) {
+        assert_eq!(Instruction::try_from(num).unwrap(), expected)
     }
 
     #[test]
-    fn instruction_from_word_example2() {
-        assert_eq!(
-            Instruction::try_from(0xffffu16).unwrap(),
-            Instruction::Break
-        )
-    }
-
-    #[test]
-    fn instruction_from_word_invalid_opcode_example() {
+    fn instruction_from_word_invalid_opcode() {
         assert_eq!(
             Instruction::try_from(0xe000u16).unwrap_err(),
             InvalidInstructionError::InvalidOpcode(0xe000)
         );
     }
 
-    #[test]
-    fn instruction_display_example1() {
-        assert_eq!(
-            format!(
-                "{}",
-                Instruction::Ld {
-                    rd: Gpr::new(3),
-                    address: Gpr::new(4),
-                    offset: i7::new(-14)
-                }
-            ),
-            "ld r3, r4, -14"
-        )
-    }
-
-    #[test]
-    fn instruction_display_example2() {
-        assert_eq!(
-            format!(
-                "{}",
-                Instruction::Stcr {
-                    cr: ControlRegister::CpuStatus,
-                    rs: Gpr::new(7)
-                }
-            ),
-            "stcr CpuStatus, r7"
-        )
+    #[test_case(Instruction::Ld { rd: Gpr::new(3), address: Gpr::new(4), offset: i7::new(-14) }, "ld r3, r4, -14"; "ld")]
+    #[test_case(Instruction::Stcr { cr: ControlRegister::CpuStatus, rs: Gpr::new(7) }, "stcr CpuStatus, r7"; "stcr")]
+    fn instruction_display_example1(instruction: Instruction, expected: &str) {
+        assert_eq!(format!("{instruction}"), expected)
     }
 
     #[proptest]
     fn control_register_str_roundtrip(cr: ControlRegister) {
-        use std::str::FromStr;
-        let string = format!("{cr:?}");
+        let string = format!("{cr}");
         let converted = ControlRegister::from_str(&string).unwrap();
         assert_eq!(cr, converted);
     }
 
     #[test]
     fn control_register_bad_str() {
-        use std::str::FromStr;
         ControlRegister::from_str("xxxxxxxxx").unwrap_err();
     }
 
     #[test]
     fn control_register_bad_str_lowercase() {
-        use std::str::FromStr;
-        let string = format!("{:?}", ControlRegister::CpuStatus).to_ascii_lowercase();
+        let string = format!("{}", ControlRegister::CpuStatus).to_ascii_lowercase();
         ControlRegister::from_str(&string).unwrap_err();
+    }
+
+    #[proptest]
+    fn control_register_u16_roundtrip(cr: ControlRegister) {
+        let num: u16 = cr.into();
+        let converted = ControlRegister::try_from(num).unwrap();
+        assert_eq!(cr, converted);
+    }
+
+    #[proptest]
+    fn control_register_bad_u16(#[strategy(8u16..)] num: u16) {
+        ControlRegister::try_from(num).unwrap_err();
+    }
+
+    #[proptest]
+    fn gpr_str_roundtrip(gpr: Gpr) {
+        let string = format!("{gpr}");
+        let converted = Gpr::from_str(&string).unwrap();
+        assert_eq!(gpr, converted);
+    }
+
+    #[test_case("xxxx"; "completely_wrong")]
+    #[test_case("rx"; "not_a_number")]
+    #[test_case("r99"; "out_of_range")]
+    #[test_case("s0"; "bad_prefix")]
+    fn gpr_bad_str(s: &str) {
+        Gpr::from_str(s).unwrap_err();
+    }
+
+    #[proptest]
+    fn gpr_u16_roundtrip(gpr: Gpr) {
+        let num: u16 = gpr.into();
+        let converted = Gpr::try_from(num).unwrap();
+        assert_eq!(gpr, converted);
+    }
+
+    #[proptest]
+    fn gpr_bad_u16(#[strategy(8u16..)] num: u16) {
+        Gpr::try_from(num).unwrap_err();
     }
 }
