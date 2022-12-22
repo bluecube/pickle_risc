@@ -41,7 +41,7 @@ impl AssemblerState {
         self.first_pass = false;
     }
 
-    pub(super) fn current_pc_symbol(
+    pub(super) fn get_current_pc_symbol(
         &self,
         attached_scope: Option<ScopeId>,
         defined_at: Span,
@@ -100,6 +100,10 @@ impl AssemblerState {
     pub(super) fn pop_scope<'a>(&mut self) {
         todo!();
     }
+
+    pub(super) fn emit_word(&mut self, word: Word) {
+        self.sections[self.current_section].data.push(word);
+    }
 }
 
 impl Default for AssemblerState {
@@ -109,7 +113,7 @@ impl Default for AssemblerState {
         let mut sections = Arena::new();
         let text_section = sections.alloc(Section {
             start_address: 0,
-            pc: 0,
+            data: Vec::new(),
         });
 
         AssemblerState {
@@ -142,7 +146,7 @@ pub(super) enum Symbol {
 }
 
 impl Symbol {
-    fn get_value(&self, state: &AssemblerState) -> Value {
+    pub fn get_value(&self, state: &AssemblerState) -> Value {
         match self {
             Symbol::Location {
                 section,
@@ -157,7 +161,7 @@ impl Symbol {
         }
     }
 
-    fn get_defined_at(&self) -> Span {
+    pub fn get_defined_at(&self) -> Span {
         match self {
             Symbol::Location {
                 section: _,
@@ -176,5 +180,5 @@ impl Symbol {
 #[derive(Clone, Debug, Default)]
 pub(super) struct Section {
     start_address: Word,
-    pc: Word,
+    data: Vec<Word>,
 }

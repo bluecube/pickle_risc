@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::str::FromStr;
 
 use mockall_double::double;
 use thiserror::Error;
@@ -26,18 +27,20 @@ pub fn top<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> Parse
 
 /// Parses a label or a labeled scope
 fn label<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (id, span) = identifier(tokens)?;
-    one_token(tokens, Token::Colon)?;
+    let (id, id_span) = identifier(tokens)?;
+    let colon_span = one_token(tokens, Token::Colon)?;
+
+    let span = id_span.start..colon_span.end;
 
     match tokens.peek() {
         Some((Token::LBrace, _)) => {
             let scope_id = scope_start(state, tokens)?;
-            state.define_symbol(id, state.current_pc_symbol(Some(scope_id), span))?;
+            state.define_symbol(id, state.get_current_pc_symbol(Some(scope_id), span))?;
             scope_content(state, tokens)?;
             scope_end(state, tokens)?;
         }
         _ => {
-            state.define_symbol(id, state.current_pc_symbol(None, span))?;
+            state.define_symbol(id, state.get_current_pc_symbol(None, span))?;
         }
     }
 
@@ -45,10 +48,14 @@ fn label<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserR
 }
 
 fn assignment<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (id, _) = identifier(tokens)?;
+    let (id, id_span) = identifier(tokens)?;
     one_token(tokens, Token::Assign)?;
 
-    let (value, span) = expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
+    let (value, value_span) =
+        expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
+
+    let span = id_span.start..value_span.end;
+
     state.define_symbol(
         id,
         Symbol::Free {
@@ -107,7 +114,7 @@ fn instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> P
     let (mnemonic, span) = identifier(tokens)?;
     let instruction = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
         .ok_or_else(|| ParseError::UnexpectedInstructionMnemonic { span })?;
-    todo!();
+    state.emit_word(instruction.into());
     Ok(())
 }
 
@@ -222,9 +229,10 @@ pub enum ParseError {
 mod tests {
     use super::*;
     use crate::assembler::lexer::tokenize_str;
+    use crate::assembler::state::Section;
 
     #[test]
-    fn test_assignment_simple() {
+    fn assignment_simple() {
         let mut tokens = tokenize_str("abc = 123");
         let mut mock = AssemblerState::default();
         mock.expect_define_symbol()
@@ -234,7 +242,7 @@ mod tests {
                     symbol,
                     &Symbol::Free {
                         value: 123,
-                        defined_at: 6..9
+                        defined_at: 0..9
                     }
                 );
                 true
@@ -243,5 +251,77 @@ mod tests {
             .times(1);
 
         assignment(&mut mock, &mut tokens).unwrap();
+    }
+
+    #[test]
+    fn assignment_expression() {
+        let mut tokens = tokenize_str("abc = def * 7");
+        let mut mock = AssemblerState::default();
+        mock.expect_define_symbol()
+            .withf(|sym_name, symbol| {
+                assert_eq!(sym_name, "abc");
+                assert_eq!(
+                    symbol,
+                    &Symbol::Free {
+                        value: 21,
+                        defined_at: 0..13
+                    }
+                );
+                true
+            })
+            .return_const(Ok(()))
+            .times(1);
+        mock.expect_get_symbol_value()
+            .withf(|sym_name| {
+                assert_eq!(sym_name, "def");
+                true
+            })
+            .return_const(Some(3))
+            .times(1);
+
+        assignment(&mut mock, &mut tokens).unwrap();
+    }
+
+    #[test]
+    fn label_simple() {
+        let mut tokens = tokenize_str("abc:");
+        let mut mock = AssemblerState::default();
+
+        let mut sections = id_arena::Arena::<Section>::new();
+        let section = sections.alloc(Section::default());
+
+        let symbol = Symbol::Location {
+            section: section.clone(),
+            offset: 0,
+            attached_scope: None,
+            defined_at: 0..4,
+        };
+
+        mock.expect_define_symbol()
+            .withf(move |sym_name, symbol| {
+                assert_eq!(sym_name, "abc");
+                assert_eq!(
+                    symbol,
+                    &Symbol::Location {
+                        section,
+                        offset: 0,
+                        attached_scope: None,
+                        defined_at: 0..4
+                    }
+                );
+                true
+            })
+            .return_const(Ok(()))
+            .times(1);
+        mock.expect_get_current_pc_symbol()
+            .return_const(symbol.clone())
+            .withf(move |attached_scope, span| {
+                assert_eq!(attached_scope, &None);
+                assert_eq!(span, &symbol.get_defined_at());
+                true
+            })
+            .times(1);
+
+        label(&mut mock, &mut tokens).unwrap();
     }
 }
