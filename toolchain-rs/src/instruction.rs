@@ -125,6 +125,14 @@ mod tests {
         );
     }
 
+    #[proptest]
+    fn instruction_word_roundtrip(instr: Instruction) {
+        let num: u16 = instr.into();
+        let converted: Instruction = num.try_into().unwrap();
+
+        assert_eq!(converted, instr);
+    }
+
     #[test_case(Instruction::Ld { rd: Gpr::new(3), address: Gpr::new(4), offset: i7::new(-14) }, "ld r3, r4, -14"; "ld")]
     #[test_case(Instruction::Stcr { cr: ControlRegister::CpuStatus, rs: Gpr::new(7) }, "stcr CpuStatus, r7"; "stcr")]
     fn instruction_display_example1(instruction: Instruction, expected: &str) {

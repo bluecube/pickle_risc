@@ -49,6 +49,8 @@ fn generate_code() -> anyhow::Result<()> {
 
 fn generate_instruction(definition: &InstructionSet, target: &mut File) -> anyhow::Result<()> {
     writeln!(target, "#[derive(Debug, Copy, Clone, Eq, PartialEq)]")?;
+    writeln!(target, "#[cfg_attr(test, derive(Arbitrary))]")?;
+
     writeln!(target, "pub enum Instruction {{")?;
     for (mnemonic, instruction_def) in &definition.instructions {
         generate_opcode_line(mnemonic, instruction_def, true, target)?;
@@ -82,6 +84,15 @@ fn generate_instruction(definition: &InstructionSet, target: &mut File) -> anyho
     writeln!(target, "    }}")?;
     writeln!(target, "}}")?;
 
+    writeln!(target, "impl From<Instruction> for Word {{")?;
+    writeln!(target, "    fn from(i: Instruction) -> Word {{")?;
+    writeln!(target, "        match i {{")?;
+    for (mnemonic, instruction_def) in &definition.instructions {
+        generate_instruction_output_arm(mnemonic, instruction_def, target)?;
+    }
+    writeln!(target, "        }}")?;
+    writeln!(target, "    }}")?;
+    writeln!(target, "}}")?;
     Ok(())
 }
 
@@ -314,6 +325,66 @@ fn generate_instruction_match_arm(
         write!(target, "            }}")?;
     }
     writeln!(target, ",")?;
+
+    Ok(())
+}
+
+fn generate_instruction_output_arm(
+    mnemonic: &str,
+    instruction_def: &Instruction,
+    target: &mut File,
+) -> anyhow::Result<()> {
+    let converted_mnemonic = mnemonic_to_cammel_case(mnemonic);
+
+    write!(target, "            Instruction::{}", converted_mnemonic)?;
+
+    if !instruction_def.args.is_empty() {
+        write!(target, " {{ ",)?;
+        for (arg_name, _arg_type) in &instruction_def.args {
+            write!(target, "{}, ", arg_name)?;
+        }
+        write!(target, "}}")?;
+    }
+
+    writeln!(target, " => {{")?;
+    write!(target, "                ")?;
+
+    let mut fixed_encoding_part = 0;
+    let mut offset = INSTRUCTION_BITS;
+    for encoding_piece in &instruction_def.encoding_pieces {
+        match &encoding_piece {
+            InstructionEncodingPiece::Literal(s) => {
+                offset -= s.len();
+                fixed_encoding_part |= u16::from_str_radix(&s, 2).unwrap() << offset;
+            }
+            InstructionEncodingPiece::Ignored(l) => offset -= l,
+            InstructionEncodingPiece::Arg(arg_name) => {
+                let bits = instruction_def.args[arg_name].bits();
+                offset -= bits;
+
+                if offset > 0 {
+                    write!(target, "(")?;
+                }
+
+                if let InstructionEncodingArgType::Immediate { signed: true, bits } =
+                    instruction_def.args[arg_name]
+                {
+                    write!(target, "encode_signed_field({arg_name}, {bits})")?;
+                } else {
+                    write!(target, "u16::from({arg_name})")?;
+                }
+
+                if offset > 0 {
+                    write!(target, " << {offset})")?;
+                }
+                write!(target, " | ")?;
+            }
+        }
+    }
+    write!(target, "{:#06x}u16", fixed_encoding_part)?;
+    writeln!(target)?;
+
+    writeln!(target, "            }},")?;
 
     Ok(())
 }

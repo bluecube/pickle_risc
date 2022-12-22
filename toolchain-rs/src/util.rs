@@ -31,6 +31,14 @@ where
     .unwrap()
 }
 
+pub fn encode_signed_field<T>(v: T, bits: u32) -> u16
+where
+    T: Into<i16>,
+{
+    let tmp: i16 = v.into();
+    (tmp as u16) & (u16::MAX >> (16 - bits))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,5 +92,10 @@ mod tests {
         let input = (field_value & mask) | (padding << field_bits);
 
         assert_eq!(field::<u16>(input, field_bits), field_value);
+    }
+
+    #[test]
+    fn test_encode_signed_field() {
+        assert_eq!(encode_signed_field(i3::new(-2), 3), 0b110)
     }
 }
