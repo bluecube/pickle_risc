@@ -5,64 +5,65 @@
 use std::borrow::Cow;
 
 use crate::assembler::{
-    lexer::{Span, Token, TokensIter},
-    parser::{one_token, ParseError, ParserResult},
-    state::Value,
+    lexer::Token,
+    parser::{one_token, ParseResult},
+    files::{FileTokens, Location},
+    Value, AsmError,
 };
 
 pub fn expression<'a>(
-    tokens: &mut TokensIter<'a>,
+    tokens: FileTokens<'a>,
     get_symbol: &impl Fn(&str) -> Option<Value>,
-) -> ParserResult<(Value, Span)> {
-    let (first_value, first_span) = value(tokens, get_symbol)?;
-    main(first_value, first_span, 0, tokens, get_symbol)
+) -> ParseResult<'a, Value> {
+    let (first_value, first_location, tokens) = value(tokens, get_symbol)?;
+    main(first_value, first_location, 0, tokens, get_symbol)
 }
 
 /// Parse and evaluate a single value that has lower precedence than all binary operators.
 /// Handles atoms (number / identifier), parenthesised expressions and unary operators.
 fn value<'a>(
-    tokens: &mut TokensIter<'a>,
+    tokens: FileTokens<'a>,
     get_symbol: &impl Fn(&str) -> Option<Value>,
-) -> ParserResult<(Value, Span)> {
+) -> ParseResult<'a, Value> {
     static EXPECTED: &str = "`(`, `+`, `-`, `!`, `~`, identifier or number";
-    match tokens.next() {
-        Some((Token::Number(n), span)) => Ok((n, span)),
-        Some((Token::Identifier(ident), span)) => {
-            let v = get_symbol(ident)
-                .ok_or_else(|| ParseError::UndefinedSymbol { span: span.clone() })?;
-            Ok((v, span))
+    match tokens.first() {
+        Some((Token::Number(n), location)) => Ok((*n, location, tokens.rest())),
+        Some((Token::Identifier(ident), location)) => {
+            let v = get_symbol(&ident)
+                .ok_or_else(|| AsmError::UndefinedSymbol { location })?;
+            Ok((v, location, tokens.rest()))
         }
-        Some((Token::LParen, span1)) => {
-            let (v, _) = expression(tokens, get_symbol)?;
-            let span2 = one_token(tokens, Token::RParen)?;
-            Ok((v, span1.start..span2.end))
+        Some((Token::LParen, location1)) => {
+            let (v, _, tokens) = expression(tokens.rest(), get_symbol)?;
+            let (_, location2, tokens) = one_token(tokens, &Token::RParen)?;
+            Ok((v, location1.extend_to(&location2), tokens))
         }
         // Unary operators:
-        Some((Token::Plus, span1)) => {
-            let (v, span2) = value(tokens, get_symbol)?;
-            Ok((v, span1.start..span2.end))
+        Some((Token::Plus, location1)) => {
+            let (v, location2, tokens) = value(tokens.rest(), get_symbol)?;
+            Ok((v, location1.extend_to(&location2), tokens))
         }
-        Some((Token::Minus, span1)) => {
-            let (v, span2) = value(tokens, get_symbol)?;
-            let result_span = span1.start..span2.end;
-            let result = v.checked_neg().ok_or_else(|| ParseError::ValueOutOfRange {
-                span: result_span.clone(),
+        Some((Token::Minus, location1)) => {
+            let (v, location2, tokens) = value(tokens.rest(), get_symbol)?;
+            let result_location = location1.extend_to(&location2);
+            let result = v.checked_neg().ok_or_else(|| AsmError::ValueOutOfRange {
+                location: result_location,
             })?;
-            Ok((result, result_span))
+            Ok((result, result_location, tokens))
         }
-        Some((Token::Not, span1)) => {
-            let (v, span2) = value(tokens, get_symbol)?;
-            Ok(((v == 0).into(), span1.start..span2.end))
+        Some((Token::Not, location1)) => {
+            let (v, location2, tokens) = value(tokens.rest(), get_symbol)?;
+            Ok(((v == 0).into(), location1.extend_to(&location2), tokens))
         }
-        Some((Token::BitNot, span1)) => {
-            let (v, span2) = value(tokens, get_symbol)?;
-            Ok((!v, span1.start..span2.end))
+        Some((Token::BitNot, location1)) => {
+            let (v, location2, tokens) = value(tokens.rest(), get_symbol)?;
+            Ok((!v, location1.extend_to(&location2), tokens))
         }
-        Some((_, span)) => Err(ParseError::UnexpectedToken {
+        Some((_, location)) => Err(AsmError::UnexpectedToken {
             expected: Cow::Borrowed(EXPECTED),
-            span,
+            location,
         }),
-        None => Err(ParseError::UnexpectedEof {
+        None => Err(AsmError::UnexpectedEof {
             expected: Cow::Borrowed(EXPECTED),
         }),
     }
@@ -70,45 +71,37 @@ fn value<'a>(
 
 fn main<'a>(
     lhs: Value,
-    lhs_span: Span,
+    lhs_location: Location,
     min_precedence: u32,
-    tokens: &mut TokensIter<'a>,
+    tokens: FileTokens<'a>,
     get_symbol: &impl Fn(&str) -> Option<Value>,
-) -> ParserResult<(Value, Span)> {
+) -> ParseResult<'a, Value> {
+    let mut tokens = tokens;
     let mut lhs = lhs;
-    let mut lhs_span = lhs_span;
+    let mut lhs_location = lhs_location;
 
     loop {
-        tokens.reset_peek();
-        let Some(op_precedence) = tokens.peek()
-            .and_then(|(t, _span)| binary_operator_precedence(t))
-            .and_then(|precedence| if precedence >= min_precedence { Some(precedence) } else { None })
-        else {
+        let Some((op, _)) = tokens.first() else {
             break;
         };
-        let Some((op, _op_span)) = tokens.next() else { unreachable!(); };
+        let Some(op_precedence) = binary_operator_precedence(op).filter(|precedence| precedence >= &min_precedence) else {
+            break;
+        };
+        tokens = tokens.rest();
 
-        let (mut rhs, mut rhs_span) = value(tokens, get_symbol)?;
+        let (mut rhs, mut rhs_location, t) = value(tokens, get_symbol)?;
+        tokens = t;
         loop {
-            let Some(_) = tokens.peek()
-                .and_then(|(t, _span)| binary_operator_precedence(t))
-                .and_then(|precedence|
-                    if precedence > op_precedence {
-                        Some(precedence)
-                    } else {
-                        None
-                    })
-            else {
+            if tokens.first().and_then(|(t, _)| binary_operator_precedence(t)).filter(|precedence| precedence > &op_precedence).is_none() {
                 break;
-            };
-            (rhs, rhs_span) = main(rhs, rhs_span, op_precedence + 1, tokens, get_symbol)?;
-            tokens.reset_peek();
+            }
+            (rhs, rhs_location, tokens) = main(rhs, rhs_location, op_precedence + 1, tokens, get_symbol)?;
         }
 
-        (lhs, lhs_span) = eval_binary_operator(lhs, lhs_span, rhs, rhs_span, &op)?;
+        (lhs, lhs_location) = eval_binary_operator(lhs, lhs_location, rhs, rhs_location, &op)?;
     }
 
-    Ok((lhs, lhs_span))
+    Ok((lhs, lhs_location, tokens))
 }
 
 /// Return binary operator precedence for a token, or None if the token doesn't
@@ -130,11 +123,11 @@ fn binary_operator_precedence(token: &Token) -> Option<u32> {
 
 fn eval_binary_operator(
     lhs: Value,
-    lhs_span: Span,
+    lhs_location: Location,
     rhs: Value,
-    rhs_span: Span,
+    rhs_location: Location,
     operator: &Token,
-) -> ParserResult<(Value, Span)> {
+) -> Result<(Value, Location), AsmError> {
     fn from_bool(b: bool) -> Option<Value> {
         Some(b.into())
     }
@@ -148,16 +141,16 @@ fn eval_binary_operator(
         Token::Shl => {
             lhs.checked_shl(
                 rhs.try_into()
-                    .map_err(|_| ParseError::NegativeShiftAmmount {
-                        span: rhs_span.clone(),
+                    .map_err(|_| AsmError::NegativeShiftAmmount {
+                        location: rhs_location.clone(),
                     })?,
             )
         }
         Token::Shr => {
             lhs.checked_shr(
                 rhs.try_into()
-                    .map_err(|_| ParseError::NegativeShiftAmmount {
-                        span: rhs_span.clone(),
+                    .map_err(|_| AsmError::NegativeShiftAmmount {
+                        location: rhs_location.clone(),
                     })?,
             )
         }
@@ -175,18 +168,18 @@ fn eval_binary_operator(
         _ => unreachable!(),
     };
 
-    let span = lhs_span.start..rhs_span.end;
+    let location = lhs_location.extend_to(&rhs_location);
 
     match v {
-        Some(v) => Ok((v, span)),
-        None => Err(ParseError::ValueOutOfRange { span }),
+        Some(v) => Ok((v, location)),
+        None => Err(AsmError::ValueOutOfRange { location }),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assembler::lexer::tokenize_str;
+    use crate::assembler::files::SnippetTokenizer;
     use assert_matches::assert_matches;
     use test_case::test_case;
 
@@ -222,13 +215,12 @@ mod tests {
                 None
             }
         }
-        let expected_span = 0..input.len();
-        let input = format!("{input}+");
-        let mut tokens = tokenize_str(&input);
-        let (result, span) = value(&mut tokens, &get_symbol).unwrap();
+        let tokenizer = SnippetTokenizer::new(format!("{input}+"));
+        let expected_location = tokenizer.location(0, input.len());
+        let (result, location, rest) = value(tokenizer.tokens(), &get_symbol).unwrap();
         assert_eq!(result, expected);
-        assert_eq!(span, expected_span);
-        assert_matches!(tokens.next(), Some((Token::Plus, _)));
+        assert_eq!(location, expected_location);
+        assert_matches!(rest.first(), Some((Token::Plus, _)));
     }
 
     #[test_case("" ; "eof")]
@@ -240,13 +232,15 @@ mod tests {
     #[test_case("()" ; "empty_parentheses")]
     #[test_case(":" ; "unexpected_token")]
     fn value_error(input: &str) {
-        let mut tokens = tokenize_str(input);
-        let _err = value(&mut tokens, &no_symbols).unwrap_err();
+        let tokenizer = SnippetTokenizer::new(input.to_owned());
+        let _err = value(tokenizer.tokens(), &no_symbols).unwrap_err();
         // TODO: Check error content
     }
 
     #[test_case("1234", 1234; "trivial")]
     #[test_case("1+1", 2; "simple")]
+    #[test_case("1+2*3", 7; "simple_prio")]
+    #[test_case("3*2+1", 7; "simple_prio2")]
     #[test_case("1+1 2+2", 2; "junk_after1")]
     #[test_case("1+1:", 2; "junk_after2")]
     #[test_case("5*2/3", 3; "left_associativity")]
@@ -255,13 +249,14 @@ mod tests {
     #[test_case("(1 << 8) - 1", 255; "bitmask1")]
     #[test_case("0xabcd & ~((1 << 8) - 1)", 0xab00; "bitmask2")]
     #[test_case("2*3 - 4*5 + 6/3", -12; "mul_div_add_sub")]
-    #[test_case("1 + 1 == 2 + 0", 1; "equals")]
+    #[test_case("1 + 1 == 3 - 1", 1; "equals")]
     #[test_case("-2_147_483_647 - 1", -2_147_483_648; "minimum_value")]
     #[test_case("0b0100 | 0b1001 ^ 0b1100 & 0b1010", 0b0101; "bitwise_operations")]
     fn expression_happy_path(input: &str, expected: Value) {
-        let mut tokens = tokenize_str(&input);
-        let (result, _span) = expression(&mut tokens, &no_symbols).unwrap();
+        let tokenizer = SnippetTokenizer::new(input.to_owned());
+        let (result, _location, rest) = expression(tokenizer.tokens(), &no_symbols).unwrap();
         assert_eq!(result, expected);
+        //assert_eq!(rest.first(), None);
     }
 
     #[test_case("1+" ; "missing_rhs")]
@@ -272,8 +267,8 @@ mod tests {
     #[test_case("1 >> -2"; "shr_neg")]
     #[test_case("0xffffff * 0xffffff"; "mul_overflow")]
     fn expression_error(input: &str) {
-        let mut tokens = tokenize_str(input);
-        let _err = expression(&mut tokens, &no_symbols).unwrap_err();
+        let tokenizer = SnippetTokenizer::new(input.to_owned());
+        let _err = expression(tokenizer.tokens(), &no_symbols).unwrap_err();
         // TODO: Check error content
     }
 
@@ -306,16 +301,19 @@ mod tests {
     #[test_case("100 || 0", 1; "or_3")]
     #[test_case("100 || 100", 1; "or_4")]
     fn evaluate_binary_operator(input: &str, expected: Value) {
-        let mut tokens = tokenize_str(&input);
-        let (lhs, lhs_span) =
-            assert_matches!(tokens.next(), Some((Token::Number(n), span)) => (n, span));
-        let op = tokens.next().unwrap().0;
-        let (rhs, rhs_span) =
-            assert_matches!(tokens.next(), Some((Token::Number(n), span)) => (n, span));
+        let tokenizer = SnippetTokenizer::new(input.to_owned());
+        let tokens = tokenizer.tokens();
+        let (lhs, lhs_location) =
+            assert_matches!(tokens.first(), Some((Token::Number(n), location)) => (n, location));
+        let tokens = tokens.rest();
+        let op = tokens.first().unwrap().0;
+        let tokens = tokens.rest();
+        let (rhs, rhs_location) =
+            assert_matches!(tokens.first(), Some((Token::Number(n), location)) => (n, location));
 
-        let (result, span) = eval_binary_operator(lhs, lhs_span, rhs, rhs_span, &op).unwrap();
+        let (result, location) = eval_binary_operator(*lhs, lhs_location, *rhs, rhs_location, &op).unwrap();
 
         assert_eq!(result, expected);
-        assert_eq!(span, 0..input.len());
+        assert_eq!(location, tokenizer.location(0, input.len()));
     }
 }

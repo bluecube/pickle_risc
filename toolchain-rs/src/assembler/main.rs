@@ -1,13 +1,8 @@
 use clap::Parser;
-use codespan_reporting::{
-    diagnostic::{Diagnostic, Label},
-    files::SimpleFiles,
-    term::termcolor::{ColorChoice, StandardStream},
-};
 
 use std::path::PathBuf;
 
-use pickle_toolchain::assembler::lexer::tokenize_str;
+use pickle_toolchain::assembler::AssemblerState;
 
 #[derive(Parser, Debug)]
 struct Cli {
@@ -22,14 +17,15 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    let mut state = AssemblerState::new();
+
     //let mut file_sources = SimpleFiles::new();
 
-    for path in cli.input_files {
-        let file_str = std::fs::read_to_string(&path)?;
-        for (tok, span) in tokenize_str(&file_str) {
-            println!("{:?} ({:?})", tok, span);
-        }
-    }
+    //for path in cli.input_files {
+    //    state.assemble_file(path)
+    //}
+
+    state.start_second_pass();
 
     Ok(())
 }

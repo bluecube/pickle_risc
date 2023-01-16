@@ -542,13 +542,15 @@ fn generate_opcode_parse_match_arm(
     target: &mut File,
 ) -> anyhow::Result<()> {
     writeln!(target, "    {mnemonic:?} => {{")?;
-    let mut first = true;
-    for (arg_name, arg_type) in &instruction_def.args {
-        if !first {
-            writeln!(target, "        one_token(tokens, Token::Comma)?;")?;
+    let arg_count = instruction_def.args.len();
+    for (i, (arg_name, arg_type)) in instruction_def.args.iter().enumerate() {
+        let i = i + 1;
+
+        if i < arg_count {
+            write!(target, "        let ({arg_name}, _, tokens) = ")?;
+        } else {
+            write!(target, "        let ({arg_name}, last_arg_location, tokens) = ")?;
         }
-        first = false;
-        write!(target, "        let {arg_name} = ")?;
         match arg_type {
             InstructionEncodingArgType::Gpr => write!(target, "gpr(tokens)")?,
             InstructionEncodingArgType::ControlRegister => write!(target, "cr(tokens)")?,
@@ -559,20 +561,29 @@ fn generate_opcode_parse_match_arm(
             }
         }
         writeln!(target, "?;")?;
+        if i < arg_count {
+            writeln!(target, "        let (_, _, tokens) = one_token(tokens, &Token::Comma)?;")?;
+        }
     }
 
     let mnemonic_cammel_case = mnemonic_to_cammel_case(mnemonic);
     if instruction_def.args.is_empty() {
-        writeln!(target, "        Some(Instruction::{mnemonic_cammel_case})")?;
+        writeln!(target, "        Some((Instruction::{mnemonic_cammel_case}, mnemonic_location, tokens))")?;
     } else {
-        writeln!(
+        writeln!(target, "        let location = mnemonic_location.extend_to(&last_arg_location);")?;
+        write!(
             target,
-            "        Some(Instruction::{mnemonic_cammel_case} {{"
+            "        Some((Instruction::{mnemonic_cammel_case} {{"
         )?;
+        let mut first = true;
         for (arg_name, _) in &instruction_def.args {
-            writeln!(target, "            {arg_name},")?;
+            if !first {
+                write!(target, ", ")?;
+            }
+            first = false;
+            write!(target, "{arg_name}")?;
         }
-        writeln!(target, "        }})")?;
+        writeln!(target, "}}, location, tokens))")?;
     }
     writeln!(target, "    }},")?;
 

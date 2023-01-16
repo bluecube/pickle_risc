@@ -1,26 +1,10 @@
-use itertools::{Itertools, MultiPeek};
-use logos::{Logos, SpannedIter};
-
+use logos::Logos;
 pub use logos::Span;
 
-use std::borrow::Cow;
-
-pub type TokensIter<'a> = MultiPeek<SpannedIter<'a, Token<'a>>>;
-
-/// Convert a string slice to a iterator of tokens with slice and with ability to peek
-pub fn tokenize_str<'a>(s: &'a str) -> TokensIter<'a> {
-    Token::lexer(s).spanned().multipeek()
-}
-
-#[derive(Debug)]
-struct Tokenized<'a>(Vec<(Token<'a>, Span)>);
-
-impl<'a> Tokenized<'a> {}
-
 #[derive(Logos, Debug, PartialEq, Eq)]
-pub enum Token<'a> {
-    #[regex(r"[._a-zA-Z][._a-zA-Z0-9]*", |x| x.slice())]
-    Identifier(&'a str),
+pub enum Token {
+    #[regex(r"[._a-zA-Z][._a-zA-Z0-9]*", |x| x.slice().to_owned())]
+    Identifier(String),
 
     #[regex(r"[0-9][0-9_]*", parse_dec)]
     #[regex(r"0[bB]_*[01][01_]*", parse_bin)]
@@ -29,7 +13,7 @@ pub enum Token<'a> {
     Number(i32),
 
     #[regex(r#""([^\\"\x00-\x1F\x7F]|\\[^\x00-\x1F\x7F])*""#, parse_string)]
-    String(std::borrow::Cow<'a, str>),
+    Str(String),
 
     #[token(":")]
     Colon,
@@ -108,11 +92,11 @@ fn parse_num(s: &str, base: i32) -> Option<i32> {
         })
 }
 
-fn parse_dec<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
+fn parse_dec<'a>(lex: &logos::Lexer<'a, Token>) -> Option<i32> {
     parse_num(lex.slice(), 10)
 }
 
-fn parse_bin<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
+fn parse_bin<'a>(lex: &logos::Lexer<'a, Token>) -> Option<i32> {
     let slice = lex.slice();
     parse_num(
         slice
@@ -123,7 +107,7 @@ fn parse_bin<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
     )
 }
 
-fn parse_hex<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
+fn parse_hex<'a>(lex: &logos::Lexer<'a, Token>) -> Option<i32> {
     let slice = lex.slice();
     parse_num(
         slice
@@ -134,7 +118,7 @@ fn parse_hex<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
     )
 }
 
-fn parse_oct<'a>(lex: &logos::Lexer<'a, Token<'a>>) -> Option<i32> {
+fn parse_oct<'a>(lex: &logos::Lexer<'a, Token>) -> Option<i32> {
     let slice = lex.slice();
     parse_num(
         slice
@@ -172,45 +156,30 @@ enum StringToken<'a> {
     Error,
 }
 
-impl<'a> StringToken<'a> {
-    fn append_to(&self, s: &mut String) -> Option<()> {
-        match self {
-            StringToken::Str(value) => s.push_str(value),
-            StringToken::EscQuote => s.push('"'),
-            StringToken::EscBackslash => s.push('\\'),
-            StringToken::EscNewline => s.push('\n'),
-            StringToken::EscCr => s.push('\r'),
-            StringToken::EscTab => s.push('\t'),
-            StringToken::EscNull => s.push('\0'),
-            StringToken::EscUnicode(c) => s.push(*c),
-            StringToken::Error => return None,
-        }
-
-        Some(())
-    }
-}
-
-fn parse_string<'a>(lex: &mut logos::Lexer<'a, Token<'a>>) -> Option<Cow<'a, str>> {
+fn parse_string<'a>(lex: &logos::Lexer<'a, Token>) -> Option<String> {
     let input = lex
         .slice()
         .strip_prefix('"')
         .and_then(|x| x.strip_suffix('"'))
         .unwrap();
 
-    let mut str_lex = StringToken::lexer(input);
+    let mut ret = String::new();
 
-    match str_lex.next() {
-        None => Some(Cow::Borrowed(input)),
-        Some(StringToken::Str(s)) if s.len() == input.len() => Some(Cow::Borrowed(input)),
-        Some(first_token) => {
-            let mut ret = String::with_capacity(input.len());
-            first_token.append_to(&mut ret)?;
-            for token in str_lex {
-                token.append_to(&mut ret)?;
-            }
-            Some(Cow::Owned(ret))
+    for part in StringToken::lexer(input) {
+        match part {
+            StringToken::Str(value) => ret.push_str(value),
+            StringToken::EscQuote => ret.push('"'),
+            StringToken::EscBackslash => ret.push('\\'),
+            StringToken::EscNewline => ret.push('\n'),
+            StringToken::EscCr => ret.push('\r'),
+            StringToken::EscTab => ret.push('\t'),
+            StringToken::EscNull => ret.push('\0'),
+            StringToken::EscUnicode(c) => ret.push(c),
+            StringToken::Error => return None,
         }
     }
+
+    return Some(ret);
 }
 
 /// Parse a escape sequence at the begining of the string, returns tuple with parsed
@@ -239,45 +208,45 @@ mod tests {
         }
     );
 
-    #[test_case(r"abcd", &[Token::Identifier("abcd")]; "identifier_simple_1")]
-    #[test_case(r".abcd1", &[Token::Identifier(".abcd1")]; "identifier_simple_2")]
-    #[test_case(r"_123", &[Token::Identifier("_123")]; "identifier_numerical")]
+    #[test_case(r"abcd", &[Token::Identifier("abcd".to_owned())]; "identifier_simple_1")]
+    #[test_case(r".abcd1", &[Token::Identifier(".abcd1".to_owned())]; "identifier_simple_2")]
+    #[test_case(r"_123", &[Token::Identifier("_123".to_owned())]; "identifier_numerical")]
     #[test_case(r"0x1_23", &[Token::Number(0x123)]; "number")]
     #[test_case(r"0x", &[Token::Error]; "num_only_prefix")]
-    #[test_case(r"0xefg123", &[Token::Number(0xef), Token::Identifier("g123")]; "num_hex_different_character")]
+    #[test_case(r"0xefg123", &[Token::Number(0xef), Token::Identifier("g123".to_owned())]; "num_hex_different_character")]
     #[test_case(r"0b0123", &[Token::Number(0b01), Token::Number(23)]; "num_bin_different_character")]
     #[test_case(r"2_147_483_647", &[Token::Number(2_147_483_647)]; "num_max_value")]
     #[test_case(r"2_147_483_648", &[Token::Error]; "num_max_value_plus_one")]
-    #[test_case(r#""abc""#, &[Token::String(Cow::Borrowed("abc"))]; "string_simple")]
-    #[test_case(r#""\u{1f44d}""#, &[Token::String(Cow::Borrowed("👍"))]; "string_unicode_escape")]
-    #[test_case(r#""\u{1F44D}""#, &[Token::String(Cow::Borrowed("👍"))]; "string_capitalized_unicode_escape")]
-    #[test_case(r#""\\a\"b\nc\rd\te\0f\u{20}""#, &[Token::String(Cow::Borrowed("\\a\"b\nc\rd\te\0f "))]; "string_all_escapes")]
+    #[test_case(r#""abc""#, &[Token::Str("abc".to_owned())]; "string_simple")]
+    #[test_case(r#""\u{1f44d}""#, &[Token::Str("👍".to_owned())]; "string_unicode_escape")]
+    #[test_case(r#""\u{1F44D}""#, &[Token::Str("👍".to_owned())]; "string_capitalized_unicode_escape")]
+    #[test_case(r#""\\a\"b\nc\rd\te\0f\u{20}""#, &[Token::Str("\\a\"b\nc\rd\te\0f ".to_owned())]; "string_all_escapes")]
     #[test_case(r#""\q""#, &[Token::Error]; "string_invalid_escape")]
     #[test_case(r#""\u{aX}""#, &[Token::Error]; "string_invalid_unicode_escape_syntax1")]
     #[test_case(r#""\u{20""#, &[Token::Error]; "string_invalid_unicode_escape_syntax2")]
     #[test_case(r#""\u20""#, &[Token::Error]; "string_invalid_unicode_escape_syntax3")]
     #[test_case(r#""\u{0x110000}""#, &[Token::Error]; "string_invalid_unicode_escape_value")]
-    #[test_case("\"abc\ndef\"", &[Token::Error, Token::Eol, Token::Identifier("def"), Token::Error]; "string_unescaped_newline")]
+    #[test_case("\"abc\ndef\"", &[Token::Error, Token::Eol, Token::Identifier("def".to_owned()), Token::Error]; "string_unescaped_newline")]
     #[test_case("123 + 456", &[Token::Number(123), Token::Plus, Token::Number(456)]; "addition_example")]
     #[test_case("abc\ndef;ghi", &[
-        Token::Identifier("abc"),
+        Token::Identifier("abc".to_owned()),
         Token::Eol,
-        Token::Identifier("def"),
+        Token::Identifier("def".to_owned()),
         Token::Semicolon,
-        Token::Identifier("ghi")
+        Token::Identifier("ghi".to_owned())
     ]; "eol_semicolon")]
     #[test_case("abc#comment\ndef", &[
-        Token::Identifier("abc"),
+        Token::Identifier("abc".to_owned()),
         Token::Eol,
-        Token::Identifier("def")
+        Token::Identifier("def".to_owned())
     ]; "eol_comment")]
     #[test_case("abc\n   	\n#comment\n  #comment\ndef", &[
-        Token::Identifier("abc"),
+        Token::Identifier("abc".to_owned()),
         Token::Eol,
         Token::Eol,
         Token::Eol,
         Token::Eol,
-        Token::Identifier("def")
+        Token::Identifier("def".to_owned())
     ]; "multiple_eol_with_whitespace_and_comments")]
     fn tokenize_examples(s: &str, expected: &[Token]) {
         assert_eq!(tokenize(s), expected);
@@ -304,7 +273,7 @@ mod tests {
         let input = format!(r#""\u{{{:x}}}""#, u32::from(c));
         let mut expected = std::string::String::new();
         expected.push(c);
-        assert_tokens!(&input, String(Cow::Owned(expected)));
+        assert_tokens!(&input, Str(expected));
     }
 
     /// Check that no input string crashes when lexing
@@ -315,7 +284,7 @@ mod tests {
 
     #[proptest]
     fn comment(#[strategy(r"abc #[^\n]*\ndef")] input: String) {
-        assert_tokens!(&input, Identifier("abc"), Eol, Identifier("def"));
+        assert_tokens!(&input, Identifier("abc".to_owned()), Eol, Identifier("def".to_owned()));
     }
 
     fn tokenize(s: &str) -> Vec<Token> {

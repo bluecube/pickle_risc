@@ -2,149 +2,184 @@ use std::borrow::Cow;
 use std::str::FromStr;
 
 use mockall_double::double;
-use thiserror::Error;
 
-use crate::assembler::expr_parser::expression;
-use crate::assembler::lexer::{Span, Token, TokensIter};
+use crate::assembler::{
+    expr_parser::expression,
+    lexer::Token,
+    files::{FileTokens, Location},
+    ScopeId, Symbol, Value, AsmError, AsmResult,
+};
 #[double]
-use crate::assembler::state::AssemblerState;
-use crate::assembler::state::{ScopeId, Symbol, Value};
+use crate::assembler::AssemblerState;
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
-pub type ParserResult<V> = Result<V, ParseError>;
+pub(super) type ParseResult<'a, T> = Result<(T, Location, FileTokens<'a>), AsmError>;
+pub(super) type ParseResultNoValue<'a> = Result<(Location, FileTokens<'a>), AsmError>;
 
-pub fn top<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+pub(super) fn map_parse_result<'a, T, U>(result: ParseResult<'a, T>, f: impl FnOnce(&T, Location) -> AsmResult<U>) -> ParseResult<'a, U> {
+    let (v, location, tokens) = result?;
+    let mapped = f(&v, location)?;
+    Ok((mapped, location, tokens))
+}
+
+pub fn file<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> AsmResult<()> {
     scope_content(state, tokens)?;
 
-    match tokens.next() {
-        Some((_, span)) => Err(ParseError::UnexpectedToken {
+    match tokens.first() {
+        Some((_, location)) => Err(AsmError::UnexpectedToken {
             expected: Cow::Borrowed("`{`, `;`, `\\n`, identifier or end of file"),
-            span,
+            location,
         }),
         None => Ok(()),
     }
 }
 
 /// Parses a label or a labeled scope
-fn label<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (id, id_span) = identifier(tokens)?;
-    let colon_span = one_token(tokens, Token::Colon)?;
+fn label<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
+    let (id, id_location, tokens) = identifier(tokens)?;
+    let (_, colon_location, tokens) = one_token(tokens, &Token::Colon)?;
 
-    let span = id_span.start..colon_span.end;
+    let definition_location = id_location.extend_to(&colon_location);
 
-    match tokens.peek() {
+    match tokens.first() {
         Some((Token::LBrace, _)) => {
-            let scope_id = scope_start(state, tokens)?;
-            state.define_symbol(id, state.get_current_pc_symbol(Some(scope_id), span))?;
+            let (scope_id, _, tokens) = scope_start(state, tokens)?;
+            state.define_symbol(id, state.get_current_pc_symbol(Some(scope_id), definition_location))?;
             scope_content(state, tokens)?;
-            scope_end(state, tokens)?;
+            let (_, scope_end_location, rest) = scope_end(state, tokens)?;
+            Ok(((), definition_location.extend_to(&scope_end_location), rest))
         }
         _ => {
-            state.define_symbol(id, state.get_current_pc_symbol(None, span))?;
+            state.define_symbol(id, state.get_current_pc_symbol(None, definition_location))?;
+            Ok(((), definition_location, tokens))
         }
     }
-
-    Ok(())
 }
 
-fn assignment<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
-    let (id, id_span) = identifier(tokens)?;
-    one_token(tokens, Token::Assign)?;
+fn assignment<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
+    let (id, id_location, tokens) = identifier(tokens)?;
+    let ((), _, tokens) = one_token(tokens, &Token::Assign)?;
 
-    let (value, value_span) =
+    let (value, value_location, rest) =
         expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
 
-    let span = id_span.start..value_span.end;
+    let definition_location = id_location.extend_to(&value_location);
 
     state.define_symbol(
         id,
         Symbol::Free {
             value,
-            defined_at: span,
+            defined_at: definition_location,
         },
     )?;
 
-    Ok(())
+    Ok(((), definition_location, rest))
 }
 
 fn anonymous_scope<'a>(
     state: &mut AssemblerState,
-    tokens: &mut TokensIter<'a>,
-) -> ParserResult<()> {
-    scope_start(state, tokens)?;
-    scope_content(state, tokens)?;
-    scope_end(state, tokens)?;
-    Ok(())
+    tokens: FileTokens<'a>,
+) -> ParseResult<'a, ()> {
+    let (_, start_location, tokens) = scope_start(state, tokens)?;
+    let (_, _, tokens) = scope_content(state, tokens)?;
+    let (_, end_location, tokens) = scope_end(state, tokens)?;
+    Ok(((), start_location.extend_to(&end_location), tokens))
 }
 
 fn scope_start<'a>(
     state: &mut AssemblerState,
-    tokens: &mut TokensIter<'a>,
-) -> ParserResult<ScopeId> {
-    let _span = one_token(tokens, Token::LBrace)?;
-    Ok(state.push_scope())
+    tokens: FileTokens<'a>,
+) -> ParseResult<'a, ScopeId> {
+    map_parse_result(
+        one_token(tokens, &Token::LBrace),
+        |_, _| Ok(state.push_scope())
+    )
 }
 
-fn scope_content<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn scope_content<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
+    let mut tokens = tokens;
+    let mut location = match tokens.first() {
+        Some((_, location)) => location,
+        None => tokens.empty_location(),
+    };
+
     loop {
-        tokens.reset_peek();
-        match tokens.peek() {
-            Some(&(Token::Identifier(ident), _)) => match tokens.peek() {
-                // Peek second token!
-                Some((Token::Colon, _)) => label(state, tokens)?,
-                Some((Token::Assign, _)) => assignment(state, tokens)?,
-                _ if ident.starts_with('.') => pseudo_instruction(state, tokens)?,
-                _ => instruction(state, tokens)?,
+        let mut new_location = location;
+        match tokens.first() {
+            Some((Token::Identifier(ident), _)) => match tokens.rest().first() {
+                Some((Token::Colon, _)) => {
+                    (_, new_location, tokens) = label(state, tokens)?
+                },
+                Some((Token::Assign, _)) => {
+                    (_, new_location, tokens) = assignment(state, tokens)?
+                },
+                _ if ident.starts_with('.') => {
+                    (_, new_location, tokens) = pseudo_instruction(state, tokens)?
+                },
+                _ => {
+                    (_, new_location, tokens) = instruction(state, tokens)?
+                },
             },
-            Some((Token::LBrace, _)) => anonymous_scope(state, tokens)?,
-            Some((Token::Eol, _)) | Some((Token::Semicolon, _)) => continue, // Skip empty lines
-            _ => return Ok(()),
+            Some((Token::LBrace, _)) => {
+                (_, new_location, tokens) = anonymous_scope(state, tokens)?
+            },
+            Some((Token::Eol, l)) | Some((Token::Semicolon, l)) => {
+                // Skip empty lines
+                new_location = l;
+                tokens = tokens.rest();
+            },
+            _ => return Ok(((), location, tokens)),
         }
+
+        location = location.extend_to(&new_location);
     }
 }
 
-fn scope_end<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn scope_end<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
+    let (_, location, rest) = one_token(tokens, &Token::RBrace)?;
     state.pop_scope();
-    one_token(tokens, Token::RBrace)?;
-    Ok(())
+    Ok(((), location, rest))
 }
 
-fn instruction<'a>(state: &mut AssemblerState, tokens: &mut TokensIter<'a>) -> ParserResult<()> {
+fn instruction<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
     use ux::*;
-    let (mnemonic, span) = identifier(tokens)?;
-    let instruction = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
-        .ok_or_else(|| ParseError::UnexpectedInstructionMnemonic { span })?;
+    let (mnemonic, mnemonic_location, tokens) = identifier(tokens)?;
+    let (instruction, location, rest) = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
+        .ok_or_else(|| AsmError::UnexpectedInstructionMnemonic { location: mnemonic_location })?;
     state.emit_word(instruction.into());
-    Ok(())
+    Ok(((), location, rest))
 }
 
 fn pseudo_instruction<'a>(
     state: &mut AssemblerState,
-    tokens: &mut TokensIter<'a>,
-) -> ParserResult<()> {
-    let (mnemonic, span) = identifier(tokens)?;
+    tokens: FileTokens<'a>,
+) -> ParseResult<'a, ()> {
+    let (mnemonic, location, tokens) = identifier(tokens)?;
     match mnemonic {
         ".db" => todo!(),
         ".dw" => todo!(),
         ".dd" => todo!(),
         ".include" => todo!(),
         ".section" => todo!(),
-        _ => return Err(ParseError::UnexpectedInstructionMnemonic { span }),
+        _ => return Err(AsmError::UnexpectedInstructionMnemonic { location }),
     }
 
-    Ok(())
+    Ok(((), location, tokens))
 }
 
-fn gpr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<Gpr> {
-    let (mnemonic, span) = identifier(tokens)?;
-    Gpr::from_str(mnemonic).map_err(|_| ParseError::InvalidGprName { span })
+fn gpr<'a>(tokens: FileTokens<'a>) -> ParseResult<Gpr> {
+    map_parse_result(
+        identifier(tokens),
+        |ident, location| Gpr::from_str(ident).map_err(|_| AsmError::InvalidGprName { location })
+    )
 }
 
-fn cr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<ControlRegister> {
-    let (mnemonic, span) = identifier(tokens)?;
-    mnemonic
-        .parse()
-        .map_err(|_| ParseError::InvalidCrName { span })
+fn cr<'a>(tokens: FileTokens<'a>) -> ParseResult<ControlRegister> {
+    map_parse_result(
+        identifier(tokens),
+        |ident, location| ControlRegister::from_str(ident)
+            .map_err(|_| AsmError::InvalidCrName { location })
+    )
 }
 
 /// Parse and evaluate an expression as an immediate value input to an instruction
@@ -153,123 +188,91 @@ fn cr<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<ControlRegister> {
 /// conversions from too large type in uX.
 fn immediate<'a, Intermediate: TryFrom<Value>, T: TryFrom<Intermediate>>(
     state: &mut AssemblerState,
-    tokens: &mut TokensIter<'a>,
-) -> ParserResult<T> {
-    let (value, span) = expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
-    value
-        .try_into()
-        .ok()
-        .and_then(|x: Intermediate| x.try_into().ok())
-        .ok_or_else(|| ParseError::ValueOutOfRange { span })
+    tokens: FileTokens<'a>,
+) -> ParseResult<'a, T> {
+    map_parse_result(
+        expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name)),
+        |value, location| Intermediate::try_from(*value).ok()
+            .and_then(|x| T::try_from(x).ok())
+            .ok_or_else(|| AsmError::ValueOutOfRange { location })
+    )
 }
 
-fn identifier<'a>(tokens: &mut TokensIter<'a>) -> ParserResult<(&'a str, Span)> {
-    match tokens.next() {
-        Some((Token::Identifier(identifier), span)) => Ok((identifier, span)),
-        Some((_, span)) => Err(ParseError::UnexpectedToken {
+fn identifier<'a>(tokens: FileTokens<'a>) -> ParseResult<&'a str> {
+    match tokens.first() {
+        Some((Token::Identifier(identifier), location)) => Ok((&identifier, location, tokens.rest())),
+        Some((_, location)) => Err(AsmError::UnexpectedToken {
             expected: Cow::Borrowed("identifier"),
-            span,
+            location,
         }),
-        None => Err(ParseError::UnexpectedEof {
+        None => Err(AsmError::UnexpectedEof {
             expected: Cow::Borrowed("identifier"),
         }),
     }
 }
 
-pub(super) fn one_token<'a>(
-    tokens: &mut TokensIter<'a>,
-    expected: Token<'a>,
-) -> ParserResult<Span> {
-    match tokens.next() {
-        Some((t, span)) if t == expected => Ok(span),
-        Some((_, span)) => Err(ParseError::UnexpectedToken {
+pub(super) fn one_token<'a>(tokens: FileTokens<'a>, expected: &Token) -> ParseResult<'a, ()> {
+    match tokens.first() {
+        Some((t, location)) if t == expected => Ok(((), location, tokens.rest())),
+        Some((_, location)) => Err(AsmError::UnexpectedToken {
             expected: Cow::Owned(format!("{expected:?}")),
-            span,
+            location,
         }),
-        None => Err(ParseError::UnexpectedEof {
+        None => Err(AsmError::UnexpectedEof {
             expected: Cow::Owned(format!("{expected:?}")),
         }),
     }
-}
-
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
-pub enum ParseError {
-    #[error("Unexpected token")]
-    UnexpectedToken {
-        expected: Cow<'static, str>,
-        span: Span,
-    },
-    #[error("Unexpected end of file")]
-    UnexpectedEof { expected: Cow<'static, str> },
-    #[error("Unexpected instruction mnemonic")]
-    UnexpectedInstructionMnemonic { span: Span },
-    #[error("Invalid general purpose register name format")]
-    InvalidGprName { span: Span },
-    #[error("Invalid control register name format")]
-    InvalidCrName { span: Span },
-    #[error("Value out of range")]
-    ValueOutOfRange { span: Span },
-    #[error("Undefined symbol")]
-    UndefinedSymbol { span: Span },
-    #[error("Negative shift ammount")]
-    NegativeShiftAmmount { span: Span },
-    #[error("Redefinition of symbol")]
-    SymbolRedefinition {
-        span: Span,
-        previous_definition: Span,
-    },
-    #[error("Symbol changed value in second pass")]
-    SymbolChangedValue { span: Span },
-
-    #[error("Other error: {description}")]
-    OtherError { description: String },
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assembler::lexer::tokenize_str;
-    use crate::assembler::state::Section;
+    use crate::assembler::{
+        files::SnippetTokenizer,
+        Section
+    };
 
     #[test]
     fn assignment_simple() {
-        let mut tokens = tokenize_str("abc = 123");
+        let tokenizer = SnippetTokenizer::new("abc = 123".to_owned());
         let mut mock = AssemblerState::default();
+        let defined_at = tokenizer.location(0, 9);
         mock.expect_define_symbol()
-            .withf(|sym_name, symbol| {
+            .withf(move |sym_name, symbol| {
                 assert_eq!(sym_name, "abc");
                 assert_eq!(
                     symbol,
                     &Symbol::Free {
                         value: 123,
-                        defined_at: 0..9
+                        defined_at
                     }
                 );
                 true
             })
-            .return_const(Ok(()))
+            .return_const(AsmResult::Ok(()))
             .times(1);
 
-        assignment(&mut mock, &mut tokens).unwrap();
+        assignment(&mut mock, tokenizer.tokens()).unwrap();
     }
 
     #[test]
     fn assignment_expression() {
-        let mut tokens = tokenize_str("abc = def * 7");
+        let tokenizer = SnippetTokenizer::new("abc = def * 7".to_owned());
         let mut mock = AssemblerState::default();
+        let defined_at = tokenizer.location(0, 13);
         mock.expect_define_symbol()
-            .withf(|sym_name, symbol| {
+            .withf(move |sym_name, symbol| {
                 assert_eq!(sym_name, "abc");
                 assert_eq!(
                     symbol,
                     &Symbol::Free {
                         value: 21,
-                        defined_at: 0..13
+                        defined_at
                     }
                 );
                 true
             })
-            .return_const(Ok(()))
+            .return_const(AsmResult::Ok(()))
             .times(1);
         mock.expect_get_symbol_value()
             .withf(|sym_name| {
@@ -279,22 +282,24 @@ mod tests {
             .return_const(Some(3))
             .times(1);
 
-        assignment(&mut mock, &mut tokens).unwrap();
+        assignment(&mut mock, tokenizer.tokens()).unwrap();
     }
 
     #[test]
     fn label_simple() {
-        let mut tokens = tokenize_str("abc:");
+        let tokenizer = SnippetTokenizer::new("abc:".to_owned());
         let mut mock = AssemblerState::default();
 
         let mut sections = id_arena::Arena::<Section>::new();
         let section = sections.alloc(Section::default());
 
+        let defined_at = tokenizer.location(0, 4);
+
         let symbol = Symbol::Location {
             section: section.clone(),
             offset: 0,
             attached_scope: None,
-            defined_at: 0..4,
+            defined_at,
         };
 
         mock.expect_define_symbol()
@@ -306,12 +311,12 @@ mod tests {
                         section,
                         offset: 0,
                         attached_scope: None,
-                        defined_at: 0..4
+                        defined_at,
                     }
                 );
                 true
             })
-            .return_const(Ok(()))
+            .return_const(AsmResult::Ok(()))
             .times(1);
         mock.expect_get_current_pc_symbol()
             .return_const(symbol.clone())
@@ -322,6 +327,6 @@ mod tests {
             })
             .times(1);
 
-        label(&mut mock, &mut tokens).unwrap();
+        label(&mut mock, tokenizer.tokens()).unwrap();
     }
 }
