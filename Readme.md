@@ -8,6 +8,7 @@
 - Can run a multitasking OS
 - Serve web site about itself (like Magic-1 does)
     - SLIP over UART?
+    - W5500 module?
 - Serial console interface
     - No graphics output
 - Run at ~2MHz clock
@@ -46,8 +47,11 @@ Long term plans (and hopes and dreams) go to the [notes](notes/) directory.
 ## Links
 ### Inspiration
 - Magic-1: http://www.homebrewcpu.com/
+    - Showed me that there is so much magic in this topic.
     - I would like my machine to look like Magic-1 and do the stuff that Magic-1 does.
-- James Sharman's pipelined 8bit CPU: https://www.youtube.com/c/weirdboyjim/videos
+- Ben Eater's breadboard computer: https://www.youtube.com/playlist?list=PLowKtXNTBypGqImE405J2565dvjafglHU
+    - Gave me the idea that I could actually build something like this.
+- James Sharman's JAM-1: https://www.youtube.com/c/weirdboyjim/videos
     - Different goals, but just plain awesome :)
 
 ### Instruction set
