@@ -38,7 +38,7 @@ instructions: {
     // Immediate operations (Prefix 00)
     // ================================
     "addi": {
-        title: "Add immediate value to register",
+        title: "Add immediate to register",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "000", "immediate", "r"],
         pseudocode: "r += immediate",
@@ -47,7 +47,7 @@ instructions: {
         ]
     },
     "andi": {
-        title: "Bitwise and immediate value with register",
+        title: "Bitwise and immediate with register",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "001", "immediate", "r"],
         pseudocode: "r &= immediate",
@@ -56,7 +56,7 @@ instructions: {
         ]
     },
     "ori": {
-        title: "Bitwise or immediate value with register",
+        title: "Bitwise or immediate with register",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "010", "immediate", "r"],
         pseudocode: "r |= immediate",
@@ -65,7 +65,7 @@ instructions: {
         ]
     },
     "xori": {
-        title: "Bitwise xor immediate value with register",
+        title: "Bitwise xor immediate with register",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "011", "immediate", "r"],
         pseudocode: "r ^= immediate",
@@ -74,7 +74,7 @@ instructions: {
         ]
     },
     "cmpi": {
-        title: "Compare immediate value with register",
+        title: "Compare immediate with register",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "100", "immediate", "r"],
         pseudocode: "ignore_value(r - immediate)",
@@ -83,7 +83,7 @@ instructions: {
         ]
     },
     "ldi": {
-        title: "Load immediate value",
+        title: "Load immediate",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "101", "immediate", "r"],
         pseudocode: "r = immediate",
@@ -92,7 +92,7 @@ instructions: {
         ]
     },
     "ldui": {
-        title: "Load immediate value to high byte",
+        title: "Load immediate to high byte",
         args: {"r": "gpr", "immediate": "s8"},
         encoding: ["00", "110", "immediate", "r"],
         pseudocode: "r = immediate << 8",
@@ -101,7 +101,7 @@ instructions: {
         ]
     },
     "addipc": {
-        title: "Add immediate value to program counter",
+        title: "Add immediate to program counter",
         args: {"rd": "gpr", "immediate": "s8"},
         encoding: ["00", "111", "immediate", "rd"],
         pseudocode: "r = Pc + immediate",
