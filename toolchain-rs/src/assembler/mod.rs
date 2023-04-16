@@ -3,6 +3,7 @@ pub mod files;
 pub mod lexer;
 pub mod parser;
 
+use codespan_reporting::diagnostic::Diagnostic;
 use id_arena::Arena;
 #[cfg(test)]
 use mockall::automock;
@@ -10,7 +11,8 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use thiserror::Error;
 
-use crate::assembler::files::Location;
+use crate::assembler::files::{FileId, InputFiles, Location};
+use crate::assembler::parser::parse_file;
 use crate::instruction::Word;
 
 pub(super) type ScopeId = id_arena::Id<Scope>;
@@ -39,6 +41,20 @@ impl AssemblerState {
     /// Initialize the AssemblerState at the beginning of first pass
     pub fn new() -> AssemblerState {
         Default::default()
+    }
+
+    pub fn assemble(&mut self, files: &InputFiles) -> AsmResult<()> {
+        for file_tokens in files.iter_file_tokens() {
+            parse_file(self, file_tokens)?;
+        }
+
+        self.first_pass = false;
+
+        for file_tokens in files.iter_file_tokens() {
+            parse_file(self, file_tokens)?;
+        }
+
+        Ok(())
     }
 
     pub fn start_second_pass(&mut self) {
@@ -221,6 +237,18 @@ pub enum AsmError {
 
     #[error("Other error: {description}")]
     OtherError { description: String },
+}
+
+impl From<AsmError> for Diagnostic<FileId> {
+    fn from(e: AsmError) -> Diagnostic<FileId> {
+        let ret = Diagnostic::error().with_message(format!("{}", e));
+        match e {
+            AsmError::UnexpectedToken { expected, location } => ret.with_labels(vec![location
+                .to_primary_label()
+                .with_message(format!("Expected {}", expected))]),
+            _ => ret,
+        }
+    }
 }
 
 pub type AsmResult<V> = Result<V, AsmError>;

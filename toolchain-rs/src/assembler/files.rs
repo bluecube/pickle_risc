@@ -1,4 +1,7 @@
-use codespan_reporting::files::{line_starts, Error, Files};
+use codespan_reporting::{
+    diagnostic::{Label, LabelStyle},
+    files::{line_starts, Error, Files},
+};
 use id_arena::Arena;
 use logos::Logos;
 use more_asserts::*;
@@ -89,6 +92,13 @@ impl InputFiles {
             tokens: self.files[file_id].tokens.as_slice(),
         }
     }
+
+    pub fn iter_file_tokens<'a>(&'a self) -> impl Iterator<Item = FileTokens<'a>> {
+        self.files.iter().map(|(file_id, file)| FileTokens {
+            file_id,
+            tokens: file.tokens.as_slice(),
+        })
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -120,6 +130,18 @@ impl Location {
             end: other.end,
             file_id: self.file_id,
         }
+    }
+
+    pub fn to_label(&self, style: LabelStyle) -> Label<FileId> {
+        Label::new(style, self.file_id, self.start..self.end)
+    }
+
+    pub fn to_primary_label(&self) -> Label<FileId> {
+        self.to_label(LabelStyle::Primary)
+    }
+
+    pub fn to_secondary_label(&self) -> Label<FileId> {
+        self.to_label(LabelStyle::Secondary)
     }
 }
 

@@ -25,7 +25,9 @@ pub(super) fn map_parse_result<'a, T, U>(
     Ok((mapped, location, tokens))
 }
 
-pub fn file<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> AsmResult<()> {
+/// Parse a whole file.
+/// This is the top level entry point to the parser.
+pub fn parse_file<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> AsmResult<()> {
     scope_content(state, tokens)?;
 
     match tokens.first() {
