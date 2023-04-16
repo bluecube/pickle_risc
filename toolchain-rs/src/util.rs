@@ -35,8 +35,8 @@ where
 mod tests {
     use super::*;
     use proptest::prelude::*;
-    use ux::*;
     use test_strategy::proptest;
+    use ux::*;
 
     #[test]
     fn test_sign_extend_examples() {
