@@ -15,6 +15,14 @@ path = "src/assembler/main.rs"
 name = "disassembler"
 path = "src/disassembler/main.rs"
 
+[[bin]]
+name = "instruction_set_html_generator"
+path = "src/instruction_set_html_generator/main.rs"
+
+[features]
+default = ["html-generator"]
+html-generator = ["dep:maud"]
+
 [dependencies]
 itertools = "0.10.5"
 anyhow = "1.0.65"
@@ -26,8 +34,14 @@ more-asserts = "0.3.1"
 ihex = "3.0.0"
 
 clap = { version = "4.0.18", features = ["derive"] }
+clio = { version = "0.2.7", features = ["clap-parse"] }
 rand = "0.8.5"
 logos = "0.12.1"
+
+maud = { version = "0.24.0", optional = true }
+instruction_set = { path = "./instruction_set" }
+regex = "1.7.3"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 test-strategy = "0.2.1"

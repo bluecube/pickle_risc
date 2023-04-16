@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::io::{Read, read_to_string};
 
 use thiserror::Error;
 use serde::Deserialize;
@@ -17,18 +18,30 @@ pub struct InstructionSet {
 }
 
 impl InstructionSet {
+    pub fn from_json5(json: &str) -> anyhow::Result<Self> {
+        json5::from_str::<Self>(&json).map_err(|e| e.into())
+    }
+
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let string = fs::read_to_string(path)?;
-        json5::from_str::<Self>(&string).map_err(|e| e.into())
+        Self::from_json5(&string)
+    }
+
+    pub fn read(reader: impl Read) -> anyhow::Result<Self> {
+        let string = read_to_string(reader)?;
+        Self::from_json5(&string)
     }
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Instruction {
+    pub title: String,
     #[serde(default)]
     pub args: IndexMap<String, InstructionEncodingArgType>,
     #[serde(rename="encoding")]
     pub encoding_pieces: Vec<InstructionEncodingPiece>,
+    pub pseudocode: Option<OneOrMany<String>>,
+    pub note: Option<OneOrMany<String>>,
     pub microcode: Option<Vec<Vec<String>>>
 }
 
@@ -141,4 +154,21 @@ pub enum InstructionDefinitionError {
 
     #[error("Instruction {mnemonic} has bad encoding length")]
     WrongEncodingLength { mnemonic: String, bits: usize },
+}
+
+/// Helper for loading from json
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> From<OneOrMany<T>> for Vec<T> {
+    fn from(value: OneOrMany<T>) -> Self {
+        match value {
+            OneOrMany::One(s) => vec![s],
+            OneOrMany::Many(v) => v,
+        }
+    }
 }
