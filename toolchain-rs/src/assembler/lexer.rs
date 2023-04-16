@@ -284,7 +284,12 @@ mod tests {
 
     #[proptest]
     fn comment(#[strategy(r"abc #[^\n]*\ndef")] input: String) {
-        assert_tokens!(&input, Identifier("abc".to_owned()), Eol, Identifier("def".to_owned()));
+        assert_tokens!(
+            &input,
+            Identifier("abc".to_owned()),
+            Eol,
+            Identifier("def".to_owned())
+        );
     }
 
     fn tokenize(s: &str) -> Vec<Token> {

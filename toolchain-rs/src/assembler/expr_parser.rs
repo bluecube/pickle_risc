@@ -5,10 +5,10 @@
 use std::borrow::Cow;
 
 use crate::assembler::{
+    files::{FileTokens, Location},
     lexer::Token,
     parser::{one_token, ParseResult},
-    files::{FileTokens, Location},
-    Value, AsmError,
+    AsmError, Value,
 };
 
 pub fn expression<'a>(
@@ -29,8 +29,7 @@ fn value<'a>(
     match tokens.first() {
         Some((Token::Number(n), location)) => Ok((*n, location, tokens.rest())),
         Some((Token::Identifier(ident), location)) => {
-            let v = get_symbol(&ident)
-                .ok_or_else(|| AsmError::UndefinedSymbol { location })?;
+            let v = get_symbol(&ident).ok_or_else(|| AsmError::UndefinedSymbol { location })?;
             Ok((v, location, tokens.rest()))
         }
         Some((Token::LParen, location1)) => {
@@ -92,10 +91,16 @@ fn main<'a>(
         let (mut rhs, mut rhs_location, t) = value(tokens, get_symbol)?;
         tokens = t;
         loop {
-            if tokens.first().and_then(|(t, _)| binary_operator_precedence(t)).filter(|precedence| precedence > &op_precedence).is_none() {
+            if tokens
+                .first()
+                .and_then(|(t, _)| binary_operator_precedence(t))
+                .filter(|precedence| precedence > &op_precedence)
+                .is_none()
+            {
                 break;
             }
-            (rhs, rhs_location, tokens) = main(rhs, rhs_location, op_precedence + 1, tokens, get_symbol)?;
+            (rhs, rhs_location, tokens) =
+                main(rhs, rhs_location, op_precedence + 1, tokens, get_symbol)?;
         }
 
         (lhs, lhs_location) = eval_binary_operator(lhs, lhs_location, rhs, rhs_location, &op)?;
@@ -139,20 +144,14 @@ fn eval_binary_operator(
         Token::Plus => lhs.checked_add(rhs),
         Token::Minus => lhs.checked_sub(rhs),
         Token::Shl => {
-            lhs.checked_shl(
-                rhs.try_into()
-                    .map_err(|_| AsmError::NegativeShiftAmmount {
-                        location: rhs_location.clone(),
-                    })?,
-            )
+            lhs.checked_shl(rhs.try_into().map_err(|_| AsmError::NegativeShiftAmmount {
+                location: rhs_location.clone(),
+            })?)
         }
         Token::Shr => {
-            lhs.checked_shr(
-                rhs.try_into()
-                    .map_err(|_| AsmError::NegativeShiftAmmount {
-                        location: rhs_location.clone(),
-                    })?,
-            )
+            lhs.checked_shr(rhs.try_into().map_err(|_| AsmError::NegativeShiftAmmount {
+                location: rhs_location.clone(),
+            })?)
         }
         Token::Eq => from_bool(lhs == rhs),
         Token::Neq => from_bool(lhs != rhs),
@@ -311,7 +310,8 @@ mod tests {
         let (rhs, rhs_location) =
             assert_matches!(tokens.first(), Some((Token::Number(n), location)) => (n, location));
 
-        let (result, location) = eval_binary_operator(*lhs, lhs_location, *rhs, rhs_location, &op).unwrap();
+        let (result, location) =
+            eval_binary_operator(*lhs, lhs_location, *rhs, rhs_location, &op).unwrap();
 
         assert_eq!(result, expected);
         assert_eq!(location, tokenizer.location(0, input.len()));

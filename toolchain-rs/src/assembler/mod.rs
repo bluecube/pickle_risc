@@ -1,14 +1,14 @@
 pub mod expr_parser;
+pub mod files;
 pub mod lexer;
 pub mod parser;
-pub mod files;
 
 use id_arena::Arena;
-use thiserror::Error;
 #[cfg(test)]
 use mockall::automock;
-use std::collections::HashMap;
 use std::borrow::Cow;
+use std::collections::HashMap;
+use thiserror::Error;
 
 use crate::assembler::files::Location;
 use crate::instruction::Word;

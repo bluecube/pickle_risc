@@ -1,21 +1,19 @@
-use std::path::PathBuf;
-use std::ops::Range;
-use std::fs::read_to_string;
-use codespan_reporting::files::{
-   Error, Files, line_starts,
-};
+use codespan_reporting::files::{line_starts, Error, Files};
 use id_arena::Arena;
 use logos::Logos;
 use more_asserts::*;
+use std::fs::read_to_string;
+use std::ops::Range;
+use std::path::PathBuf;
 
 use crate::assembler::{
-    lexer::{ Token, Span },
-    AsmResult, AsmError
+    lexer::{Span, Token},
+    AsmError, AsmResult,
 };
 
 #[derive(Default)]
 pub struct InputFiles {
-    files: Arena<File>
+    files: Arena<File>,
 }
 
 pub type FileId = id_arena::Id<File>;
@@ -34,10 +32,10 @@ impl<'a> Files<'a> for InputFiles {
     }
 
     fn line_index(&'a self, id: Self::FileId, byte_index: usize) -> Result<usize, Error> {
-        Ok(self.files[id].line_starts
+        Ok(self.files[id]
+            .line_starts
             .binary_search(&byte_index)
-            .unwrap_or_else(|next_line| next_line - 1)
-        )
+            .unwrap_or_else(|next_line| next_line - 1))
     }
 
     fn line_range(&'a self, id: Self::FileId, line_index: usize) -> Result<Range<usize>, Error> {
@@ -47,7 +45,7 @@ impl<'a> Files<'a> for InputFiles {
         };
         let end = match file.line_starts.get(line_index + 1) {
             Some(end) => *end,
-            None => file.source.len()
+            None => file.source.len(),
         };
 
         Ok(*start..end)
@@ -58,40 +56,39 @@ pub struct File {
     name: String,
     tokens: Vec<(Token, Span)>,
     source: String,
-    line_starts: Vec<usize>
+    line_starts: Vec<usize>,
 }
 
 impl InputFiles {
     pub fn new() -> InputFiles {
-        return Default::default()
+        return Default::default();
     }
 
     pub fn add_file(&mut self, path: impl Into<PathBuf>) -> AsmResult<FileId> {
         let path = path.into();
-        let source = read_to_string(&path).map_err(|e| AsmError::IoError { description: format!("{e}") } )?;
+        let source = read_to_string(&path).map_err(|e| AsmError::IoError {
+            description: format!("{e}"),
+        })?;
         self.add_snippet(format!("{}", path.display()), source)
     }
 
     pub fn add_snippet(&mut self, name: String, source: String) -> AsmResult<FileId> {
         let tokens = Token::lexer(&source).spanned().collect();
         let line_starts = line_starts(&source).collect();
-        Ok(self.files.alloc(
-            File {
-                name,
-                tokens,
-                source,
-                line_starts,
-            }
-        ))
+        Ok(self.files.alloc(File {
+            name,
+            tokens,
+            source,
+            line_starts,
+        }))
     }
 
-    pub fn tokens<'a>(&'a self, file_id: FileId) -> FileTokens<'a>{
+    pub fn tokens<'a>(&'a self, file_id: FileId) -> FileTokens<'a> {
         FileTokens {
             file_id,
-            tokens: self.files[file_id].tokens.as_slice()
+            tokens: self.files[file_id].tokens.as_slice(),
         }
     }
-
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -121,7 +118,7 @@ impl Location {
         Location {
             start: self.start,
             end: other.end,
-            file_id: self.file_id
+            file_id: self.file_id,
         }
     }
 }
@@ -141,19 +138,22 @@ impl<'a> FileTokens<'a> {
                 start: span.start,
                 end: span.end,
                 file_id: self.file_id,
-            }
+            },
         ))
     }
 
     pub fn rest(&self) -> FileTokens<'a> {
-        FileTokens { tokens: &self.tokens[1..], file_id: self.file_id }
+        FileTokens {
+            tokens: &self.tokens[1..],
+            file_id: self.file_id,
+        }
     }
 
     pub fn empty_location(&self) -> Location {
         Location {
             start: 0,
             end: 0,
-            file_id: self.file_id
+            file_id: self.file_id,
         }
     }
 }
@@ -179,7 +179,8 @@ impl SnippetTokenizer {
 
     pub fn location(&self, start: usize, end: usize) -> Location {
         Location {
-            start, end,
+            start,
+            end,
             file_id: self.snippet_id,
         }
     }

@@ -3,20 +3,23 @@ use std::str::FromStr;
 
 use mockall_double::double;
 
-use crate::assembler::{
-    expr_parser::expression,
-    lexer::Token,
-    files::{FileTokens, Location},
-    ScopeId, Symbol, Value, AsmError, AsmResult,
-};
 #[double]
 use crate::assembler::AssemblerState;
+use crate::assembler::{
+    expr_parser::expression,
+    files::{FileTokens, Location},
+    lexer::Token,
+    AsmError, AsmResult, ScopeId, Symbol, Value,
+};
 use crate::instruction::{ControlRegister, Gpr, Instruction};
 
 pub(super) type ParseResult<'a, T> = Result<(T, Location, FileTokens<'a>), AsmError>;
 pub(super) type ParseResultNoValue<'a> = Result<(Location, FileTokens<'a>), AsmError>;
 
-pub(super) fn map_parse_result<'a, T, U>(result: ParseResult<'a, T>, f: impl FnOnce(&T, Location) -> AsmResult<U>) -> ParseResult<'a, U> {
+pub(super) fn map_parse_result<'a, T, U>(
+    result: ParseResult<'a, T>,
+    f: impl FnOnce(&T, Location) -> AsmResult<U>,
+) -> ParseResult<'a, U> {
     let (v, location, tokens) = result?;
     let mapped = f(&v, location)?;
     Ok((mapped, location, tokens))
@@ -44,7 +47,10 @@ fn label<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<
     match tokens.first() {
         Some((Token::LBrace, _)) => {
             let (scope_id, _, tokens) = scope_start(state, tokens)?;
-            state.define_symbol(id, state.get_current_pc_symbol(Some(scope_id), definition_location))?;
+            state.define_symbol(
+                id,
+                state.get_current_pc_symbol(Some(scope_id), definition_location),
+            )?;
             scope_content(state, tokens)?;
             let (_, scope_end_location, rest) = scope_end(state, tokens)?;
             Ok(((), definition_location.extend_to(&scope_end_location), rest))
@@ -76,24 +82,17 @@ fn assignment<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseRe
     Ok(((), definition_location, rest))
 }
 
-fn anonymous_scope<'a>(
-    state: &mut AssemblerState,
-    tokens: FileTokens<'a>,
-) -> ParseResult<'a, ()> {
+fn anonymous_scope<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
     let (_, start_location, tokens) = scope_start(state, tokens)?;
     let (_, _, tokens) = scope_content(state, tokens)?;
     let (_, end_location, tokens) = scope_end(state, tokens)?;
     Ok(((), start_location.extend_to(&end_location), tokens))
 }
 
-fn scope_start<'a>(
-    state: &mut AssemblerState,
-    tokens: FileTokens<'a>,
-) -> ParseResult<'a, ScopeId> {
-    map_parse_result(
-        one_token(tokens, &Token::LBrace),
-        |_, _| Ok(state.push_scope())
-    )
+fn scope_start<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ScopeId> {
+    map_parse_result(one_token(tokens, &Token::LBrace), |_, _| {
+        Ok(state.push_scope())
+    })
 }
 
 fn scope_content<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
@@ -107,27 +106,19 @@ fn scope_content<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> Pars
         let mut new_location = location;
         match tokens.first() {
             Some((Token::Identifier(ident), _)) => match tokens.rest().first() {
-                Some((Token::Colon, _)) => {
-                    (_, new_location, tokens) = label(state, tokens)?
-                },
-                Some((Token::Assign, _)) => {
-                    (_, new_location, tokens) = assignment(state, tokens)?
-                },
+                Some((Token::Colon, _)) => (_, new_location, tokens) = label(state, tokens)?,
+                Some((Token::Assign, _)) => (_, new_location, tokens) = assignment(state, tokens)?,
                 _ if ident.starts_with('.') => {
                     (_, new_location, tokens) = pseudo_instruction(state, tokens)?
-                },
-                _ => {
-                    (_, new_location, tokens) = instruction(state, tokens)?
-                },
+                }
+                _ => (_, new_location, tokens) = instruction(state, tokens)?,
             },
-            Some((Token::LBrace, _)) => {
-                (_, new_location, tokens) = anonymous_scope(state, tokens)?
-            },
+            Some((Token::LBrace, _)) => (_, new_location, tokens) = anonymous_scope(state, tokens)?,
             Some((Token::Eol, l)) | Some((Token::Semicolon, l)) => {
                 // Skip empty lines
                 new_location = l;
                 tokens = tokens.rest();
-            },
+            }
             _ => return Ok(((), location, tokens)),
         }
 
@@ -145,7 +136,9 @@ fn instruction<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseR
     use ux::*;
     let (mnemonic, mnemonic_location, tokens) = identifier(tokens)?;
     let (instruction, location, rest) = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
-        .ok_or_else(|| AsmError::UnexpectedInstructionMnemonic { location: mnemonic_location })?;
+        .ok_or_else(|| AsmError::UnexpectedInstructionMnemonic {
+        location: mnemonic_location,
+    })?;
     state.emit_word(instruction.into());
     Ok(((), location, rest))
 }
@@ -168,18 +161,15 @@ fn pseudo_instruction<'a>(
 }
 
 fn gpr<'a>(tokens: FileTokens<'a>) -> ParseResult<Gpr> {
-    map_parse_result(
-        identifier(tokens),
-        |ident, location| Gpr::from_str(ident).map_err(|_| AsmError::InvalidGprName { location })
-    )
+    map_parse_result(identifier(tokens), |ident, location| {
+        Gpr::from_str(ident).map_err(|_| AsmError::InvalidGprName { location })
+    })
 }
 
 fn cr<'a>(tokens: FileTokens<'a>) -> ParseResult<ControlRegister> {
-    map_parse_result(
-        identifier(tokens),
-        |ident, location| ControlRegister::from_str(ident)
-            .map_err(|_| AsmError::InvalidCrName { location })
-    )
+    map_parse_result(identifier(tokens), |ident, location| {
+        ControlRegister::from_str(ident).map_err(|_| AsmError::InvalidCrName { location })
+    })
 }
 
 /// Parse and evaluate an expression as an immediate value input to an instruction
@@ -192,15 +182,20 @@ fn immediate<'a, Intermediate: TryFrom<Value>, T: TryFrom<Intermediate>>(
 ) -> ParseResult<'a, T> {
     map_parse_result(
         expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name)),
-        |value, location| Intermediate::try_from(*value).ok()
-            .and_then(|x| T::try_from(x).ok())
-            .ok_or_else(|| AsmError::ValueOutOfRange { location })
+        |value, location| {
+            Intermediate::try_from(*value)
+                .ok()
+                .and_then(|x| T::try_from(x).ok())
+                .ok_or_else(|| AsmError::ValueOutOfRange { location })
+        },
     )
 }
 
 fn identifier<'a>(tokens: FileTokens<'a>) -> ParseResult<&'a str> {
     match tokens.first() {
-        Some((Token::Identifier(identifier), location)) => Ok((&identifier, location, tokens.rest())),
+        Some((Token::Identifier(identifier), location)) => {
+            Ok((&identifier, location, tokens.rest()))
+        }
         Some((_, location)) => Err(AsmError::UnexpectedToken {
             expected: Cow::Borrowed("identifier"),
             location,
@@ -227,10 +222,7 @@ pub(super) fn one_token<'a>(tokens: FileTokens<'a>, expected: &Token) -> ParseRe
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assembler::{
-        files::SnippetTokenizer,
-        Section
-    };
+    use crate::assembler::{files::SnippetTokenizer, Section};
 
     #[test]
     fn assignment_simple() {

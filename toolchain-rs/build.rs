@@ -549,7 +549,10 @@ fn generate_opcode_parse_match_arm(
         if i < arg_count {
             write!(target, "        let ({arg_name}, _, tokens) = ")?;
         } else {
-            write!(target, "        let ({arg_name}, last_arg_location, tokens) = ")?;
+            write!(
+                target,
+                "        let ({arg_name}, last_arg_location, tokens) = "
+            )?;
         }
         match arg_type {
             InstructionEncodingArgType::Gpr => write!(target, "gpr(tokens)")?,
@@ -562,15 +565,24 @@ fn generate_opcode_parse_match_arm(
         }
         writeln!(target, "?;")?;
         if i < arg_count {
-            writeln!(target, "        let (_, _, tokens) = one_token(tokens, &Token::Comma)?;")?;
+            writeln!(
+                target,
+                "        let (_, _, tokens) = one_token(tokens, &Token::Comma)?;"
+            )?;
         }
     }
 
     let mnemonic_cammel_case = mnemonic_to_cammel_case(mnemonic);
     if instruction_def.args.is_empty() {
-        writeln!(target, "        Some((Instruction::{mnemonic_cammel_case}, mnemonic_location, tokens))")?;
+        writeln!(
+            target,
+            "        Some((Instruction::{mnemonic_cammel_case}, mnemonic_location, tokens))"
+        )?;
     } else {
-        writeln!(target, "        let location = mnemonic_location.extend_to(&last_arg_location);")?;
+        writeln!(
+            target,
+            "        let location = mnemonic_location.extend_to(&last_arg_location);"
+        )?;
         write!(
             target,
             "        Some((Instruction::{mnemonic_cammel_case} {{"
