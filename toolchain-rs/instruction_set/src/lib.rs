@@ -116,7 +116,7 @@ impl TryFrom<String> for InstructionEncodingArgType {
 impl InstructionEncodingArgType {
     pub fn bits(&self) -> usize {
         match self {
-            InstructionEncodingArgType::Gpr => 3,
+            InstructionEncodingArgType::Gpr => 4,
             InstructionEncodingArgType::ControlRegister => 3,
             InstructionEncodingArgType::Immediate { signed: _, bits } => *bits
         }
@@ -136,7 +136,7 @@ impl From<String> for InstructionEncodingPiece {
     fn from(s: String) -> InstructionEncodingPiece {
         if s.chars().all(|c| c == '0' || c == '1') {
             InstructionEncodingPiece::Literal(s)
-        } else if s.chars().all(|c| c == 'x') {
+        } else if s.chars().all(|c| c == 'x' || c == 'X') {
             InstructionEncodingPiece::Ignored(s.len())
         } else {
             InstructionEncodingPiece::Arg(s)

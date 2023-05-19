@@ -9,7 +9,7 @@ As usual this is incomplete and slightly outdated.
 - most instructions take only single clock cycle
 - word addressable memory only!
     - 8bit access emulated in SW
-- 7 general purpose registers R1-R7
+- 15 general purpose registers R1-R7
     - R0 is hardware zero register
 - Control registers
     - ALUStatus
@@ -71,12 +71,11 @@ As usual this is incomplete and slightly outdated.
         - Stop emulator
         - Switch physical CPU into single step mode
             - must be enabled by a physical switch?
-- Jump
-    - There's no jump and link instruction, instead use `addipc Rlink, 1` with normal jump instruction.
-- 2 stage pipeline
-    1. fetch + decode
+- 3 stage pipeline
+    1. fetch
+    2. decode
         - dominated by 150ns microcode ROM access time
-    2. execute
+    3. execute
         - dominated by 4 * 45ns 4bit adder propagation delay
 
     - Theoretically about 5MHz max clock speed?
@@ -85,8 +84,7 @@ As usual this is incomplete and slightly outdated.
 ## Microcode ROM
 ### Incoming signals
 (goal is 13 (= 8k ROM), or 15 (= 32k ROM))
-- 7 bits from instruction
-- 1 bits from microprogram counter
+- 8 bits from instruction
 - 1 bit interrupt pending
 - 1 bit kernel mode
 - 3 bits condition flags
