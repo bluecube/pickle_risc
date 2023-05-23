@@ -75,7 +75,7 @@ fn render_instruction_set_overview(instruction_set: &InstructionSet) -> Markup {
                 @for (mnemonic, instr) in instruction_set.instructions.iter() {
                     tr {
                         @for piece in instr.encoding_pieces.iter() {
-                            (render_instruction_encoding_piece_td(&piece, instr))
+                            (render_instruction_encoding_piece_td(&piece, instr, true))
                         }
                         th .title { a href={"#instruction-" (mnemonic)} { (instr.title) } }
                     }
@@ -126,7 +126,7 @@ fn render_single_instruction_encoding(instruction: &Instruction) -> Markup {
             tbody {
                 tr {
                     @for piece in instruction.encoding_pieces.iter() {
-                        (render_instruction_encoding_piece_td(&piece, instruction))
+                        (render_instruction_encoding_piece_td(&piece, instruction, false))
                     }
                 }
             }
@@ -137,15 +137,19 @@ fn render_single_instruction_encoding(instruction: &Instruction) -> Markup {
 fn render_instruction_encoding_piece_td(
     piece: &InstructionEncodingPiece,
     instruction: &Instruction,
+    literal_colspans: bool
 ) -> Markup {
     match piece {
         InstructionEncodingPiece::Literal(s) => html! {
-            @for b in s.chars() {
-                td { code { (b) } }
+            @if literal_colspans {
+                td colspan=(s.len()) {
+                    code { (s) }
+                }
+            } @else {
+                @for b in s.chars() {
+                    td { code { (b) } }
+                }
             }
-            // td colspan=(s.len()) {
-            //     code { (s) }
-            // }
         },
         InstructionEncodingPiece::Ignored(bits) => html! {
             td .placeholder colspan=(bits) {}

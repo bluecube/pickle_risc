@@ -16,7 +16,7 @@ use crate::util::*;
 pub type Word = u16;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Gpr(u3);
+pub struct Gpr(u4);
 
 impl std::fmt::Display for Gpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -25,7 +25,7 @@ impl std::fmt::Display for Gpr {
 }
 
 impl TryFrom<u16> for Gpr {
-    type Error = <u3 as TryFrom<u16>>::Error;
+    type Error = <u4 as TryFrom<u16>>::Error;
     fn try_from(v: u16) -> Result<Self, Self::Error> {
         v.try_into().map(Gpr)
     }
