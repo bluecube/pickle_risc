@@ -198,7 +198,7 @@ instructions: {
         encoding: ["011", "10", "111", "rs", "rd"],
         pseudocode: "if not overflow: rd = rs",
     },
-    mvno: {
+    mv: {
         title: "Move value",
         args: {"rd": "gpr", "rs": "gpr"},
         encoding: ["011", "11000", "rs", "rd"],
@@ -331,7 +331,7 @@ instructions: {
     jla: {
         title: "Absolute jump and link",
         args: {"address": "gpr"},
-        encoding: ["11111", "001", "xxxx", "address"],
+        encoding: ["11111", "010", "xxxx", "address"],
         pseudocode: [
             "r1 = Pc" ,
             "Pc = address",
@@ -340,19 +340,19 @@ instructions: {
     ldp: {
         title: "Load from program memory",
         args: {"rd": "gpr", "address": "gpr"},
-        encoding: ["11111", "010", "address", "rd"],
+        encoding: ["11111", "011", "address", "rd"],
         pseudocode: "rd = program_memory[address]",
     },
     st_cond: {
         title: "Store to memory conditional",
         args: {"address": "gpr", "rs": "gpr"},
         description: "Stores a value in memory unless the CPU was interrupted since last load",
-        encoding: ["11111", "011", "address", "rs"],
+        encoding: ["11111", "100", "address", "rs"],
         pseudoceode: "if !interrupted: memory[address] = rs",
     },
     reti: {
         title: "Return from interrupt",
-        encoding: ["11111", "100", "xxxxxxxx"],
+        encoding: ["11111", "101", "xxxxxxxx"],
     },
     // 2 free opcodes
     break: {
