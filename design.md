@@ -58,13 +58,14 @@ As usual this is incomplete and slightly outdated.
         - `7`
         - WO
         - triggers the MMU write at given MMUAddr
-- Separate instruction virtual address space
-    - Still accessible through memory mapping
+- Separate virtual address spaces for data / code
+    - To acces code from a process, the OS must map the memory as data
+    - Exception is the ldp (load from program mmemory) instruction that allows each process to read its program space freely
 - Interrupts
 - System instructions:
     - Syscall instruction
         - Causes software interrupt
-        - pass 6bit immediate value into high 8 bits of `IntCause`
+        - pass immediate value into `IntCause`
             - Quickly distinguish what's necessary in interrupt handler
                 - syscall, vs IPC call, vs breakpoint, ...
     - Break instruction
@@ -164,11 +165,12 @@ Total 20
             - max 8MWord = 16MB RAM
 
 ## Peripherials wishlist
-- 2x UART
-    - one for console, one for networking
+- UART
 - RTC
 - Storage
     - SD card using SPI interface?
+- Network card
+    - W5500 module?
 
 ## Parts
 - 74LVC16374 - 16-bit edge-triggered D-type flip-flop; 5 V tolerant; 3-state

@@ -21,11 +21,13 @@
     - Needs to be tweaked according to what's needed in SW, limitations in HW design
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together
-    - The [block diagram](block_diagram.svg) shows most of the general idea
+    - (OUTDATED) The [block diagram](block_diagram.svg) shows most of the general idea
     - There is a [design document](design.md) that contains some (incomplete) information
 - SW
-    - MWP [assembler](assembler/) is done
-    - Started working on [emulator](emulator-rs/)
+    - Skeleton of a toolchain written in Rust ([toolchain-rs/](toolchain-rs/))
+        - Non-functioning assembler
+        - Start of an emulator
+            - Emulation works per instruction, but behavior is built up from microcode at compile time.
     - [Lisp](notes/lisp.md) interpreter is planned as a shell
         - Probably loosely based on [Make a Lisp](https://github.com/kanaka/mal/blob/master/process/guide.md)
         - Compiler as a stretch goal
@@ -36,7 +38,9 @@ Long term plans (and hopes and dreams) go to the [notes](notes/) directory.
 
 - Figure out details of microcode
 - Write microcode for instructions
+- Finalize assembler
 - Emulator
+- Some kind of integration tests for emulator <-> assembler
 - Lisp interpreter
 - Figure out ALU design
 - Figure out MMU design
@@ -55,8 +59,8 @@ Long term plans (and hopes and dreams) go to the [notes](notes/) directory.
     - Different goals, but just plain awesome :)
 
 ### Instruction set
-- MIPS Architecture
 - ARM Thumb Instruction set
+- AVR instruction set
 
 ### Peripherials
 - Interfacing SDHC card to 6502: https://github.com/gfoot/sdcard6502
