@@ -178,13 +178,13 @@ instructions: {
         title: "Move value if negative",
         args: {"rd": "gpr", "rs": "gpr"},
         encoding: ["011", "10", "100", "rs", "rd"],
-        pseudocode: "if carry: rd = rs",
+        pseudocode: "if negative: rd = rs",
     },
     mvnn: {
-        title: "Move value if not carry",
+        title: "Move value if not negative",
         args: {"rd": "gpr", "rs": "gpr"},
         encoding: ["011", "10", "101", "rs", "rd"],
-        pseudocode: "if not zero: rd = rs",
+        pseudocode: "if not negative: rd = rs",
     },
     mvo: {
         title: "Move value if overflow",
@@ -354,7 +354,7 @@ instructions: {
         title: "Return from interrupt",
         encoding: ["11111", "101", "xxxxxxxx"],
     },
-    // 2 free opcodes
+    // 1 free opcode
     break: {
         title: "Break",
         encoding: ["11111", "111", "xxxxxxxx"],
