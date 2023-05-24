@@ -204,20 +204,41 @@ instructions: {
         encoding: ["011", "11000", "rs", "rd"],
         pseudocode: "rd = rs",
     },
+    ld_inc: {
+        title: "Load with post-increment",
+        args: {"rd": "gpr", "address": "gpr"},
+        encoding: ["011", "11001", "address", "rd"],
+        pseudocode: [
+            "rd = memory[address]",
+            "address += 1"
+        ],
+        note: "This is basically `pop`, but we have no push (because pre-dec is harder)",
+        cycles: 2
+    },
+    st_inc: {
+        title: "Store with post-increment",
+        args: {"rs": "gpr", "address": "gpr"},
+        encoding: ["011", "11010", "address", "rs"],
+        pseudocode: [
+            "memory[address] = rs",
+            "address += 1"
+        ],
+        cycles: 2
+    },
 
-    // 7 free opcodes
+    // 5 free opcodes
 
     // Load / store
     // ================================
     ld: {
-        title: "Load from memory",
+        title: "Load with offset",
         args: {"rd": "gpr", "address": "gpr", "offset": "u5"},
         encoding: ["10", "0", "offset", "address", "rd"],
         pseudocode: "rd = memory[address + offset]",
         cycles: 2,
     },
     st: {
-        title: "Store to memory",
+        title: "Store with offset",
         args: {"rs": "gpr", "address": "gpr", "offset": "u5"},
         encoding: ["10", "1", "offset", "address", "rs"],
         pseudocode: "memory[address + offset] = rs",
