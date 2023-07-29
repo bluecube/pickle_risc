@@ -51,3 +51,4 @@ The following list is loosely based on MAL's types
     - Allows to use almost the full 64k space for the working data, not just half
         - Additional 64k of physical memory would be necessary for GC
             - Only paid once for all interpreter instances, if the OS supports it (no process switch during GC)
+- Eventually the OS could remap old generations as RO and provide a callback to the GC in case there is a change to older data.
