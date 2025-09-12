@@ -75,7 +75,7 @@ fn render_instruction_set_overview(instruction_set: &InstructionSet) -> Markup {
                 @for (mnemonic, instr) in instruction_set.instructions.iter() {
                     tr {
                         @for piece in instr.encoding_pieces.iter() {
-                            (render_instruction_encoding_piece_td(&piece, instr, true))
+                            (render_instruction_encoding_piece_td(&piece, instr, false))
                         }
                         th .title { a href={"#instruction-" (mnemonic)} { (instr.title) } }
                     }

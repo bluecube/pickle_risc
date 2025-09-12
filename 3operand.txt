@@ -1,0 +1,59 @@
+rrr:
+	Add
+	Addc
+	Sub
+	Subc
+	and
+	or
+	xor
+
+	= 7
+
+rr4
+	Addi
+	Ld (rd = [ra + imm4])
+	St ([ra + imm4] = rd)
+
+	= 3
+
+r8:
+	rjal (rd = pc, pc += imm8)
+	bz (if rd == 0: pc += imm8 ; else: pc += 1)
+	bnz (if rd != 0: pc += imm8 ; else: pc += 1)
+	bc
+	bnc
+
+	= 5
+
+rr:
+	Shl
+	Shlc
+	shl8
+	Shr
+	Shrc
+	Shra
+	shr8
+	swp8
+	jal (rd = pc, pc = ra)
+	ldp
+	push ([rd] = ra; ra -= 1)
+	pop (ra += 1; rd = [ra])
+	rpush (ra += 1; [rd] = ra)
+	st_conditional
+
+	= 13
+
+r4:
+	ldcr
+	stcr
+
+	= 2
+
+r:
+	Ldi (rd = [pc + 1], pc += 2)
+	
+misc:
+	Syscall
+	reti
+	break
+

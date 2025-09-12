@@ -36,7 +36,8 @@ The following list is loosely based on MAL's types
 
 - `0000 0000 0000 0000`: NIL
 - `xxxx xxxx xxxx xxx0`: Pointer to object
-- `xxxx xxxx xxxx xxx1`: 15bit immediate signed integer
+- `xxxx xxxx xxxx xx01`: 14bit immediate signed integer
+- `xxxx xxxx xxxx xx11`: Symbol
 
 ## Allocation / GC
 - Copying GC
