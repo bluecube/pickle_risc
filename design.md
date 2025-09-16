@@ -9,18 +9,16 @@ As usual this is incomplete and slightly outdated.
 - most instructions take only single clock cycle
 - word addressable memory only!
     - 8bit access emulated in SW
-- 15 general purpose registers R1-R7
+- 15 general purpose registers R1-R15
     - R0 is hardware zero register
-- Control registers
-    - ALUStatus
+- Two status bits
+    - `C`arry
+    - `L`oad not interrupted (used with `st_c`)
+- Control registers (Needs work!)
+    - Display
         - `0`
         - RW
-        - Accessible from user mode
-        - Contains:
-            - 1b carry flag
-            - 1b zero flag
-            - 1b negative flag
-            - 1b overflow flag
+        - Value written here is displayed on the front panel
     - CpuStatus
         - `1`
         - RW
@@ -72,7 +70,7 @@ As usual this is incomplete and slightly outdated.
         - Stop emulator
         - Switch physical CPU into single step mode
             - must be enabled by a physical switch?
-- 3 stage pipeline
+- 3 stage pipeline (???)
     1. fetch
     2. decode
         - dominated by 150ns microcode ROM access time
@@ -89,53 +87,36 @@ As usual this is incomplete and slightly outdated.
 - 1 bit interrupt pending
 - 1 bit kernel mode
 - 3 bits condition flags
+    - ALU A is zero
+    - C
+    - L
 
 Total 13
 
-### Outgoing control lines (TODO: Outdated)
-(goal is as small as possible multiple of 8)
+### Outgoing control lines
+(goal is as small as possible multiple of 8; needs more work)
 
-- 2b: Left bus source
-    - `0->left`: 0
-    - `f1->left`: GPR: instruction field 1
-    - `f3->left`: GPR: instruction field 3
-    - `pc->left`: Pc
-- 2b: Right bus source
-    - `f2->right`: GPR: instruction field 2
-    - `f4->right`: Control register: instruction field 4
-    - `f5->right`: Immediate value: instruction field 5
-- 4b: Result bus source
-    - ALU
-        - `alu_add->result`
-        - `alu_addc->result`
-        - `alu_sub->result`
-        - `alu_subc->result`
-        - `alu_and->result`
-        - `alu_or->result`
-        - `alu_nor->result`
-        - `alu_xor->result`
-        - `alu_andshr->result`
-        - `alu_andshra->result`
-        - `alu_andshrc->result`
-        - `alu_bswp->result`
-    - `mem_data->result`: Memory data
-- 1b: Address base bus source
-    - `right->address`: Right bus
-    - `pc->address`" Pc
-- 2b: Address offset bus source
-    - `0->addr_offset`: 0
-    - `1->addr_offset`: 1
-    - `f6->addr_offset`: Immediate value: instruction field 6 (load/store)
-    - `f7->addr_offset`: Immediate value: Instruction field 7 (rjmp)
-- 1b: `f4_override` Override control register selection to value 0 (instruction field 4)
-- 1b: `store_f4`: Load control register: instruction field 4
-- 1b: `store_f3`: Load GPR: instruction field 3
-- 1b: `store_pc`: Load PC
-- 1b: Memory data bus source
-    - `left->mem_data`: Assign from left bus
-    - `read->mem_data`: Memory read
-- 1b: `mem_write`: Memory write
-- 1b: `end_instruction`: Reset microprogram counter, clock the decoded μcode latch
+- 1b: ALU A bus source
+- 2b: ALU B bus source
+    - imm4 vs imm8
+    - imm vs register B 
+- 5b: Result bus source
+    - 3b ALU result
+    - 2b ALU vs memory vs Pc vs Control register
+- 1b: Addres base bus source
+    - PC vs register B
+- 3b: Addres offset bus source
+    - 0 / 1
+    - imm4(A) vs imm8(AB) vs imm8(BD) vs (0/1)
+- 1b: load register D
+- 1b: load Pc
+- 1b: Load control register
+
+- 1b: Mem read
+- 1b: Mem write
+
+- 1b: End instruction
+
 - 1b: Write interrupt ID into cause register, clear pending interrupt flag
 - 1b: Write 6bits from immediate to upper 8bits of cause register
 
