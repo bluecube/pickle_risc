@@ -3,25 +3,21 @@ name = "pickle-toolchain"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "emulator"
-path = "src/emulator/main.rs"
+[lib]
+name = "toolchain_core"
+path = "toolchain_core/lib.rs"
 
-[[bin]]
-name = "assembler"
-path = "src/assembler/main.rs"
+# [[bin]]
+# name = "emulator"
+# path = "emulator/main.rs"
+
+# [[bin]]
+# name = "assembler"
+# path = "assembler/main.rs"
 
 [[bin]]
 name = "disassembler"
-path = "src/disassembler/main.rs"
-
-[[bin]]
-name = "instruction_set_html_generator"
-path = "src/instruction_set_html_generator/main.rs"
-
-[features]
-default = ["html-generator"]
-html-generator = ["dep:maud"]
+path = "disassembler/main.rs"
 
 [dependencies]
 itertools = "0.10.5"
@@ -42,8 +38,6 @@ id-arena = "2.2.1"
 assert_matches = "1.5.0"
 mockall_double = "0.3.0"
 
-maud = { version = "0.24.0", optional = true }
-instruction_set = { path = "./instruction_set" }
 regex = "1.7.3"
 lazy_static = "1.4.0"
 
@@ -54,7 +48,6 @@ test-case = "2.2.2"
 mockall = "0.11.3"
 
 [build-dependencies]
-instruction_set = { path = "./instruction_set" }
 itertools = "0.10.5"
 anyhow = "1.0.65"
 thiserror = "1.0.37"

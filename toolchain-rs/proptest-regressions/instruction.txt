@@ -1,0 +1,12 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 9dc10df642abab5001a11f73752e9213c0fbb279a0ac84b5d1df86588d58f470 # shrinks to input = _InstructionWordRoundtripArgs { instr: Add { rd: Reg(u4(0)), ra: Reg(u4(8)), rb: Reg(u4(0)) } }
+cc bcaa2e5ca4c8241c8ef2832069ae7a77c72e44657debe7e9c622a8bcb71ae072 # shrinks to input = _InstructionWordRoundtripArgs { instr: Bc { offset: -1 } }
+cc d3591c18287fcd63b3d7897a659aaecbf9b31d5293ab9dd24c8d99ab523e4f6f # shrinks to input = _InstructionWordRoundtripArgs { instr: Bnc { offset: 0 } }
+cc fd1b72449b7ee29276ebb02a0e1c3fad55f5e9b69171cacf9a00b8df15d9bed2 # shrinks to input = _InstructionWordRoundtripArgs { instr: Addi { rd: Reg(u4(0)), v: 1 } }
+cc 28ca0e33b48f58821ffe0bdb45a0052da90d4b49a57a24e807921635d42b3c66 # shrinks to input = _InstructionWordRoundtripArgs { instr: Syscall { val: u4(0) } }
+cc 16a8a451fe999dba209733c277c157544f69e01f3e4dd4225c0b32ed40378362 # shrinks to input = _RegBadU16Args { num: 8 }

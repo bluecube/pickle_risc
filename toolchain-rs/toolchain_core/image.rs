@@ -2,11 +2,9 @@
 use itertools::{repeat_n, Itertools};
 use thiserror::Error;
 
-use crate::instruction::Word;
-
 use std::path::{Path, PathBuf};
 
-pub fn load_ihex<P: AsRef<Path>>(path: P) -> anyhow::Result<Box<[Word]>> {
+pub fn load_ihex<P: AsRef<Path>>(path: P) -> anyhow::Result<Box<[u16]>> {
     let file_str = std::fs::read_to_string(&path)?;
 
     let u8segments = load_ihex_segments(&file_str, Some(path.as_ref()))?;
@@ -16,7 +14,7 @@ pub fn load_ihex<P: AsRef<Path>>(path: P) -> anyhow::Result<Box<[Word]>> {
 fn convert_u8_segments(
     u8segments: &[U8Segment],
     file: Option<&Path>,
-) -> anyhow::Result<Box<[Word]>> {
+) -> anyhow::Result<Box<[u16]>> {
     if u8segments.is_empty() {
         Err(LoadingRomError::Empty {
             file: file.map(|x| x.into()),
