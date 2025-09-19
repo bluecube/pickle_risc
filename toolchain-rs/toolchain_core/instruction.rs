@@ -119,32 +119,32 @@ pub enum InvalidInstructionError {
 #[cfg_attr(test, derive(Arbitrary))]
 #[allow(non_camel_case_types)]
 pub enum Instruction {
-    Add { rd: Reg, ra: Reg, rb: Reg },
-    Sub { rd: Reg, ra: Reg, rb: Reg },
     And { rd: Reg, ra: Reg, rb: Reg },
     Or { rd: Reg, ra: Reg, rb: Reg },
     Xor { rd: Reg, ra: Reg, rb: Reg },
+    Add { rd: Reg, ra: Reg, rb: Reg },
+    Sub { rd: Reg, ra: Reg, rb: Reg },
     Pack { rd: Reg, ra: Reg, rb: Reg },
     Bcmp { rd: Reg, ra: Reg, rb: Reg },
-    Jalr { rd: Reg, offset: i8 },
+    Cadd { rd: Reg, ra: Reg, rb: Reg },
+    Ldui { rd: Reg, v: u8 },
+    Ldpc { rd: Reg, offset: i8 },
     Addi { rd: Reg, v: i8 },
-    Bz { rd: Reg, offset: i8 },
-    Bnz { rd: Reg, offset: i8 },
     Ld { rd: Reg, addr: Reg, offset: i4 },
     St { val: Reg, addr: Reg, offset: i4 },
-    Bc { offset: i8 },
-    Bnc { offset: i8 },
+    Bc { addr: Reg },
+    Bnc { addr: Reg },
+    Bz { cond: Reg, addr: Reg },
+    Bnz { cond: Reg, addr: Reg },
+    Jal { rd: Reg, addr: Reg },
     Addc { rd: Reg, rb: Reg },
     Subc { rd: Reg, rb: Reg },
-    Add_c { rd: Reg, rb: Reg },
     Shr { rd: Reg, rb: Reg },
     Shrc { rd: Reg, rb: Reg },
     Shra { rd: Reg, rb: Reg },
     Shr8 { rd: Reg, rb: Reg },
-    Jal { rd: Reg, addr: Reg },
     Ldp { rd: Reg, addr: Reg },
-    Ldi { rd: Reg },
-    St_c { rd: Reg, addr: Reg },
+    Cst { rd: Reg, addr: Reg },
     Andi { rd: Reg, v: i4 },
     Ori { rd: Reg, v: i4 },
     Xori { rd: Reg, v: i4 },
@@ -158,44 +158,40 @@ pub enum Instruction {
 impl Instruction {
     pub fn encode(&self) -> u16 {
         match self {
-            Instruction::Add { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0000),
-            Instruction::Sub { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0001),
-            Instruction::And { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0010),
-            Instruction::Or { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0011),
-            Instruction::Xor { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0100),
-            Instruction::Pack { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0101),
-            Instruction::Bcmp { rd, ra, rb } => encode_rrr(rd, rb, ra, 0b0110),
-            Instruction::Jalr { rd, offset } => encode_r8(rd, offset, 0b0111),
-            // Unused 0b1000
-            Instruction::Addi { rd, v } => encode_r8(rd, v, 0b1001),
-            Instruction::Bz { rd, offset } => encode_r8(rd, offset, 0b1010),
-            Instruction::Bnz { rd, offset } => encode_r8(rd, offset, 0b1011),
-            Instruction::Ld { rd, addr, offset } => encode_rr4(rd, addr, offset, 0b1100),
-            Instruction::St { val, addr, offset } => encode_rr4(val, addr, offset, 0b1101),
-            Instruction::Bc { offset } => encode_8(offset, 0b0000, 0b1110),
-            Instruction::Bnc { offset } => encode_8(offset, 0b0001, 0b1110),
-            Instruction::Addc { rd, rb } => encode_rr(rd, rb, 0b0010, 0b1110),
-            Instruction::Subc { rd, rb } => encode_rr(rd, rb, 0b0011, 0b1110),
-            Instruction::Add_c { rd, rb } => encode_rr(rd, rb, 0b0100, 0b1110),
-            Instruction::Shr { rd, rb } => encode_rr(rd, rb, 0b0101, 0b1110),
-            Instruction::Shrc { rd, rb } => encode_rr(rd, rb, 0b0110, 0b1110),
-            Instruction::Shra { rd, rb } => encode_rr(rd, rb, 0b0111, 0b1110),
-            Instruction::Shr8 { rd, rb } => encode_rr(rd, rb, 0b1000, 0b1110),
-            Instruction::Jal { rd, addr } => encode_rr(rd, addr, 0b1001, 0b1110),
-            Instruction::Ldp { rd, addr } => encode_rr(rd, addr, 0b1010, 0b1110),
-            Instruction::Ldi { rd } => encode_r4(rd, &(0i8.try_into().unwrap()), 0b1011, 0b1110),
-            Instruction::St_c { rd, addr } => encode_rr(rd, addr, 0b1100, 0b1110),
-            Instruction::Andi { rd, v } => encode_r4(rd, v, 0b1101, 0b1110),
-            Instruction::Ori { rd, v } => encode_r4(rd, v, 0b1110, 0b1110),
-            Instruction::Xori { rd, v } => encode_r4(rd, v, 0b1111, 0b1110),
-            Instruction::Ldcr { rd, cr } => encode_r4u(rd, cr.into(), 0b0000, 0b1111),
-            Instruction::Stcr { val, cr } => encode_r4u(val, cr.into(), 0b0001, 0b1111),
-            Instruction::Syscall { val } => {
-                encode_r4u(&Reg::new(0).unwrap(), (*val).into(), 0b0010, 0b1111)
-            }
-            Instruction::Reti => 0b00111111,
-            // unused 0b01001111 - 0b11101111
-            Instruction::Break => 0b11111111,
+            Instruction::And { rd, ra, rb } => encode_rrr(rd, rb, ra, 0),
+            Instruction::Or { rd, ra, rb } => encode_rrr(rd, rb, ra, 1),
+            Instruction::Xor { rd, ra, rb } => encode_rrr(rd, rb, ra, 2),
+            Instruction::Add { rd, ra, rb } => encode_rrr(rd, rb, ra, 3),
+            Instruction::Sub { rd, ra, rb } => encode_rrr(rd, rb, ra, 4),
+            Instruction::Pack { rd, ra, rb } => encode_rrr(rd, rb, ra, 5),
+            Instruction::Bcmp { rd, ra, rb } => encode_rrr(rd, rb, ra, 6),
+            Instruction::Cadd { rd, ra, rb } => encode_rrr(rd, rb, ra, 7),
+            Instruction::Ldui { rd, v } => encode_r8(rd, &(*v as i8), 8),
+            Instruction::Ldpc { rd, offset } => encode_r8(rd, offset, 9),
+            Instruction::Addi { rd, v } => encode_r8(rd, v, 10),
+            Instruction::Ld { rd, addr, offset } => encode_rr4(rd, addr, offset, 11),
+            Instruction::St { val, addr, offset } => encode_rr4(val, addr, offset, 12),
+            Instruction::Bc { addr: target } => encode_rr(&Reg::new(0).unwrap(), target, 0, 14),
+            Instruction::Bnc { addr: target } => encode_rr(&Reg::new(0).unwrap(), target, 1, 14),
+            Instruction::Bz { cond, addr } => encode_rr(cond, addr, 2, 14),
+            Instruction::Bnz { cond, addr } => encode_rr(cond, addr, 3, 14),
+            Instruction::Jal { rd, addr } => encode_rr(rd, addr, 4, 14),
+            Instruction::Addc { rd, rb } => encode_rr(rd, rb, 5, 14),
+            Instruction::Subc { rd, rb } => encode_rr(rd, rb, 6, 14),
+            Instruction::Shr { rd, rb } => encode_rr(rd, rb, 7, 14),
+            Instruction::Shrc { rd, rb } => encode_rr(rd, rb, 8, 14),
+            Instruction::Shra { rd, rb } => encode_rr(rd, rb, 9, 14),
+            Instruction::Shr8 { rd, rb } => encode_rr(rd, rb, 10, 14),
+            Instruction::Ldp { rd, addr } => encode_rr(rd, addr, 11, 14),
+            Instruction::Cst { rd, addr } => encode_rr(rd, addr, 12, 14),
+            Instruction::Andi { rd, v } => encode_r4(rd, v, 13, 14),
+            Instruction::Ori { rd, v } => encode_r4(rd, v, 14, 14),
+            Instruction::Xori { rd, v } => encode_r4(rd, v, 15, 14),
+            Instruction::Ldcr { rd, cr } => encode_r4u(rd, cr.into(), 0, 15),
+            Instruction::Stcr { val, cr } => encode_r4u(val, cr.into(), 1, 15),
+            Instruction::Syscall { val } => encode_r4u(&Reg::new(0).unwrap(), (*val).into(), 2, 15),
+            Instruction::Reti => 3 << 4 | 15,
+            Instruction::Break => 15 << 4 | 15,
         }
     }
 
@@ -210,67 +206,69 @@ impl Instruction {
         let imm4a = u4_bits_to_i4(a);
 
         Some(match opcode_l {
-            0b0000 => Self::Add { rd, ra, rb },
-            0b0001 => Self::Sub { rd, ra, rb },
-            0b0010 => Self::And { rd, ra, rb },
-            0b0011 => Self::Or { rd, ra, rb },
-            0b0100 => Self::Xor { rd, ra, rb },
-            0b0101 => Self::Pack { rd, ra, rb },
-            0b0110 => Self::Bcmp { rd, ra, rb },
-            0b0111 => Self::Jalr { rd, offset: imm8ba },
-            0b1000 => return None,
-            0b1001 => Self::Addi { rd, v: imm8ba },
-            0b1010 => Self::Bz { rd, offset: imm8ba },
-            0b1011 => Self::Bnz { rd, offset: imm8ba },
-            0b1100 => Self::Ld {
+            0 => Self::And { rd, ra, rb },
+            1 => Self::Or { rd, ra, rb },
+            2 => Self::Xor { rd, ra, rb },
+            3 => Self::Add { rd, ra, rb },
+            4 => Self::Sub { rd, ra, rb },
+            5 => Self::Pack { rd, ra, rb },
+            6 => Self::Bcmp { rd, ra, rb },
+            7 => Self::Cadd { rd, ra, rb },
+            8 => Self::Ldui {
+                rd,
+                v: imm8ba as u8,
+            },
+            9 => Self::Ldpc { rd, offset: imm8ba },
+            10 => Self::Addi { rd, v: imm8ba },
+            11 => Self::Ld {
                 rd,
                 addr: rb,
                 offset: imm4a,
             },
-            0b1101 => Self::St {
+            12 => Self::St {
                 val: rd,
                 addr: rb,
                 offset: imm4a,
             },
-            0b1110 => {
+            13 => return None,
+            14 => {
                 let opcode_h = u8::from(a);
-                let imm8bd: i8 = (u8::from(d) << 4 | u8::from(b)) as i8;
                 let imm4b = u4_bits_to_i4(b);
                 match opcode_h {
-                    0b0000 => Self::Bc { offset: imm8bd },
-                    0b0001 => Self::Bnc { offset: imm8bd },
-                    0b0010 => Self::Addc { rd, rb },
-                    0b0011 => Self::Subc { rd, rb },
-                    0b0100 => Self::Add_c { rd, rb },
-                    0b0101 => Self::Shr { rd, rb },
-                    0b0110 => Self::Shrc { rd, rb },
-                    0b0111 => Self::Shra { rd, rb },
-                    0b1000 => Self::Shr8 { rd, rb },
-                    0b1001 => Self::Jal { rd, addr: rb },
-                    0b1010 => Self::Ldp { rd, addr: rb },
-                    0b1011 => Self::Ldi { rd },
-                    0b1100 => Self::St_c { rd, addr: rb },
-                    0b1101 => Self::Andi { rd, v: imm4b },
-                    0b1110 => Self::Ori { rd, v: imm4b },
-                    0b1111 => Self::Xori { rd, v: imm4b },
+                    0 => Self::Bc { addr: rb },
+                    1 => Self::Bnc { addr: rb },
+                    2 => Self::Bz { cond: rd, addr: rb },
+                    3 => Self::Bnz { cond: rd, addr: rb },
+                    4 => Self::Jal { rd, addr: rb },
+                    5 => Self::Addc { rd, rb },
+                    6 => Self::Subc { rd, rb },
+                    7 => Self::Shr { rd, rb },
+                    8 => Self::Shrc { rd, rb },
+                    9 => Self::Shra { rd, rb },
+                    10 => Self::Shr8 { rd, rb },
+                    11 => Self::Ldp { rd, addr: rb },
+                    12 => Self::Cst { rd, addr: rb },
+                    13 => Self::Andi { rd, v: imm4b },
+                    14 => Self::Ori { rd, v: imm4b },
+                    15 => Self::Xori { rd, v: imm4b },
                     _ => unreachable!(),
                 }
             }
-            0b1111 => {
+            15 => {
                 let opcode_h = u8::from(a);
                 match opcode_h {
-                    0b0000 => Self::Ldcr {
+                    0 => Self::Ldcr {
                         rd,
                         cr: ControlRegister::try_from_primitive(b.into()).unwrap(),
                     },
-                    0b0001 => Self::Stcr {
+                    1 => Self::Stcr {
                         val: rd,
                         cr: ControlRegister::try_from_primitive(b.into()).unwrap(),
                     },
-                    0b0010 => Self::Syscall { val: b },
-                    0b0011 => Self::Reti,
-                    0b0100..=0b1110 => return None,
-                    0b1111 => Self::Break,
+                    2 => Self::Syscall { val: b },
+                    3 => Self::Reti,
+                    4..=14 => return None,
+                    15 => Self::Break,
                     _ => unreachable!(),
                 }
             }
@@ -290,10 +288,6 @@ fn encode_r8(rd: &Reg, v: &i8, opcode: u16) -> u16 {
 
 fn encode_rr4(rd: &Reg, rb: &Reg, v: &i4, opcode: u16) -> u16 {
     u16::from(rd) << 12 | u16::from(rb) << 8 | ((i8::from(*v) as u16) & 0xf) << 4 | opcode
-}
-
-fn encode_8(v: &i8, opcode_h: u16, opcode_l: u16) -> u16 {
-    (((*v as u8) as u16) << 8) | opcode_h << 4 | opcode_l
 }
 
 fn encode_rr(rd: &Reg, rb: &Reg, opcode_h: u16, opcode_l: u16) -> u16 {
@@ -329,9 +323,9 @@ mod tests {
     use test_case::test_case;
     use test_strategy::proptest;
 
-    #[test_case(0x0000, Instruction::Add {rd: Reg::new(0).unwrap(), ra:  Reg::new(0).unwrap(), rb: Reg::new(0).unwrap() }; "add_r0")]
+    #[test_case(0x0000, Instruction::And {rd: Reg::new(0).unwrap(), ra:  Reg::new(0).unwrap(), rb: Reg::new(0).unwrap() }; "and_r0")]
     #[test_case(0xffff, Instruction::Break; "break_")]
-    fn instruction_from_word(num: u16, expected: Instruction) {
+    fn nop_and_break(num: u16, expected: Instruction) {
         assert_eq!(Instruction::decode(num), Some(expected))
     }
 
@@ -340,10 +334,9 @@ mod tests {
         assert_eq!(Instruction::decode(0x009fu16), None);
     }
 
-    #[test_case(Instruction::Bc { offset: -36 }; "bc_neg36")]
-    #[test_case(Instruction::Bnc { offset: 127 }; "bnc_127")]
     #[test_case(Instruction::Addi { rd: Reg(0), v: 1 }; "addi_r0_1")]
     #[test_case(Instruction::Syscall { val: 13u8.try_into().unwrap() }; "syscall_13")]
+    #[test_case(Instruction::Ldui { rd: Reg(0), v: 0 }; "ldui_r0_0")]
     fn instruction_word_roundtrip_example(instr: Instruction) {
         let encoded: u16 = instr.encode();
         let decoded: Instruction = Instruction::decode(encoded).unwrap();

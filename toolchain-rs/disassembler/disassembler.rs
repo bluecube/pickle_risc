@@ -5,7 +5,6 @@ use toolchain_core::instruction::Instruction;
 pub struct Disassembler<'a> {
     data: &'a [u16],
     offset: u16,
-    next_is_immediate: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -17,17 +16,12 @@ pub struct Item {
 #[derive(Clone, Copy, Debug)]
 pub enum ItemContent {
     Instruction(Instruction),
-    Immediate(u16),
     InvalidInstruction,
 }
 
 impl<'a> Disassembler<'a> {
     pub fn new(data: &'a [u16]) -> Self {
-        Disassembler {
-            data,
-            offset: 0,
-            next_is_immediate: false,
-        }
+        Disassembler { data, offset: 0 }
     }
 }
 
@@ -43,20 +37,10 @@ impl<'a> Iterator for Disassembler<'a> {
 
         Some(Item {
             address,
-            content: if self.next_is_immediate {
-                self.next_is_immediate = false;
-                ItemContent::Immediate(*first)
+            content: if let Some(instruction) = Instruction::decode(*first) {
+                ItemContent::Instruction(instruction)
             } else {
-                if let Some(instruction) = Instruction::decode(*first) {
-                    self.next_is_immediate = match instruction {
-                        Instruction::Ldi { rd: _ } => true,
-                        _ => false,
-                    };
-                    ItemContent::Instruction(instruction)
-                } else {
-                    self.next_is_immediate = false;
-                    ItemContent::InvalidInstruction
-                }
+                ItemContent::InvalidInstruction
             },
         })
     }
@@ -67,7 +51,6 @@ impl Display for Item {
         write!(f, "{:#06x}: ", self.address)?;
         match self.content {
             ItemContent::Instruction(instruction) => write!(f, "{:?}", instruction), // TODO: Use Display, once it is implemented
-            ItemContent::Immediate(v) => write!(f, "    0x{:x}", v),
             ItemContent::InvalidInstruction => write!(f, "<invalid instruction>"),
         }
     }
