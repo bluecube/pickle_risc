@@ -7,46 +7,24 @@
 - Aiming for a poorly defined balance between "easy to build" and "not too slow"
 - Can run a multitasking OS
 - Serve web site about itself (like Magic-1 does)
-    - SLIP over UART?
-    - W5500 module?
 - Serial console interface
-    - No graphics output
 - Run at ~2MHz clock
     - 4MHz as a stretch goal :)
 - Most instruction single cycle
+- Probably RPi as a peripherial device, emulating a [GPU](notes/graphics.md), network card, storage, serial terminal...
 
 ## State
-- [Instruction set](http://htmlpreview.github.io/?https://github.com/bluecube/pickle_risc/blob/master/instruction_set.html)
-    - Needs expanding into microcode
-    - Needs to be tweaked according to what's needed in SW, limitations in HW design
+- Instruction set
+    - Kind of done, still being tweaked to match the HW limitations and to improve proramming experience
 - HW design
     - Slightly more than a fuzzy idea of how stuff should should go together
-    - (OUTDATED) The [block diagram](block_diagram.svg) shows most of the general idea
+    - The block diagram shows most of the general idea
     - There is a [design document](design.md) that contains some (incomplete) information
 - SW
     - Skeleton of a toolchain written in Rust ([toolchain-rs/](toolchain-rs/))
-        - Non-functioning assembler
-        - Start of an emulator
-            - Emulation works per instruction, but behavior is built up from microcode at compile time.
     - [Lisp](notes/lisp.md) interpreter is planned as a shell
         - Probably loosely based on [Make a Lisp](https://github.com/kanaka/mal/blob/master/process/guide.md)
         - Compiler as a stretch goal
-
-## Next steps
-This is the high level to do list, roughly in the order of decreasing priorities.
-Long term plans (and hopes and dreams) go to the [notes](notes/) directory.
-
-- Figure out details of microcode
-- Write microcode for instructions
-- Finalize assembler
-- Emulator
-- Some kind of integration tests for emulator <-> assembler
-- Lisp interpreter
-- Figure out ALU design
-- Figure out MMU design
-- Figure out interrupt handling
-    - Rough idea and the instructions needed to support it is already done
-- Start building the hardware in some kind of HDL
 
 ## Links
 ### Inspiration
