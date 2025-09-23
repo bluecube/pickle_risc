@@ -1,7 +1,7 @@
 [package]
 name = "pickle-toolchain"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "toolchain_core"
@@ -20,35 +20,19 @@ name = "disassembler"
 path = "disassembler/main.rs"
 
 [dependencies]
-itertools = "0.10.5"
-anyhow = "1.0.65"
-thiserror = "1.0.37"
+itertools = "0.14.0"
+anyhow = "1.0.100"
+thiserror = "2.0.16"
 #ux = "0.1.5"
 ux = { git = "https://github.com/bluecube/uX.git", branch = "cube", features = ["proptest-support"] }
-num_enum = "0.5.7"
+num_enum = "0.7.4"
 more-asserts = "0.3.1"
 ihex = "3.0.0"
-clap = { version = "4.0.18", features = ["derive"] }
-clio = { version = "0.2.7", features = ["clap-parse"] }
-rand = "0.8.5"
-logos = "0.12.1"
-strum = { version = "0.24.1", features = ["derive"] }
-codespan-reporting = "0.11.1"
-id-arena = "2.2.1"
-assert_matches = "1.5.0"
-mockall_double = "0.3.0"
-
-regex = "1.7.3"
-lazy_static = "1.4.0"
+clap = { version = "4.5.48", features = ["derive"] }
+clio = { version = "0.3.5", features = ["clap-parse"] }
+strum = { version = "0.27.2", features = ["derive"] }
 
 [dev-dependencies]
-test-strategy = "0.2.1"
-proptest = "1.0.0"
-test-case = "2.2.2"
-mockall = "0.11.3"
-
-[build-dependencies]
-itertools = "0.10.5"
-anyhow = "1.0.65"
-thiserror = "1.0.37"
-either = "1.8.0"
+test-strategy = "0.4.3"
+proptest = "1.8.0"
+test-case = "3.3.1"
