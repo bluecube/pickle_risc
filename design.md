@@ -5,12 +5,17 @@ As usual this is incomplete and slightly outdated.
 
 ## Basic design
 - 16bit
-- microcoded
-- most instructions take only single clock cycle
+- Microcoded
+- Most instructions take only single clock cycle
+    - Instructions with memory access take two
 - word addressable memory only!
     - 8bit access emulated in SW
 - 15 general purpose registers R1-R15
     - R0 is hardware zero register
+- Two stage pipeline
+    - Decode, Execute
+    - Fetching next instruction is done as part of execute
+    - Delay slot after all branch and jump instructions
 - Two status bits
     - `C`arry
     - `L`oad not interrupted (used with `st_c`)
