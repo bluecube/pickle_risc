@@ -1,5 +1,5 @@
 //! Utilities for loading Pickle Risc image files
-use itertools::{repeat_n, Itertools};
+use itertools::{Itertools, repeat_n};
 use thiserror::Error;
 
 use std::path::{Path, PathBuf};
@@ -126,7 +126,9 @@ enum LoadingRomError {
         file: Option<PathBuf>,
         record: String,
     },
-    #[error("Only even offsets and even record sizes are supported (file {file:?}, {offset:#09x}+{size}B)")]
+    #[error(
+        "Only even offsets and even record sizes are supported (file {file:?}, {offset:#09x}+{size}B)"
+    )]
     OddRecord {
         file: Option<PathBuf>,
         offset: u32,
@@ -353,12 +355,16 @@ mod tests {
         println!("{:?}", data);
 
         assert!(data[..length1].iter().all(|x| *x == 0x0101));
-        assert!(data[length1..length1 + length2]
-            .iter()
-            .all(|x| *x == 0x0202));
-        assert!(data[length1 + length2..length1 + length2 + gap]
-            .iter()
-            .all(|x| *x == 0));
+        assert!(
+            data[length1..length1 + length2]
+                .iter()
+                .all(|x| *x == 0x0202)
+        );
+        assert!(
+            data[length1 + length2..length1 + length2 + gap]
+                .iter()
+                .all(|x| *x == 0)
+        );
         assert!(data[length1 + length2 + gap..].iter().all(|x| *x == 0x0303));
     }
 }

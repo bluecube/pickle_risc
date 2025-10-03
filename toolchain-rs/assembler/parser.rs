@@ -1,326 +1,265 @@
-use std::borrow::Cow;
-use std::str::FromStr;
-
-use mockall_double::double;
-
-#[double]
-use crate::assembler::AssemblerState;
-use crate::assembler::{
-    expr_parser::expression,
-    files::{FileTokens, Location},
-    lexer::Token,
-    AsmError, AsmResult, ScopeId, Symbol, Value,
+use chumsky::{
+    input::{BorrowInput, Input},
+    prelude::*,
 };
-use crate::instruction::{ControlRegister, Gpr, Instruction};
 
-pub(super) type ParseResult<'a, T> = Result<(T, Location, FileTokens<'a>), AsmError>;
-pub(super) type ParseResultNoValue<'a> = Result<(Location, FileTokens<'a>), AsmError>;
+use crate::{
+    lexer::Token,
+    types::{AssemblerError, FileId, Span, Spanned},
+};
 
-pub(super) fn map_parse_result<'a, T, U>(
-    result: ParseResult<'a, T>,
-    f: impl FnOnce(&T, Location) -> AsmResult<U>,
-) -> ParseResult<'a, U> {
-    let (v, location, tokens) = result?;
-    let mapped = f(&v, location)?;
-    Ok((mapped, location, tokens))
+pub type Ast = Vec<Spanned<Item>>;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
+    Scope {
+        label: Option<String>,
+        content: Ast,
+    },
+    Instruction {
+        name: String,
+        args: Vec<Spanned<Expr>>,
+    },
+    MacroCall {
+        name: String,
+        args: Vec<Spanned<Expr>>,
+    },
+    MacroDefinition {
+        name: String,
+        params: Vec<String>,
+        body: Ast,
+    },
+    Label {
+        name: String,
+    },
+    Const {
+        name: String,
+        value: Spanned<Expr>,
+    },
 }
 
-/// Parse a whole file.
-/// This is the top level entry point to the parser.
-pub fn parse_file<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> AsmResult<()> {
-    scope_content(state, tokens)?;
-
-    match tokens.first() {
-        Some((_, location)) => Err(AsmError::UnexpectedToken {
-            expected: Cow::Borrowed("`{`, `;`, `\\n`, identifier or end of file"),
-            location,
-        }),
-        None => Ok(()),
-    }
+/// Expressions for instruction arguments and constants
+#[derive(Debug, Clone, PartialEq)]
+pub enum Expr {
+    Number(i64),
+    QualifiedName(Vec<Spanned<String>>),
+    BinaryOp {
+        op: BinOp,
+        lhs: Box<Spanned<Expr>>,
+        rhs: Box<Spanned<Expr>>,
+    },
+    UnaryOp {
+        op: UnOp,
+        expr: Box<Spanned<Expr>>,
+    },
 }
 
-/// Parses a label or a labeled scope
-fn label<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    let (id, id_location, tokens) = identifier(tokens)?;
-    let (_, colon_location, tokens) = one_token(tokens, &Token::Colon)?;
-
-    let definition_location = id_location.extend_to(&colon_location);
-
-    match tokens.first() {
-        Some((Token::LBrace, _)) => {
-            let (scope_id, _, tokens) = scope_start(state, tokens)?;
-            state.define_symbol(
-                id,
-                state.get_current_pc_symbol(Some(scope_id), definition_location),
-            )?;
-            scope_content(state, tokens)?;
-            let (_, scope_end_location, rest) = scope_end(state, tokens)?;
-            Ok(((), definition_location.extend_to(&scope_end_location), rest))
-        }
-        _ => {
-            state.define_symbol(id, state.get_current_pc_symbol(None, definition_location))?;
-            Ok(((), definition_location, tokens))
-        }
-    }
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Shl,
+    Shr,
+    BitAnd,
+    BitOr,
+    BitXor,
+    And,
+    Or,
+    Eq,
+    Neq,
+    Lt,
+    Gt,
+    Le,
+    Ge,
 }
 
-fn assignment<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    let (id, id_location, tokens) = identifier(tokens)?;
-    let ((), _, tokens) = one_token(tokens, &Token::Assign)?;
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum UnOp {
+    Neg,
+    Not,
+    BitNot,
+}
 
-    let (value, value_location, rest) =
-        expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name))?;
-
-    let definition_location = id_location.extend_to(&value_location);
-
-    state.define_symbol(
-        id,
-        Symbol::Free {
-            value,
-            defined_at: definition_location,
+pub fn parse<'src>(
+    tokens: &'src [Spanned<Token<'src>>],
+    file_id: Option<FileId>,
+    input_len: usize,
+    errors: &mut Vec<AssemblerError>,
+) -> Option<Ast> {
+    let input = tokens.map(
+        Span {
+            file_id,
+            start: input_len,
+            end: input_len,
         },
-    )?;
-
-    Ok(((), definition_location, rest))
+        |(token, span)| (token, span),
+    );
+    let (ast, parse_errors) = parser().parse(input).into_output_errors();
+    errors.extend(
+        parse_errors
+            .into_iter()
+            .map(|e| AssemblerError::SyntaxError(e.into())),
+    );
+    ast
 }
 
-fn anonymous_scope<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    let (_, start_location, tokens) = scope_start(state, tokens)?;
-    let (_, _, tokens) = scope_content(state, tokens)?;
-    let (_, end_location, tokens) = scope_end(state, tokens)?;
-    Ok(((), start_location.extend_to(&end_location), tokens))
-}
+fn parser<'tokens, 'src: 'tokens, I>()
+-> impl Parser<'tokens, I, Ast, extra::Err<Rich<'tokens, Token<'src>, Span>>>
+where
+    I: BorrowInput<'tokens, Token = Token<'src>, Span = Span>,
+{
+    recursive(|ast| {
+        let identifier = select! { Token::Identifier(name) => name }.map(ToOwned::to_owned);
+        let scoped_ast = ast.delimited_by(just(Token::LBrace), just(Token::RBrace));
 
-fn scope_start<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ScopeId> {
-    map_parse_result(one_token(tokens, &Token::LBrace), |_, _| {
-        Ok(state.push_scope())
+        let label_name = identifier.then_ignore(just(Token::Colon));
+        let scope = label_name
+            .clone()
+            .or_not()
+            .then(scoped_ast.clone())
+            .map(|(label, items)| Item::Scope {
+                label: label.map(|x| x.to_owned()),
+                content: items,
+            })
+            .labelled("scope");
+
+        let expression = expression_parser();
+
+        let instruction_tail = expression
+            .clone()
+            .separated_by(just(Token::Comma))
+            .collect()
+            .then_ignore(choice((
+                just(Token::Eol).ignored(),
+                just(Token::RBrace).rewind().ignored(),
+                end().ignored(),
+            )));
+        let instruction = identifier
+            .then(instruction_tail.clone())
+            .map(|(name, args)| Item::Instruction { name, args })
+            .labelled("instruction")
+            .as_context();
+        let macro_call = select! { Token::MacroCall(name) => name }
+            .then(instruction_tail)
+            .map(|(name, args)| Item::MacroCall {
+                name: name.to_owned(),
+                args,
+            })
+            .labelled("macro call")
+            .as_context();
+
+        let macro_def = just(Token::Macro)
+            .ignore_then(group((
+                identifier,
+                identifier.separated_by(just(Token::Comma)).collect(),
+                scoped_ast,
+            )))
+            .map(|(name, params, body)| Item::MacroDefinition { name, params, body })
+            .labelled("macro definition")
+            .as_context();
+
+        let label = label_name
+            .map(|name| Item::Label { name })
+            .labelled("label definition");
+
+        let constant = just(Token::Const)
+            .ignore_then(identifier)
+            .then_ignore(just(Token::DoubleEqual))
+            .then(expression)
+            .map(|(name, value)| Item::Const { name, value })
+            .labelled("constant definition");
+
+        just(Token::Eol)
+            .repeated()
+            .ignore_then(choice((
+                scope,
+                instruction,
+                macro_call,
+                macro_def,
+                label,
+                constant,
+            )))
+            .map_with(|item, e| (item, e.span()))
+            .repeated()
+            .collect()
+            .then_ignore(just(Token::Eol).repeated())
     })
 }
 
-fn scope_content<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    let mut tokens = tokens;
-    let mut location = match tokens.first() {
-        Some((_, location)) => location,
-        None => tokens.empty_location(),
-    };
+fn expression_parser<'tokens, 'src: 'tokens, I>()
+-> impl Parser<'tokens, I, Spanned<Expr>, extra::Err<Rich<'tokens, Token<'src>, Span>>> + Clone
+where
+    I: BorrowInput<'tokens, Token = Token<'src>, Span = Span>,
+{
+    recursive(|expression| {
+        let atom = choice((
+            select! { Token::Number(i) => i }.map_with(|i, e| (Expr::Number(i), e.span())),
+            select! { Token::Identifier(name) => name }
+                .map_with(|name, e| (name.to_owned(), e.span()))
+                .separated_by(just(Token::Dot))
+                .at_least(1)
+                .collect()
+                .map_with(|names, e| (Expr::QualifiedName(names), e.span()))
+                .labelled("qualified name")
+                .as_context(),
+            expression.delimited_by(just(Token::LParen), just(Token::RParen)),
+        ));
 
-    loop {
-        let mut new_location = location;
-        match tokens.first() {
-            Some((Token::Identifier(ident), _)) => match tokens.rest().first() {
-                Some((Token::Colon, _)) => (_, new_location, tokens) = label(state, tokens)?,
-                Some((Token::Assign, _)) => (_, new_location, tokens) = assignment(state, tokens)?,
-                _ if ident.starts_with('.') => {
-                    (_, new_location, tokens) = pseudo_instruction(state, tokens)?
-                }
-                _ => (_, new_location, tokens) = instruction(state, tokens)?,
-            },
-            Some((Token::LBrace, _)) => (_, new_location, tokens) = anonymous_scope(state, tokens)?,
-            Some((Token::Eol, l)) | Some((Token::Semicolon, l)) => {
-                // Skip empty lines
-                new_location = l;
-                tokens = tokens.rest();
-            }
-            _ => return Ok(((), location, tokens)),
-        }
-
-        location = location.extend_to(&new_location);
-    }
-}
-
-fn scope_end<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    let (_, location, rest) = one_token(tokens, &Token::RBrace)?;
-    state.pop_scope();
-    Ok(((), location, rest))
-}
-
-fn instruction<'a>(state: &mut AssemblerState, tokens: FileTokens<'a>) -> ParseResult<'a, ()> {
-    use ux::*;
-    let (mnemonic, mnemonic_location, tokens) = identifier(tokens)?;
-    let (instruction, location, rest) = include!(concat!(env!("OUT_DIR"), "/parse_asm_match.rs"))
-        .ok_or_else(|| AsmError::UnexpectedInstructionMnemonic {
-        location: mnemonic_location,
-    })?;
-    state.emit_word(instruction.into());
-    Ok(((), location, rest))
-}
-
-fn pseudo_instruction<'a>(
-    state: &mut AssemblerState,
-    tokens: FileTokens<'a>,
-) -> ParseResult<'a, ()> {
-    let (mnemonic, location, tokens) = identifier(tokens)?;
-    match mnemonic {
-        ".db" => todo!(),
-        ".dw" => todo!(),
-        ".dd" => todo!(),
-        ".include" => todo!(),
-        ".section" => todo!(),
-        _ => return Err(AsmError::UnexpectedInstructionMnemonic { location }),
-    }
-
-    Ok(((), location, tokens))
-}
-
-fn gpr<'a>(tokens: FileTokens<'a>) -> ParseResult<Gpr> {
-    map_parse_result(identifier(tokens), |ident, location| {
-        Gpr::from_str(ident).map_err(|_| AsmError::InvalidGprName { location })
-    })
-}
-
-fn cr<'a>(tokens: FileTokens<'a>) -> ParseResult<ControlRegister> {
-    map_parse_result(identifier(tokens), |ident, location| {
-        ControlRegister::from_str(ident).map_err(|_| AsmError::InvalidCrName { location })
-    })
-}
-
-/// Parse and evaluate an expression as an immediate value input to an instruction
-/// and cast it to the proper type.
-/// Uses a type Intermediate to do one extra conversion, to work around missing
-/// conversions from too large type in uX.
-fn immediate<'a, Intermediate: TryFrom<Value>, T: TryFrom<Intermediate>>(
-    state: &mut AssemblerState,
-    tokens: FileTokens<'a>,
-) -> ParseResult<'a, T> {
-    map_parse_result(
-        expression(tokens, &|symbol_name| state.get_symbol_value(symbol_name)),
-        |value, location| {
-            Intermediate::try_from(*value)
-                .ok()
-                .and_then(|x| T::try_from(x).ok())
-                .ok_or_else(|| AsmError::ValueOutOfRange { location })
-        },
-    )
-}
-
-fn identifier<'a>(tokens: FileTokens<'a>) -> ParseResult<&'a str> {
-    match tokens.first() {
-        Some((Token::Identifier(identifier), location)) => {
-            Ok((&identifier, location, tokens.rest()))
-        }
-        Some((_, location)) => Err(AsmError::UnexpectedToken {
-            expected: Cow::Borrowed("identifier"),
-            location,
-        }),
-        None => Err(AsmError::UnexpectedEof {
-            expected: Cow::Borrowed("identifier"),
-        }),
-    }
-}
-
-pub(super) fn one_token<'a>(tokens: FileTokens<'a>, expected: &Token) -> ParseResult<'a, ()> {
-    match tokens.first() {
-        Some((t, location)) if t == expected => Ok(((), location, tokens.rest())),
-        Some((_, location)) => Err(AsmError::UnexpectedToken {
-            expected: Cow::Owned(format!("{expected:?}")),
-            location,
-        }),
-        None => Err(AsmError::UnexpectedEof {
-            expected: Cow::Owned(format!("{expected:?}")),
-        }),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::assembler::{files::SnippetTokenizer, Section};
-
-    #[test]
-    fn assignment_simple() {
-        let tokenizer = SnippetTokenizer::new("abc = 123".to_owned());
-        let mut mock = AssemblerState::default();
-        let defined_at = tokenizer.location(0, 9);
-        mock.expect_define_symbol()
-            .withf(move |sym_name, symbol| {
-                assert_eq!(sym_name, "abc");
-                assert_eq!(
-                    symbol,
-                    &Symbol::Free {
-                        value: 123,
-                        defined_at
-                    }
-                );
-                true
+        use chumsky::pratt;
+        let prefix = |precedence, token, un_op| {
+            pratt::prefix(precedence, just(token), move |_op, expr, extra| {
+                (
+                    Expr::UnaryOp {
+                        op: un_op,
+                        expr: Box::new(expr),
+                    },
+                    extra.span(),
+                )
             })
-            .return_const(AsmResult::Ok(()))
-            .times(1);
-
-        assignment(&mut mock, tokenizer.tokens()).unwrap();
-    }
-
-    #[test]
-    fn assignment_expression() {
-        let tokenizer = SnippetTokenizer::new("abc = def * 7".to_owned());
-        let mut mock = AssemblerState::default();
-        let defined_at = tokenizer.location(0, 13);
-        mock.expect_define_symbol()
-            .withf(move |sym_name, symbol| {
-                assert_eq!(sym_name, "abc");
-                assert_eq!(
-                    symbol,
-                    &Symbol::Free {
-                        value: 21,
-                        defined_at
-                    }
-                );
-                true
-            })
-            .return_const(AsmResult::Ok(()))
-            .times(1);
-        mock.expect_get_symbol_value()
-            .withf(|sym_name| {
-                assert_eq!(sym_name, "def");
-                true
-            })
-            .return_const(Some(3))
-            .times(1);
-
-        assignment(&mut mock, tokenizer.tokens()).unwrap();
-    }
-
-    #[test]
-    fn label_simple() {
-        let tokenizer = SnippetTokenizer::new("abc:".to_owned());
-        let mut mock = AssemblerState::default();
-
-        let mut sections = id_arena::Arena::<Section>::new();
-        let section = sections.alloc(Section::default());
-
-        let defined_at = tokenizer.location(0, 4);
-
-        let symbol = Symbol::Location {
-            section: section.clone(),
-            offset: 0,
-            attached_scope: None,
-            defined_at,
         };
-
-        mock.expect_define_symbol()
-            .withf(move |sym_name, symbol| {
-                assert_eq!(sym_name, "abc");
-                assert_eq!(
-                    symbol,
-                    &Symbol::Location {
-                        section,
-                        offset: 0,
-                        attached_scope: None,
-                        defined_at,
-                    }
-                );
-                true
-            })
-            .return_const(AsmResult::Ok(()))
-            .times(1);
-        mock.expect_get_current_pc_symbol()
-            .return_const(symbol.clone())
-            .withf(move |attached_scope, span| {
-                assert_eq!(attached_scope, &None);
-                assert_eq!(span, &symbol.get_defined_at());
-                true
-            })
-            .times(1);
-
-        label(&mut mock, tokenizer.tokens()).unwrap();
-    }
+        let infix = |precedence, token, bin_op| {
+            pratt::infix(
+                pratt::left(precedence),
+                just(token),
+                move |x, _op, y, extra| {
+                    (
+                        Expr::BinaryOp {
+                            op: bin_op,
+                            lhs: Box::new(x),
+                            rhs: Box::new(y),
+                        },
+                        extra.span(),
+                    )
+                },
+            )
+        };
+        atom.pratt((
+            prefix(9, Token::Minus, UnOp::Neg),
+            prefix(9, Token::Exclamation, UnOp::Not),
+            prefix(9, Token::Tilde, UnOp::BitNot),
+            infix(8, Token::Asterisk, BinOp::Mul),
+            infix(8, Token::Slash, BinOp::Div),
+            infix(8, Token::Percent, BinOp::Mod),
+            infix(7, Token::Plus, BinOp::Add),
+            infix(7, Token::Minus, BinOp::Sub),
+            infix(6, Token::DoubleLt, BinOp::Shl),
+            infix(6, Token::DoubleGt, BinOp::Shr),
+            infix(5, Token::Ampersand, BinOp::BitAnd),
+            infix(4, Token::Caret, BinOp::BitXor),
+            infix(3, Token::Pipe, BinOp::BitOr),
+            infix(2, Token::DoubleEqual, BinOp::Eq),
+            infix(2, Token::Neq, BinOp::Neq),
+            infix(2, Token::Lt, BinOp::Lt),
+            infix(2, Token::Gt, BinOp::Gt),
+            infix(2, Token::Le, BinOp::Le),
+            infix(2, Token::Ge, BinOp::Ge),
+            infix(1, Token::DoubleAmpersand, BinOp::And),
+            infix(0, Token::DoublePipe, BinOp::Or),
+        ))
+    })
+    .labelled("expression")
+    .as_context()
 }

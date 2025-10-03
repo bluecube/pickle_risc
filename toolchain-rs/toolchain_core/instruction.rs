@@ -23,11 +23,7 @@ impl std::fmt::Display for Reg {
 impl TryFrom<u16> for Reg {
     type Error = ();
     fn try_from(v: u16) -> Result<Self, Self::Error> {
-        if v < 16 {
-            Ok(Reg(v))
-        } else {
-            Err(())
-        }
+        if v < 16 { Ok(Reg(v)) } else { Err(()) }
     }
 }
 

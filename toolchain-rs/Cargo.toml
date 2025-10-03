@@ -11,9 +11,9 @@ path = "toolchain_core/lib.rs"
 # name = "emulator"
 # path = "emulator/main.rs"
 
-# [[bin]]
-# name = "assembler"
-# path = "assembler/main.rs"
+[[bin]]
+name = "assembler"
+path = "assembler/main.rs"
 
 [[bin]]
 name = "disassembler"
@@ -31,6 +31,9 @@ ihex = "3.0.0"
 clap = { version = "4.5.48", features = ["derive"] }
 clio = { version = "0.3.5", features = ["clap-parse"] }
 strum = { version = "0.27.2", features = ["derive"] }
+chumsky = { version = "0.11.1", features = ["pratt"] }
+ariadne = { version = "0.5.1", features = ["auto-color"] }
+id-arena = "2.2.1"
 
 [dev-dependencies]
 test-strategy = "0.4.3"
