@@ -22,7 +22,7 @@ add r2, r2, r2 ; Delay slot: Shift r2 left. On the last iteration this does noth
 
 ; r3,r2: 32bit pair of extended r2, being shifted up
 
-mul_widening_16:
+macro mul_widening_16 {
 and r3, r0, r0 ; Clear r3
 and r4, r0, r0 ; Clear r4
 and r5, r0, r0 ; Clear r5
@@ -43,3 +43,4 @@ add r2, r2, r2 ; Shift the lower half of r3,r2 left. On the last iteration this 
 bnz r1, r6 ; If r1 is nonzero, jump back to loop_top
 addc r3, r3 ; Delay slot: Shift the upper half of r3,r2.
 
+}

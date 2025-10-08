@@ -9,7 +9,10 @@ As usual this is incomplete and slightly outdated.
 - Most instructions take only single clock cycle
     - Instructions with memory access take two
 - word addressable memory only!
-    - 8bit access emulated in SW
+    - 8bit access emulated in SW, helper instructions
+      - `pack` (build word from bytes)
+      - `bcmp` (byte-wise compare)
+      - `shr8` (shift right by 8 bits)
 - 15 general purpose registers R1-R15
     - R0 is hardware zero register
 - Two stage pipeline
@@ -66,23 +69,45 @@ As usual this is incomplete and slightly outdated.
     - Exception is the ldp (load from program mmemory) instruction that allows each process to read its program space freely
 - Interrupts
 - System instructions:
-    - Syscall instruction
+    - `syscall`
         - Causes software interrupt
         - pass immediate value into `IntCause`
             - Quickly distinguish what's necessary in interrupt handler
                 - syscall, vs IPC call, vs breakpoint, ...
-    - Break instruction
+    - `break`
         - Stop emulator
         - Switch physical CPU into single step mode
             - must be enabled by a physical switch?
-- 3 stage pipeline (???)
-    1. fetch
-    2. decode
-        - dominated by 150ns microcode ROM access time
-    3. execute
-        - dominated by 4 * 45ns 4bit adder propagation delay
 
-    - Theoretically about 5MHz max clock speed?
+## Instruction set weirdness
+Compromises have been made :)
+
+- No jumps with immediate values
+  - This saves encoding space, but mostly allows us to fetch next instruction after jump without adder delay and without adding another address adder to a different stage.
+  - Near jumps can be done in two cycles using `ldpc` (load program counter with offset) and then absolute jump.
+  - Tight loops will benefit from preloading jump targets to a register.
+- Loading 16bit immediates takes three cycles
+  - This is a bit painful :-)
+  - The best sequence for loading a full 16bit immediate is:
+    - `ldi rd, hi8(value) + (value & 0x80 >> 7)`
+      - Load the high byte to low byte of rd, add compensation for sign extended addi that comes later
+    - `pack rd, rd, r0`
+      - Shift the destination register up by a byte, fill with zero
+    - `addi rd, lo8(value)`
+      - Add the low byte
+- The architecture has something of a "zero page" with faster access
+  - Globals within first 256B of memory can be accessed using just `ldi` for address load
+    - `ldi addr, 0x17; ld dest, addr + 0`
+  - Same for functions -- jumps to first 256 bytes are as fast as relative jumps
+    - `ldi addr, 0xa5; jal r0, addr`
+- No push
+  - We could do address increment in the first execution cycle, in parallel with next instruction fetch, then load the data in the second cycle.
+  - One possible version would have RR4 encoding same as `ld` and `st`, would add the immediate.
+    - For this we don't have a free 4bit opcode left
+  - Other possible version would support only -1 (or also +1, possibly) and take one or two RR instruction slots.
+      - I skimped on a bus driver for generating +-1 on the ALU A bus.
+- No pop
+  - More fundamental problem than push, pop requires two registers to be written.
 
 
 ## Microcode ROM
