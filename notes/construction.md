@@ -1,6 +1,6 @@
 # CPU Mechanical & Electrical Construction
 
-- Eurocard (3U, 100x100mm or 100x160mm)
+- Eurocard (3U, 100x160mm)
 - 96 pin connector
 - Backplane split into two zones
   - Core zone:
@@ -12,7 +12,13 @@
 - "Tiled" backplane?
   - Individual pieces of backplane connected together using edge connectors
   - To simplify development, make cheaper fails
-- Register file
-  - Probably 5 boards
-    - Decoder
-    - 4 boards of 8bit slices of 8 registers each
+- Clock
+  - Selectable speed main clock (>=10MHz max speed)
+    - 20MHz oscillator piped into 74HC193
+    - DIP switch controling the frequency
+    - Second counter chip for clock assymetry?
+  - Single step mode (buttons: Stop, Step, Run)
+  - Break function
+    - If enabled by a HW switch, goes into single step mode.
+    - Interrupt if break signal arrives and break is disabled
+  - Sleep mode (clock is ignored until an interrupt arrives)
