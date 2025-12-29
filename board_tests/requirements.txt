@@ -1,0 +1,2 @@
+pyverilator-mm==0.7.6
+pytest==9.0.2
