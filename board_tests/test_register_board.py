@@ -1,11 +1,12 @@
 import pytest
 import enum
 
+
 class AMode(enum.IntEnum):
-    A_SEL  = 0b00
-    D_SEL  = 0b01
+    A_SEL = 0b00
+    D_SEL = 0b01
     A_ZERO = 0b10
-    A_OFF  = 0b11
+    A_OFF = 0b11
 
 
 class RegisterBoard:
@@ -27,15 +28,16 @@ class RegisterBoard:
         self["a_sel"] = reg
         self["a_mode"] = AMode.A_SEL
         val = self["a"]
+        self["a_mode"] = AMode.A_OFF
         return val
-    
+
     def read_b(self, reg):
         self["b_sel"] = reg
         self["n_b_en"] = 0
         val = self["b"]
         self["n_b_en"] = 1
         return val
-    
+
     def read_d(self, reg):
         self["d_sel"] = reg
         self["a_mode"] = AMode.D_SEL
@@ -55,7 +57,7 @@ class RegisterBoard:
 
     def __setitem__(self, key, value):
         self.interface[key] = value
-    
+
     @staticmethod
     def sim_file_name():
         return "register_board.sv"
@@ -68,8 +70,8 @@ def test_r1_write_and_read(board):
     """Simple write and read back from r1"""
     board.write(1, 0x1234)
 
-    board["d"] = 0x5678 # Changing value of D should not change the value
-    
+    board["d"] = 0x5678  # Changing value of D should not change the value
+
     assert board.read_a(1) == 0x1234
 
 
@@ -86,6 +88,7 @@ def test_r0_is_immutable(board):
     board.write(0, 0xffff)
     assert board.read_a(0) == 0
 
+
 def test_a_mode_mux(board):
     """Verifies all four modes of the A output mux."""
     board.write(2, 0xabcd)
@@ -95,40 +98,40 @@ def test_a_mode_mux(board):
     board["a_mode"] = AMode.A_ZERO
     assert board["a"] == 0
 
-    assert board.read_d(2) == 0xabcd # Read using D_SEL 
-    assert board.read_a(4) == 0x1234 # Read using A_SEL
- 
-    # In simulation, 'z' often holds the previous value or 0/MAX 
+    assert board.read_d(2) == 0xabcd  # Read using D_SEL
+    assert board.read_a(4) == 0x1234  # Read using A_SEL
+
+    # In simulation, 'z' often holds the previous value or 0/MAX
     # depending on wrapper, but shouldn't change if b_sel changes now
     # TODO: What to do with tester?
     board["a_mode"] = AMode.A_OFF
     val_disabled = board["a"]
     board["a_sel"] = 2
     board["d_sel"] = 4
-    assert board["a"] == val_disabled # Value should not change because of sel change
+    assert board["a"] == val_disabled  # should not change because of sel change
 
 
 def test_port_b_tristate(board):
     """Verify that Port B only drives when n_b_en is 0."""
     board.write(7, 0x7777)
     board.write(8, 0x8888)
-    
+
     assert board.read_b(7) == 0x7777
     board["n_b_en"] = 1
     val_disabled = board["b"]
-    
-    # In simulation, 'z' often holds the previous value or 0/MAX 
+
+    # In simulation, 'z' often holds the previous value or 0/MAX
     # depending on wrapper, but shouldn't change if b_sel changes now
     # TODO: What to do with tester?
-    board["b_sel"] = 8 
-    assert board["b"] == val_disabled # Value should not change because of sel change
+    board["b_sel"] = 8
+    assert board["b"] == val_disabled  # should not change because of sel change
 
 
 @pytest.mark.parametrize("name, values", [
     ("Zeros", [0x0000]*16),
     ("Ones",  [0xFFFF]*16),
-    ("Checkerboard", [0xAAAA if i%2==0 else 0x5555 for i in range(16)]),
-    ("InverseCheckerboard", [0x5555 if i%2==0 else 0xAAAA for i in range(16)]),
+    ("Checkerboard", [0xAAAA if i % 2 == 0 else 0x5555 for i in range(16)]),
+    ("InverseCheckerboard", [0x5555 if i % 2 == 0 else 0xAAAA for i in range(16)]),
     ("RegID", [i for i in range(16)]),
     ("InverseRegID", [0xffff - i for i in range(16)]),
 ])
@@ -139,7 +142,7 @@ def test_integrity_patterns(board, name, values):
 
     for i, val in enumerate(values):
         expected = 0 if i == 0 else val
-        
+
         assert board.read_a(i) == expected
         assert board.read_b(i) == expected
         assert board.read_d(i) == expected
@@ -153,7 +156,7 @@ def test_write_latched_inputs(board):
     # Clear the registers so that we don't have stale state messing with the test
     board.write(5, 0)
     board.write(8, 0)
-    
+
     # Setup initial values at clk rising edge
     board["n_load"] = 0
     board["d_sel"] = 5
@@ -193,7 +196,7 @@ def test_no_write_without_n_load(board):
     board["d"] = 0xdead
     board["clk"] = 1
     board["clk"] = 0
-    
+
     assert board.read_a(3) == 0xcafe
 
 
@@ -204,5 +207,5 @@ def test_no_write_without_clock(board):
     board["d"] = 0xdead
     board["n_load"] = 0
     board["n_load"] = 1
-    
+
     assert board.read_a(3) == 0xcafe
