@@ -1,5 +1,6 @@
 import pytest
 import enum
+import hypothesis
 
 
 class AMode(enum.IntEnum):
@@ -209,3 +210,48 @@ def test_no_write_without_clock(board):
     board["n_load"] = 1
 
     assert board.read_a(3) == 0xcafe
+
+
+@hypothesis.given(
+    hypothesis.strategies.lists(
+        hypothesis.strategies.one_of(
+            hypothesis.strategies.tuples(
+                hypothesis.strategies.sampled_from(["read_a", "read_b", "read_d"]),
+                hypothesis.strategies.integers(min_value=0, max_value=15),
+            ),
+            hypothesis.strategies.tuples(
+                hypothesis.strategies.just("write"),
+                hypothesis.strategies.integers(min_value=0, max_value=15),
+                hypothesis.strategies.integers(min_value=0, max_value=0xFFFF),
+            )
+        ),
+        min_size=1,
+        max_size=200,
+    )
+)
+def test_randomized_operations(board, ops):
+    expected = [0] * 16
+    board.reset()
+    for i in range(1, 16):
+        board.write(i, expected[i])
+
+    for op in ops:
+        if op[0] == "write":
+            _, reg, val = op
+            board.write(reg, val)
+            if reg != 0:
+                expected[reg] = val
+
+        else:
+            _, reg = op
+            if op[0] == "read_a":
+                val = board.read_a(reg)
+            elif op[0] == "read_b":
+                val = board.read_b(reg)
+            else:
+                val = board.read_d(reg)
+
+            assert val == expected[reg]
+
+    for i in range(16):
+        assert board.read_a(i) == expected[i]

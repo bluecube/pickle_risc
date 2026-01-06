@@ -2,3 +2,4 @@
 /__pycache__/
 /verilator_build_dir/
 /vcd/*
+/.hypothesis/
