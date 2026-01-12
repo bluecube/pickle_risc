@@ -19,9 +19,7 @@ As usual this is incomplete and slightly outdated.
     - Decode, Execute
     - Fetching next instruction is done as part of execute
     - Delay slot after all branch and jump instructions
-- Two status bits
-    - `C`arry
-    - `L`oad not interrupted (used with `st_c`)
+- Only one status bit: `C`arry
 - Control registers (Needs work!)
     - Display
         - `0`
