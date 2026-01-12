@@ -14,7 +14,7 @@ As usual this is incomplete and slightly outdated.
       - `bcmp` (byte-wise compare)
       - `shr8` (shift right by 8 bits)
 - 15 general purpose registers R1-R15
-    - R0 is hardware zero register
+- r0 is hardware zero register
 - Two stage pipeline
     - Decode, Execute
     - Fetching next instruction is done as part of execute
@@ -33,7 +33,6 @@ As usual this is incomplete and slightly outdated.
             - 1b kernel mode flag
             - 1b MMU enabled flag
             - 1b sleep bit
-            - ?b frequency selection (?)
     - ContextID
         - `2`
         - WO
@@ -64,7 +63,7 @@ As usual this is incomplete and slightly outdated.
         - triggers the MMU write at given MMUAddr
 - Separate virtual address spaces for data / code
     - To acces code from a process, the OS must map the memory as data
-    - Exception is the ldp (load from program mmemory) instruction that allows each process to read its program space freely
+    - Exception is the ldp (load from program memory) instruction that allows each process to read its program space freely
 - Interrupts
 - System instructions:
     - `syscall`

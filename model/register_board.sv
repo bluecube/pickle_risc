@@ -26,6 +26,7 @@ module register_board (
   logic [15:0] r0;
   logic [15:0] regs [1:15];
 
+  // Latches for clocked writes
   logic [3:0] d_sel_latched;
   logic n_load_latched;
   logic [15:0] d_latched;
