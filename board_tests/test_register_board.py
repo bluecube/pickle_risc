@@ -25,6 +25,11 @@ class RegisterBoard:
         self["reset"] = 1
         self["reset"] = 0
 
+    def clock(self):
+        """Tick the card clock"""
+        self["clk"] = 1
+        self["clk"] = 0
+
     def read_a(self, reg):
         self["a_sel"] = reg
         self["a_mode"] = AMode.A_SEL
@@ -49,8 +54,7 @@ class RegisterBoard:
         self["n_load"] = 0
         self["d_sel"] = reg
         self["d"] = value
-        self["clk"] = 1
-        self["clk"] = 0
+        self.clock()
         self["n_load"] = 1
 
     def __getitem__(self, key):
@@ -195,8 +199,7 @@ def test_no_write_without_n_load(board):
     board["n_load"] = 1
     board["d_sel"] = 3
     board["d"] = 0xdead
-    board["clk"] = 1
-    board["clk"] = 0
+    board.clock()
 
     assert board.read_a(3) == 0xcafe
 
