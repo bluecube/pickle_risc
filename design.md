@@ -23,16 +23,17 @@ As usual this is incomplete and slightly outdated.
 - Control registers (Needs work!)
     - Display
         - `0`
-        - RW
+        - WO
         - Value written here is displayed on the front panel
     - CpuStatus
         - `1`
         - RW
         - Contains:
             - 1b interrupt enabled flag
-            - 1b kernel mode flag
+            - 1b privileged mode flag
+                - Controls if privileged instructions are enabled
             - 1b MMU enabled flag
-            - 1b sleep bit
+                - If disabled, MMU maps program memory pages 1:1 to frames at the beginning of memory, data pages to frames from in upper half of memory.
     - ContextID
         - `2`
         - WO
@@ -83,15 +84,6 @@ Compromises have been made :)
   - This saves encoding space, but mostly allows us to fetch next instruction after jump without adder delay and without adding another address adder to a different stage.
   - Near jumps can be done in two cycles using `ldpc` (load program counter with offset) and then absolute jump.
   - Tight loops will benefit from preloading jump targets to a register.
-- Loading 16bit immediates takes three cycles
-  - This is a bit painful :-)
-  - The best sequence for loading a full 16bit immediate is:
-    - `ldi rd, hi8(value) + (value & 0x80 >> 7)`
-      - Load the high byte to low byte of rd, add compensation for sign extended addi that comes later
-    - `pack rd, rd, r0`
-      - Shift the destination register up by a byte, fill with zero
-    - `addi rd, lo8(value)`
-      - Add the low byte
 - The architecture has something of a "zero page" with faster access
   - Globals within first 256B of memory can be accessed using just `ldi` for address load
     - `ldi addr, 0x17; ld dest, addr + 0`
@@ -113,41 +105,16 @@ Compromises have been made :)
 - 8 bits from instruction
 - 1 bit interrupt pending
 - 1 bit kernel mode
-- 3 bits condition flags
+- 2 bits condition flags
     - ALU A is zero
     - C
-    - L
 
-Total 13
+Total 12
 
 ### Outgoing control lines
 (goal is as small as possible multiple of 8; needs more work)
 
-- 1b: ALU A bus source
-- 2b: ALU B bus source
-    - imm4 vs imm8
-    - imm vs register B 
-- 5b: Result bus source
-    - 3b ALU result
-    - 2b ALU vs memory vs Pc vs Control register
-- 1b: Addres base bus source
-    - PC vs register B
-- 3b: Addres offset bus source
-    - 0 / 1
-    - imm4(A) vs imm8(AB) vs imm8(BD) vs (0/1)
-- 1b: load register D
-- 1b: load Pc
-- 1b: Load control register
-
-- 1b: Mem read
-- 1b: Mem write
-
-- 1b: End instruction
-
-- 1b: Write interrupt ID into cause register, clear pending interrupt flag
-- 1b: Write 6bits from immediate to upper 8bits of cause register
-
-Total 20
+TODO
 
 ## Memory
 - 16 bit-addressable memory (Byte level access emulated in SW)
@@ -177,16 +144,11 @@ Total 20
 - RTC
 - Storage
     - SD card using SPI interface?
+- [Graphics](notes/graphics.md)
 - Network card
+    - Probably using the Raspbery PI board (same as with the graphics)
     - W5500 module?
-
-## Parts
-- 74LVC16374 - 16-bit edge-triggered D-type flip-flop; 5 V tolerant; 3-state
-
-
-## !!!
-- SN54AHCT574 requires 1.5ns hold time on data change
-    - Is it Ok to rely on propagation delays of other circuitry for single cycle read-modify-write?
-        - Verify with the fastest possible roundtrip path
-    - Maybe the output delay of the register itself is enough?
-        - Probably yes: min output delay is 1ns, there probably won't be any path faster than 0.5ns
+- Hardware multiplier card
+    - 16b x 16b -> 32b
+    - memory mapped
+    - https://www.youtube.com/watch?v=M8dk0JpkrbY
