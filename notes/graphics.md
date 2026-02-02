@@ -17,31 +17,22 @@ Both of the options would provide basically the same functionality.
     - Even when running over low bandwidth SLIP link
 
 # Design
-- 640x480 resolution
-- 4bpp, 256 entry global palette, 16b palette entries (RGB565)
+- 640x480 or 800x600
+- 4bpp or 8bpp, 16b palette entries (RGB565)
 - Graphics memory
     - 512kB video RAM (TODO: 1MB?)
-- Main and overlay framebuffers
-    - Start at pointer in graphics memory (1 word is 4 pixels, how to handle that?)
-    - Overlay framebuffer supports transparency as color 0, rendered on top
-    - Palette offset into global palette
-- 64 sprites
-    - 16x16 tiles
-    - 1 tile width, arbitrary number of tiles height (16x16, 16x32, 16x48...)
-    - Rendered with fixed Z order (TODO: Order relative to overlay framebuffer?)
-    - Start tile index
-    - Palette offset into global palette
+- Selectable framebuffer offset and row stride
+    - Can be used to double buffer and/or scroll the display
 - Commands:
     - Upload to graphics memory
     - Blit
-        with transparent color 0, or without
+        with or without transparent color
     - Draw primitives in graphics memory
-        - Axis aligned rectangles
+        - Axis aligned rectangle
             - filled
             - outlined
-        - Lines?
-        - Circles?
-        - Filled triangles ?
+        - Line
+        - Filled triangle
 - Events:
     - Keyboard
     - Mouse
