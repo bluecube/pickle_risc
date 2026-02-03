@@ -146,8 +146,8 @@ pub enum Instruction {
     Xori { rd: Reg, v: i4 },
     Ldcr { rd: Reg, cr: ControlRegister },
     Stcr { val: Reg, cr: ControlRegister },
-    Syscall { val: u4 },
-    Reti,
+    Sys { val: u4 },
+    Ctxsw,
     Break,
 }
 
@@ -185,8 +185,8 @@ impl Instruction {
             Instruction::Xori { rd, v } => encode_r4(rd, v, 15, 14),
             Instruction::Ldcr { rd, cr } => encode_r4u(rd, cr.into(), 0, 15),
             Instruction::Stcr { val, cr } => encode_r4u(val, cr.into(), 1, 15),
-            Instruction::Syscall { val } => encode_r4u(&Reg::new(0).unwrap(), (*val).into(), 2, 15),
-            Instruction::Reti => 3 << 4 | 15,
+            Instruction::Sys { val } => encode_r4u(&Reg::new(0).unwrap(), (*val).into(), 2, 15),
+            Instruction::Ctxsw => 3 << 4 | 15,
             Instruction::Break => 15 << 4 | 15,
         }
     }
@@ -261,8 +261,8 @@ impl Instruction {
                         val: rd,
                         cr: ControlRegister::try_from_primitive(b.into()).unwrap(),
                     },
-                    2 => Self::Syscall { val: b },
-                    3 => Self::Reti,
+                    2 => Self::Sys { val: b },
+                    3 => Self::Ctxsw,
                     4..=14 => return None,
                     15 => Self::Break,
                     _ => unreachable!(),
@@ -331,7 +331,7 @@ mod tests {
     }
 
     #[test_case(Instruction::Addi { rd: Reg(0), v: 1 }; "addi_r0_1")]
-    #[test_case(Instruction::Syscall { val: 13u8.try_into().unwrap() }; "syscall_13")]
+    #[test_case(Instruction::Sys { val: 13u8.try_into().unwrap() }; "syscall_13")]
     #[test_case(Instruction::Ldui { rd: Reg(0), v: 0 }; "ldui_r0_0")]
     fn instruction_word_roundtrip_example(instr: Instruction) {
         let encoded: u16 = instr.encode();

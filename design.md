@@ -21,12 +21,7 @@ As usual this is incomplete and slightly outdated.
     - Delay slot after all branch and jump instructions
 - Only one status bit: `C`arry
 - Control registers (Needs work!)
-    - Display
-        - `0`
-        - WO
-        - Value written here is displayed on the front panel
     - CpuStatus
-        - `1`
         - RW
         - Contains:
             - 1b interrupt enabled flag
@@ -34,34 +29,30 @@ As usual this is incomplete and slightly outdated.
                 - Controls if privileged instructions are enabled
             - 1b MMU enabled flag
                 - If disabled, MMU maps program memory pages 1:1 to frames at the beginning of memory, data pages to frames from in upper half of memory.
-    - ContextID
-        - `2`
-        - WO
-        - 6bit
-        - Used as a part of virtual page address
-            - Equivalent to process ID (with &lt; 64 processes)
-    - IntCause
-        - `3`
-        - RO
-        - Cause of currently processed interrupt
-    - IntBase
-        - `4`
-        - WO
-        - Where to jump on interrupt
-    - IntPc
-        - `5`
+            - 6b Context ID
+                - Used as a part of virtual page address, equivalent to process ID (with &lt; 64 processes)
+    - NextCpuStatus
         - RW
-        - Saved program counter after interrupt
-        - New program counter used by RETI
+        - Saved CPU status after interrupt
+        - New CPU status to be set with ctxsw
+    - NextPc
+        - RW
+        - Saved PC after interrupt
+        - New PC to jump to with `ctxsw`
+    - IntCause
+        - RO
+        - Bitmask of interrupt flags (!?!?!?!?)
     - MMUAddr: Virtual page address
-        - `6`
         - RW
         - for storing MMU records
         - set during page failure
     - MMUData
-        - `7`
         - WO
         - triggers the MMU write at given MMUAddr
+    - Display
+        - WO
+        - Drives a 7-segment display on the front panel
+        - 1:1 bit to segment mapping (= no decoder, must be done in SW)
 - Separate virtual address spaces for data / code
     - To acces code from a process, the OS must map the memory as data
     - Exception is the ldp (load from program memory) instruction that allows each process to read its program space freely
