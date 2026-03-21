@@ -80,17 +80,18 @@ Compromises have been made :)
     - `ldi addr, 0x17; ld dest, addr + 0`
   - Same for functions -- jumps to first 256 bytes are as fast as relative jumps
     - `ldi addr, 0xa5; jal r0, addr`
-- No push
-  - We could do address increment in the first execution cycle, in parallel with next instruction fetch, then load the data in the second cycle.
-  - One possible version would have RR4 encoding same as `ld` and `st`, would add the immediate.
-    - For this we don't have a free 4bit opcode left
-  - Other possible version would support only -1 (or also +1, possibly) and take one or two RR instruction slots.
-      - I skimped on a bus driver for generating +-1 on the ALU A bus.
-  - Repeated pushes (eg. spilling registers to stack) can be worked around by batching `st` with offset followed by a single add. (`st r15, r1; st r15-1, r2; st r15-2, r3; addi r15, r15, -3`)
 - No pop
-  - More fundamental problem than push, pop requires two registers to be written.
-  - Also can be worked aroud by batching
-
+  - Pop requires two registers to be written.
+  - Repeated pops (eg. restoring state after interrupt) can be worked around by batching `ld` with offset followed by a single add. (`ld r1, sp; ld r2,sp+1; ld r3, sp+2; addi sp, sp, 3`)
+- `stinc` instead of push
+  - This is strictly stronger than push (`push sp, v` = `stinc sp-1, v`)
+  - Not sure if arguments other than +-1 are useful, but this instruction is just "we can do it for (almost) free, so why not".
+- On wishlist -- slightly weird, but potentially useful:
+    - Microcoded multi cycle `memcpy` instruction
+      - Probably could run in 2 * N + 1 cycles to copy N words of memory, that's as fast as a dedicated DMA device could run
+      - Dedicated DMA would also need to block the CPU (because instruction fetches)
+    - Three cycle long atomic swap memory and register instruction
+      - Not strictly necessary, because OS can do atomic operations through a syscall, but this would allow us to play with fast futex implementations.
 
 ## Microcode ROM
 ### Incoming signals
