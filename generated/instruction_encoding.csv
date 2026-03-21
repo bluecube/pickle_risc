@@ -1,0 +1,67 @@
+15-12,11-8,7-4,3-0,,,,,,
+D register idx,"B register idx
+imm4
+lo4(imm8)","A register idx
+imm4
+hi4(imm8)
+Secondary opcode",Primary opcode,,Mnemonic,Name,Pseudocode,Privileged,Microcode notes
+rd,rb,ra,0,,mv.z,Move if zero,if ra == 0: rd = rb,,rd = ra | rb
+,,,1,,,(unused),,,
+rd,rb,ra,2,,add,,rd = ra + rb,,
+rd,rb,ra,3,,sub,,rd = ra – rb,,
+rd,rb,ra,4,,bcmp,Byte-wise compare,rd = ((ra & 0xff) == (rb & 0xff)) | ((ra >> 8) == (rb & 0xff)) << 1,,
+rd,rb,ra,5,,pack,Pack bytes into word,rd = (rb << 8)  | (ra & 0xff),,
+rd,lo4(imm8),hi4(imm8),6,,ldui,Load upper immediate,rd = (imm8 << 8)  | (rd & 0xff),,
+rd,lo4(imm8),hi4(imm8),7,,ldi,Load immediate,rd = imm8,,"0→A, rd = 0 | imm8"
+rd,lo4(imm8),hi4(imm8),8,,ldpc,Load PC with offset,rd = pc + sign_extend(imm8),,Pc → A
+rd,lo4(imm8),hi4(imm8),9,,addi,Add immediate value,rd += sign_extend(imm8),,
+rd,imm4,ra,10,,ld,Load with offset,rd = D[ra + imm4]; L = 1,,MAR = ra + imm4; mem → D
+rd,imm4,ra,11,,st,Store with offset,D[ra + imm4] = rd,,"MAR = ra + imm4; rd → A, pass A, D → mem"
+rd,imm4,ra,12,,stinc,Store with increment,rd = rd + imm4; D[rd] = ra,,"rd = MAR = rd + imm4; ra → A, pass A, D → mem"
+,,,13,,,(unused),,,
+,,0..=1,14,,,(unused),,,
+,rb,2,14,,jmp.c,Branch if carry,if C: pc = rb; else: pc += 1,,B → Pc 
+,rb,3,14,,jmp.nc,Branch if not carry,if !C: pc = rb ; else: pc += 1,,B → Pc 
+rd,rb,4,14,,jmp.z,Branch if register is zero,if rd == 0: pc = rb ; else: pc += 1,,B → Pc 
+rd,rb,5,14,,jmp.nz,Branch if register is not zero,if rd != 0: pc = rb ; else: pc += 1,,B → Pc 
+rd,rb,6,14,,jal,Jump and link,"rd = pc, pc = rb",,"Pc → A, B → Pc, pass A"
+rd,rb,7,14,,mv.c,Move if carry,if C: rd = rb,,"0→A, rd = r0 | rb"
+rd,rb,8,14,,mv.nc,Move if not carry,if !C: rd = rb,,"0→A, rd = r0 | rb"
+rd,rb,9,14,,add.c,Conditional add,if C: rd += rb,,
+rd,rb,10,14,,addc,Add with carry,rd += rb + C,,
+rd,rb,11,14,,subc,Subtract with carry,rd -= rb + C,,
+rd,rb,12,14,,shr,Sift right,rd = rb >> 1,,
+rd,rb,13,14,,shrc,Shift right with carry,rd = rb >> 1 | C << 15,,
+rd,rb,14,14,,shra,Arithmetic shift right,rd = rb >> 1  (arithmetic),,
+rd,rb,15,14,,shr8,Shift right by 8 bits,rd = rb >> 8,,"Pass ALU op, configure as shr8"
+rd,rb,0,15,,and,,rd = rd & rb,,
+rd,imm4,1,15,,andi,,rd = rd & imm4,, 
+rd,rb,2,15,,or,,rd = rd | rb,,
+rd,imm4,3,15,,ori,,rd = rd | imm4,,
+rd,rb,4,15,,xor,,rd = ra ^ rb,,
+rd,imm4,5,15,,xori,,rd = rd ^ imm4,,
+rd,imm4,6,15,,ldcr,Load control register,rd = CR[imm4],yes,
+rd,imm4,7,15,,stcr,Store to control register,CR[imm4] = rd,yes,
+,imm4,8,15,,sys,,(like interrupt),,
+,,9,15,,ctxsw,Context switch,"Pc =NextPc, CpuStatus = NextCpuStatus",yes,
+,,10..=14,15,,,(unused),,,
+,,15,15,,break,,Pause emulator / switch to single step mode,yes,
+,,,,,,,,,
+,,,,,,On interrupt,,,
+,,,,,,,"NextPc = Pc, NextCpuStatus = CpuStatus, Pc = 0, CpuStatus = 0 + (original MMU enabled)",,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,memory access (2 cycles),,,
+,,,,,,Jump / branch,,,
+,,,,,,Value is fixed and cannot change,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,Wishlist / ideas,,,,
+,,,,,,,,,
+,,,,,memcpy,Microcoded multi word copy,while count { dst[count] = src[count] ; count++; } // Weird (but usable) overflowing behavior!,,
+,,,,,swap,Atomic swap memory and register,"swap(rd, mem[rb])",,
+,,,,,sext,Sign extend,rd = sext(rb & 0xff),,
+,,,,,bit,Load constant with single bit set,rd = 1 << rb,,
+,,,,,biti,Load constant with single bit set,rd = 1 << imm4,,
+,,,,,,downgrade bcmp to two operand?,,,
