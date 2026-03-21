@@ -86,8 +86,10 @@ Compromises have been made :)
     - For this we don't have a free 4bit opcode left
   - Other possible version would support only -1 (or also +1, possibly) and take one or two RR instruction slots.
       - I skimped on a bus driver for generating +-1 on the ALU A bus.
+  - Repeated pushes (eg. spilling registers to stack) can be worked around by batching `st` with offset followed by a single add. (`st r15, r1; st r15-1, r2; st r15-2, r3; addi r15, r15, -3`)
 - No pop
   - More fundamental problem than push, pop requires two registers to be written.
+  - Also can be worked aroud by batching
 
 
 ## Microcode ROM
@@ -99,13 +101,17 @@ Compromises have been made :)
 - 2 bits condition flags
     - ALU A is zero
     - C
+- 2 bits Microcode FSM state
 
-Total 12
+Total 14
 
 ### Outgoing control lines
 (goal is as small as possible multiple of 8; needs more work)
 
+
 TODO
+
+- 2 bits Microcode FSM next state
 
 ## Memory
 - 16 bit-addressable memory (Byte level access emulated in SW)

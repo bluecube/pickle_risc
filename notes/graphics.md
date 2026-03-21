@@ -38,3 +38,6 @@ Both of the options would provide basically the same functionality.
     - Mouse
     - Joystick?
 - Maybe we could also support sound?
+- Emulation details
+  - Blitter runs on 2-4MPx/s
+  - Emulates scanlines
